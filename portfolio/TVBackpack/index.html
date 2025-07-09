@@ -758,5 +758,27 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+<script>document.addEventListener('DOMContentLoaded', function() {
+  const container = document.querySelector('.slideshow-container');
+  if (!container) return;
+  let startX = null;
+  container.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  container.addEventListener('touchend', function(e) {
+    if (startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
+    if (Math.abs(diff) >= 50) {
+      if (diff > 0) {
+        plusSlides(-1);
+      } else {
+        plusSlides(1);
+      }
+    }
+    startX = null;
+  }, { passive: true });
+});
+</script>
 </body>
 </html>
