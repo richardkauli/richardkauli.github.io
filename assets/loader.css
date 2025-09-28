@@ -1,0 +1,77 @@
+html.loading,
+body.loading {
+  overflow: hidden;
+}
+
+.rk-loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.98);
+  z-index: 9999;
+  transition: opacity 200ms ease;
+  color: #111;
+}
+
+.rk-loader.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rk-stack {
+  display: grid;
+  gap: 16px;
+  width: min(360px, 80vw);
+  text-align: center;
+}
+
+.rk-bar {
+  height: 8px;
+  width: 100%;
+  background: #eee;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.rk-bar > span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: #111;
+  transition: width 180ms ease;
+}
+
+.rk-caption {
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rk-loader {
+    background: rgba(0, 0, 0, 0.98);
+    color: #f5f5f5;
+  }
+
+  .rk-bar {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .rk-bar > span {
+    background: rgba(255, 255, 255, 0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-loader {
+    transition: none;
+  }
+
+  .rk-loader.hide {
+    transition: none;
+  }
+
+  .rk-bar > span {
+    transition: none;
+  }
+}
