@@ -1,0 +1,727 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head><link href="https://www.richardkauli.com/favicon.png" rel="icon" type="image/png"/>
+<script src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js" type="module"></script>
+<meta charset="utf-8"/>
+<title>ARCHIVE | Richard Kauli</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<style>
+@font-face {
+  font-family: 'ArialBlackCustom';
+  src: url('https://www.richardkauli.com/arial_black.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+
+
+
+
+
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Courier, monospace;
+      background-color: white;
+    }
+
+    .product-grid {
+      display: grid;
+      gap: 2vw;
+      padding: 4vw;
+      justify-items: center;
+    
+  padding-bottom: 100px; }
+
+    .product {
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .model-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #eee;
+      display: block;
+    }
+
+    .title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-top: 0.5em;
+      text-align: left;
+    }
+
+    .description {
+      font-size: 1em;
+      margin-top: 0.5em;
+      text-align: left;
+    }
+
+    .read-more {
+  font-size: 1em;
+  color: black;
+  text-decoration: none;
+  margin: 0.5em 0 0 0;
+  padding: 0;
+  display: inline-block;
+  text-align: left;
+  font-family: Courier, monospace;
+}
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 1.5em 0;
+    }
+
+    .bottom-nav button {
+      font-family: Arial Black, Arial, sans-serif;
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+
+    
+
+
+}
+
+}
+
+}
+
+}
+
+}
+
+    }
+
+    @media screen and (max-width: 600px) {
+      .product {
+        width: 90vw;
+        margin: 0 auto;
+      }
+
+      .bottom-nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5em;
+      }
+    }
+  
+.bottom-nav button:hover,
+
+
+
+
+
+
+.bottom-menu:hover {
+  color: red !important;
+  background-color: transparent !important;
+}
+
+
+.bottom-nav button:hover {
+  color: red !important;
+  background-color: transparent !important;
+}
+
+
+.bottom-nav button {
+  padding: 0;
+  margin: 0;
+  outline: none;
+  transition: color 0.3s ease;
+}
+.bottom-nav button:hover {
+  color: red !important;
+  background: none !important;
+  padding: 0;
+  margin: 0;
+}
+
+
+
+.project-button {
+  all: unset;
+  cursor: pointer;
+  font-family: Courier, monospace;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: left;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0.5em 0 0.25em 0;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.project-button:hover {
+  color: darkgrey !important;
+  background: none !important;
+}
+
+
+
+.read-more:hover {
+  background-color: red;
+  color: white;
+}
+
+
+.bottom-nav button {
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.bottom-nav button:hover {
+  transform: scale(1.1);
+}
+
+
+.bottom-nav {
+  padding: 0 !important;
+  height: 4em !important;
+  align-items: center; /* vertically center buttons */
+}
+.bottom-nav button {
+  font-size: 1.5em !important; /* increase button text size */
+  line-height: 1; /* ensure no extra height from line spacing */
+}
+
+
+
+}
+
+}
+
+}
+
+}
+
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+}
+
+}
+
+}
+
+}
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1441px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    padding: 0.5em 0 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    height: auto !important;
+    bottom: 0 !important;
+  }
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+
+.instagram-icon img {
+  width: 28px;
+  height: 28px;
+}
+
+
+.instagram-icon {
+  width: 24px;
+  height: 24px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.instagram-icon:hover {
+  transform: scale(1.1);
+  background-color: red;
+}
+
+
+@media (min-width: 769px) {
+  .bottom-nav {
+    justify-content: space-between !important;
+    padding: 1em 2vw !important;
+  }
+}
+
+
+/* Hamburger styles */
+.hamburger {
+  display: none;
+}
+.hamburger span {
+  display: block;
+  width: 30px;
+  height: 4px;
+  margin: 5px auto;
+  background-color: black;
+  transition: all 0.3s ease;
+}
+
+/* Overlay menu */
+.mobile-menu-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+.mobile-menu-overlay ul {
+  list-style: none;
+  padding: 2rem;
+  margin: 0;
+}
+.mobile-menu-overlay li {
+  margin: 1rem 0;
+  text-align: center;
+}
+.mobile-menu-overlay a {
+  text-decoration: none;
+  font-family: 'ArialBlackCustom', Arial Black, Arial, sans-serif;
+  font-size: 1.2rem;
+  color: black;
+}
+
+/* Body class when menu open */
+body.menu-open .mobile-menu-overlay {
+  transform: translateY(0);
+
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+body.menu-open .hamburger span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+body.menu-open .hamburger span:nth-child(2) {
+  opacity: 0;
+}
+body.menu-open .hamburger span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+/* Show hamburger on mobile, hide bottom-nav */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: none !important;
+  }
+  .hamburger {
+    display: block;
+    position: fixed;
+    bottom: 1em;
+    right: 1em;
+    z-index: 1001;
+    cursor: pointer;
+  }
+}
+
+
+/* Mobile overlay Instagram icon styling */
+.mobile-menu-overlay .instagram-icon {
+  width: 32px;
+  height: 32px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.mobile-menu-overlay .instagram-icon:hover { background-color: red;
+}
+
+
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay a {
+    font-size: 2rem !important;
+  }
+}
+
+
+
+}
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay ul {
+    align-items: flex-start !important;
+    padding-left: 1rem !important;
+  margin: 0 !important;
+  }
+  .mobile-menu-overlay a {
+    text-align: left !important;
+    width: auto !important;
+  }
+}
+
+
+.mobile-menu-overlay ul li {
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.mobile-menu-overlay a {
+  display: block;
+  padding-left: 1rem;
+  text-align: left;
+}
+
+.mobile-menu-link {
+  text-decoration: none;
+  color: black;
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+}
+
+.mobile-menu-link:hover {
+  color: red !important;
+  transform: none !important;
+}
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay a:hover {
+    color: red !important;
+    background: none !important;
+  }
+}
+
+
+
+.mobile-menu-link {
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+  font-size: 2rem;
+  text-decoration: none;
+  color: black;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+}
+.mobile-menu-link:hover {
+  color: red !important;
+}
+
+/* Increase hamburger clickable area */
+.hamburger {
+  width: 50px;
+  height: 50px;
+}
+
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+    position: fixed;
+    bottom: 1.5em !important;
+    right: 1.5em !important;
+    width: 40px !important;
+    height: 40px !important;
+    z-index: 1001;
+    cursor: pointer;
+  }
+}
+
+
+/* Mobile menu uniform styling */
+@media (max-width: 768px) {
+  .mobile-menu-overlay {
+    top: 0; left: 0; width: 100vw; height: 100vh;
+  }
+  .mobile-menu-overlay ul {
+    list-style: none;
+    padding: 2rem 1rem;
+    margin: 0;
+  }
+  .mobile-menu-overlay li {
+    margin: 0;
+    padding: 0.75rem 0;
+  }
+  .mobile-menu-overlay a {
+    text-decoration: none;
+    font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+    font-size: 2rem;
+    color: black;
+    display: block;
+    width: 100%;
+    text-align: left;
+    transition: color 0.2s ease;
+  }
+  .mobile-menu-overlay a:hover {
+    color: red !important;
+  }
+}
+
+
+.mobile-menu-overlay .instagram-icon {
+  width: 32px;
+  height: 32px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+.mobile-menu-overlay .instagram-icon:hover { background-color: red;
+}
+
+
+/* Disable scaling on mobile instagram icon hover */
+.mobile-menu-overlay .instagram-icon:hover {
+  transform: none !important;
+  background-color: red !important;
+}
+
+
+/* Highlight active Portfolio menu item in mobile overlay */
+.mobile-menu-overlay a[href*="archive"] {
+  color: red !important;
+}
+
+
+/* Highlight active Portfolio button in desktop nav */
+.bottom-nav button[onclick*="archive"] {
+  color: red !important;
+}
+
+    /* Slightly more space after titles */
+    .about-structured p strong {
+      display: block;
+      margin-bottom: 0.75em;
+    }
+
+    .about-structured a.project-link { color: black; text-decoration: none; display: inline-block; width: 100%; line-height: 1.6; }
+    .about-structured a.project-link:hover { color: white; background-color: red; }
+
+.about-structured a.project-link { text-decoration: none; }
+.about-structured a.project-link:hover {
+  text-decoration: underline;
+  text-decoration-color: white;
+  color: white;
+  background-color: red;
+}
+
+
+.about-structured a.project-link,
+.about-structured span.project-link {
+  display: block;
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+</style>
+<style>
+/* Fully hide scrollbars across all modern browsers */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari */
+}
+
+    .about-structured a.project-link { color: black; text-decoration: none; display: inline-block; width: 100%; line-height: 1.6; }
+    .about-structured a.project-link:hover { color: white; background-color: red; }
+
+.about-structured a.project-link { text-decoration: none; }
+.about-structured a.project-link:hover {
+  text-decoration: underline;
+  text-decoration-color: white;
+  color: white;
+  background-color: red;
+}
+</style>
+<style>
+a.project-link img {
+  width: 20px;
+  height: auto;
+  vertical-align: middle;
+  margin-left: 6px;
+  transition: none !important;
+}
+a.project-link:hover img {
+  filter: brightness(0) invert(1);
+}
+</style><link rel="canonical" href="https://www.richardkauli.com/archive/" />
+<meta property="og:title" content="ARCHIVE | Richard Kauli" />
+<meta property="og:url" content="https://www.richardkauli.com/archive/" />
+<meta name="twitter:title" content="ARCHIVE | Richard Kauli" />
+</head>
+<body style="margin-top: 0; padding-top: 0;">
+<h1>Archive</h1>
+<div class="about-structured" style="max-width: 1000px; margin: 0 auto 12em auto; padding: 0 5vw; font-family: Courier, monospace; font-size: 1em; line-height: 1.6;">
+<p><strong>Group Projects:</strong>
+<a class="project-link" href="https://2022-artshow.freeinquotes.com/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2022 Jul SEE HOW FREE YOU REALLY ARE - Fashion and Web3 Pop-Up, New York, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Nov Piece Unik - Fashion Experience and Auction, Los Angeles, CA</span>
+<a class="project-link" href="https://www.youtube.com/watch?v=ADoRabr_ZRU" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2023 Nov UNDER TRACKS_ - Short film, Osaka, Japan<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2023DecParkMart/" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 Dec ParkMart - Fashion Pop-Up, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2024 Sep Piece Unik - Fashion Experience and Auction, New York, NY</span>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2025 Aug Slow Driving Club - Motorcycle Enthusiast Club, New York, NY</span>
+<div style="margin-top:1em;"></div><strong>Selected Fashion Shows:</strong><div style="margin-bottom:1em;"></div>
+<a class="project-link" href="/archive/2023AprZeus/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Apr ZEUS - CENSORED SS23 Collection, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2023AprFWBK/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Apr Fashion Week Brooklyn - CENSORED SS23 Collection, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 Apr ZEUS - CENSORED SS23 Collection, Brooklyn, NY</span>
+<a class="project-link" href="/archive/2023AugJapanVillage/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Aug Japan Village - Million Dollar Bag Debut, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2023SepTosh/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Sep TOSH - CASH ME IF YOU CAN, New York, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2023OctFWBK/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Oct Fashion Week Brooklyn - POWER NAP Collection, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2024FebFWBKLondon/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Feb Fashion Week Brooklyn - POWER NAP Collection, London, United Kingdom<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2024FebFWBKParis/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Feb Fashion Week Brooklyn - POWER NAP Collection, Paris, France<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2024 Apr Fashion Week Brooklyn - PLUGGED IN Collection, Brooklyn, NY</span>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Oct Fashion Week Brooklyn - PLUGGED IN TOO Collection, Brooklyn, NY</span>
+<a class="project-link" href="/archive/2024NovRunway27/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Nov Runway 27 - TV Backpack, Fashion Institute of Technology, New York, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<p><strong>Books/Zines:</strong>
+<a class="project-link" href="/archive/2020EastRiverTitans/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2020 Apr East River Titans, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2021Backgrounds/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2021 Mar Backgrounds, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+</p>
+
+<p><strong>Event Fliers:</strong>
+<a class="project-link" href="/archive/2025MarFlier/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2025 Mar Housewarming #1, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2025AprFlier/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2025 Apr #2, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2025MayFlier/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2025 May Prospect Park BBQ, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2025JulFlier/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2025 Jul The Fourth Gathering, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+<a class="project-link" href="/archive/2025AugFlier/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2025 Aug 22nd Birthday, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+</p>
+
+<p><strong>Brands:</strong>
+<a class="project-link" href="https://freeinquotes.com" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2022 - 2025 Founder of “FREE”, Brooklyn, NY<img alt="Link Icon" src="link.png" style="width: 22px; height: 11px; vertical-align: middle; margin-left: 6px;"/></a>
+</p>
+<p><strong>Honors/Awards:</strong>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Scholastic Gold Key Award for Photography</span>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Scholastic Silver Key Award for Photography</span>
+</p>
+<p><strong>Employment:</strong>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2021 - 2024  Lifeguard for American Pool, Greater NYC Region</span>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022      Studio Intern for _by.Alexander, New York, NY</span>
+</p>
+<p>
+<strong>Education:</strong>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 - 2025 Fashion Business Management AAS, Fashion Institute of Technology, New York, NY</span>
+<span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2025 - 2027 Entrepreneurship for the Fashion and Design Industries BS, Fashion Institute of Technology, New York, NY</span>
+</p></p></div>
+<div class="bottom-nav"><button onclick="location.href='https://www.richardkauli.com'">RICHARD KAULI</button><button onclick="location.href='../portfolio/'">PORTFOLIO</button><button onclick="location.href='../archive/'">ARCHIVE</button><button onclick="location.href='../contact/'">CONTACT</button><a class="instagram-icon" href="https://www.instagram.com/richard.kauli" target="_blank"></a></div>
+<!-- Mobile Hamburger Menu -->
+<div class="hamburger" id="hamburger">
+<span></span>
+<span></span>
+<span></span>
+</div>
+<div class="mobile-menu-overlay" id="menuOverlay">
+<ul>
+<li><a href="https://www.richardkauli.com">RICHARD KAULI</a></li><li><a href="../portfolio/">PORTFOLIO</a></li>
+<li><a href="../archive/">ARCHIVE</a></li>
+<li><a href="../contact/">CONTACT</a></li>
+<li><a class="mobile-menu-link" href="https://www.instagram.com/richard.kauli" target="_blank"><div class="instagram-icon"></div></a></li>
+</ul>
+</div>
+<script>
+document.getElementById('hamburger').addEventListener('click', function() {
+  document.body.classList.toggle('menu-open');
+});
+</script><script>document.addEventListener('DOMContentLoaded', function() {
+  const container = document.querySelector('.slideshow-container');
+  if (!container) return;
+  let startX = null;
+  container.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  container.addEventListener('touchend', function(e) {
+    if (startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
+    if (Math.abs(diff) >= 50) {
+      if (diff > 0) {
+        plusSlides(-1);
+      } else {
+        plusSlides(1);
+      }
+    }
+    startX = null;
+  }, { passive: true });
+});
+</script>
+
+<script src="/assets/js/preloadImages.js" defer></script>
+</body>
+</html>
