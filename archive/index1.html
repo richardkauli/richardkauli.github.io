@@ -5,48 +5,9 @@
 <head><link href="https://www.richardkauli.com/favicon.png" rel="icon" type="image/png"/>
 <script src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js" type="module"></script>
 <meta charset="utf-8"/>
-<title>Arsenal Pants</title>
-<meta property="og:image" content="https://www.richardkauli.com/portfolio/ArsenalPants/1.jpg" />
+<title>ARCHIVE | Richard Kauli</title>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <style>
-.bottom-nav button {
-  font-family: 'ArialBlackCustom', Arial Black, Arial, sans-serif;
-  font-size: 1.5em;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  margin: 0.5em 0;
-  color: black;
-  transition: transform 0.2s ease, color 0.3s ease;
-}
-
-.bottom-nav button:hover {
-  color: red !important;
-  background: none !important;
-  transform: scale(1.1);
-}
-
-
-@font-face {
-  font-family: 'DDIN';
-  src: url('../D-DIN.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-
-/* Hide scrollbar while keeping scroll functionality */
-html, body {
-  overflow: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-html::-webkit-scrollbar, body::-webkit-scrollbar {
-  display: none;
-}
-
-
 @font-face {
   font-family: 'ArialBlackCustom';
   src: url('https://www.richardkauli.com/arial_black.ttf') format('truetype');
@@ -113,7 +74,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     .read-more {
   font-size: 1em;
   color: black;
-  text-decoration: underline;
+  text-decoration: none;
   margin: 0.5em 0 0 0;
   padding: 0;
   display: inline-block;
@@ -131,7 +92,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
       padding: 1.5em 0;
     }
 
-    
+    .bottom-nav button {
+      font-family: Arial Black, Arial, sans-serif;
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
 
     
 
@@ -174,11 +141,24 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 
+.bottom-nav button:hover {
+  color: red !important;
+  background-color: transparent !important;
+}
 
 
-
-
-
+.bottom-nav button {
+  padding: 0;
+  margin: 0;
+  outline: none;
+  transition: color 0.3s ease;
+}
+.bottom-nav button:hover {
+  color: red !important;
+  background: none !important;
+  padding: 0;
+  margin: 0;
+}
 
 
 
@@ -210,8 +190,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 
-
-
+.bottom-nav button {
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.bottom-nav button:hover {
+  transform: scale(1.1);
+}
 
 
 .bottom-nav {
@@ -219,7 +203,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   height: 4em !important;
   align-items: center; /* vertically center buttons */
 }
-
+.bottom-nav button {
+  font-size: 1.5em !important; /* increase button text size */
+  line-height: 1; /* ensure no extra height from line spacing */
+}
 
 
 
@@ -234,7 +221,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 
 
-  
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
 }
 
 }
@@ -247,12 +236,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 
 
-  
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
 }
 
 
 
-  
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
 }
 
 
@@ -287,7 +280,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     height: auto !important;
     bottom: 0 !important;
   }
-  
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
 }
 
 
@@ -560,170 +555,118 @@ body.menu-open .hamburger span:nth-child(3) {
 
 
 /* Highlight active Portfolio menu item in mobile overlay */
+.mobile-menu-overlay a[href*="about"] {
+  color: red !important;
+}
+
+
 /* Highlight active Portfolio button in desktop nav */
-/* ToggleModel underline hover and hitbox */
-#toggleModel {
-  display: block;
-  width: 100%;
-  font-family: Courier, monospace;
-  font-size: 1em;
-  text-decoration: underline;
-  cursor: pointer;
-  color: black;
-  padding: 0;
-  line-height: 1;
+.bottom-nav button[onclick*="about"] {
+  color: red !important;
 }
-#toggleModel:hover {
-  background-color: red;
+
+    /* Slightly more space after titles */
+    .about-structured p strong {
+      display: block;
+      margin-bottom: 0.75em;
+    }
+
+    .about-structured a.project-link { color: black; text-decoration: none; display: inline-block; width: 100%; line-height: 1.6; }
+    .about-structured a.project-link:hover { color: white; background-color: red; }
+
+.about-structured a.project-link { text-decoration: none; }
+.about-structured a.project-link:hover {
+  text-decoration: underline;
+  text-decoration-color: white;
   color: white;
-  text-decoration: underline;
-}
-
-
-
-
-
-#contactEmail {
-  display: block;
-  width: 100%;
-  text-decoration: underline;
-  padding: 0;
-  line-height: 1em;
-  color: black;
-}
-
-#contactEmail:hover {
   background-color: red;
-  color: white !important;
-  text-decoration: underline !important;
 }
 
 
-.dot.active-dot { background: red !important; border: none !important; }
-.bottom-nav {
-  z-index: 2001 !important;
-  position: fixed !important;
-}
-.bottom-nav button, .bottom-nav a {
-  z-index: 2002 !important;
-  position: relative;
-}
-
-@media (min-width: 769px) {
-    .slides {
-    max-height: calc(100vh - 6em);
-    height: auto;
-    width: 100%;
-    object-fit: contain;
-  }
+.about-structured a.project-link,
+.about-structured span.project-link {
+  display: block;
+  padding-left: 1em;
+  text-indent: -1em;
 }
 
 </style>
 <style>
-#slide-counter {
-  display: inline-block;
-  font-family: Courier, monospace;
-  font-size: 1em;
-  margin: 0 1em;
+/* Fully hide scrollbars across all modern browsers */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }
-</style><style>
-.arrow-nav {
-  font-size: 2em;
-  cursor: pointer;
-  margin: 0 1em;
-  color: black;
-  display: inline-block;
-  transition: color 0.2s ease, transform 0.2s ease;
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari */
 }
-.arrow-nav:hover {
-  color: red;
-  transform: scale(1.2);
+
+    .about-structured a.project-link { color: black; text-decoration: none; display: inline-block; width: 100%; line-height: 1.6; }
+    .about-structured a.project-link:hover { color: white; background-color: red; }
+
+.about-structured a.project-link { text-decoration: none; }
+.about-structured a.project-link:hover {
+  text-decoration: underline;
+  text-decoration-color: white;
+  color: white;
+  background-color: red;
 }
-</style></head>
-<body>
-<div class="slideshow-container" style="position:relative;;width:100%;margin:0;"><img loading="lazy" alt="Slide 1" class="slides" src="1.jpg" style="width:100%;display:block;"/><img loading="lazy" alt="Slide 2" class="slides" src="2.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 3" class="slides" src="3.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 4" class="slides" src="4.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 5" class="slides" src="5.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 6" class="slides" src="6.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 7" class="slides" src="7.jpg" style="width:100%;display:none;"/><img loading="lazy" alt="Slide 8" class="slides" src="8.jpg" style="width:100%;display:none;"/><div onclick="plusSlides(-1)" style="position:absolute;top:0;left:0;width:50%;height:calc(100% - 60px);z-index:100;cursor:pointer;background:transparent;"></div><div onclick="plusSlides(1)" style="position:absolute;top:0;right:0;width:50%;height:calc(100% - 60px);z-index:100;cursor:pointer;background:transparent;"></div><div style="text-align:center;display:flex;justify-content:center;align-items:center;gap:1em;margin:0.25em 0;"><span class="arrow-nav" onclick="plusSlides(-1)">←</span><span id="slide-counter" style="font-family:Courier, monospace;font-size:1.25em;margin:0 1em;">1/21</span><span class="arrow-nav" onclick="plusSlides(1)">→</span></div></div>
-<!-- Product Description -->
-<div id="bottom" class="product-description" style="max-width:800px;margin:0 auto 2em;padding:0 1em;line-height:1.6;">
-<p style="font-family:Courier, monospace; font-size:1em; text-decoration:underline; cursor:pointer; color:black; margin:1em 0;">
-<h1 style="font-family:Courier, monospace; font-size: 2em; margin:1em 0; font-family:\'ArialBlackCustom\', Arial Black, Arial, sans-serif, Courier, monospace;">Arsenal Pants</h1>
-<!-- <span id="toggleModel">View 3D Model</span> -->
-</p>
-<p>Arsenal Pants feature printed firearms, ammunition, and explosives scattered across the fabric, paired with clear vinyl pockets that expose these images directly to the outside world. Designed as a commentary on the Second Amendment, the pants explore both the freedom to bear arms and the controversy surrounding it. By exposing weapons through transparent panels, the piece invites conversation.</p>
-<p style="padding-bottom:1em;"><a href="mailto:contact@richardkauli.com" id="contactEmail">contact@richardkauli.com</a></p>
-</div>
-<!-- 3D Model Viewer -->
-<div id="modelOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
-<button id="closeOverlay" style="
-      position:absolute;
-      top:1em;
-      right:1em;
-      font-size:3em;
-      background:transparent;
-      border:none;
-      color:black;
-      cursor:pointer;
-      z-index:2001;">
-      ✕
-    </button>
-<model-viewer alt="3D Model" auto-rotate="" camera-controls="" src="https://www.richardkauli.com/HELLO1.glb" style="width:100vw; height:100vh; background:#eee;"></model-viewer>
-</div>
-<script>
-    const btn = document.getElementById('toggleModel');
-    const overlay = document.getElementById('modelOverlay');
-    let open = false;
-    btn.addEventListener('click', () => {
-      open = !open;
-      overlay.style.display = open ? 'flex' : 'none';
-      btn.textContent = open ? 'Close 3D Model' : 'View 3D Model';
-    });
+</style>
+<meta property="og:title" content="ARCHIVE | Richard Kauli"/>
+<meta property="og:url" content="https://www.richardkauli.com/archive/"/>
+<meta name="twitter:title" content="ARCHIVE | Richard Kauli"/>
+<meta name="twitter:url" content="https://www.richardkauli.com/archive/"/>
+<link rel="canonical" href="https://www.richardkauli.com/archive/"/>
+</head>
+<body style="margin-top: 0; padding-top: 0;">
+<h1>Archive</h1>
+<div class="about-structured" style="max-width: 1000px; margin: 0 auto 12em auto; padding: 0 5vw; font-family: Courier, monospace; font-size: 1em; line-height: 1.6;">
+<p><strong>Education:</strong>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 - 2025 AAS in Fashion Business Management, Fashion Institute of Technology, New York, NY</span>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">EXPECTED 2027 BFA in Fashion Business Management, Fashion Institute of Technology, New York, NY</span></p>
+<p><strong>Group Projects:</strong>
+  <a class="project-link" href="https://2022-artshow.freeinquotes.com/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2022 Jul SEE HOW FREE YOU REALLY ARE - Fashion and Web3 Pop-Up, New York, NY</a>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Nov Piece Unik - Fashion Experience and Auction, Los Angeles, CA</span>
+  <a class="project-link" href="https://www.youtube.com/watch?v=ADoRabr_ZRU" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2023 Nov UNDER TRACKS_ - Short film, Osaka, Japan</a>
+  <a class="project-link" href="/archive/2023DecParkMart/" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 Dec ParkMart - Fashion Pop-Up, Brooklyn, NY</a>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2024 Sep Piece Unik - Fashion Experience and Auction, New York, NY</span>
+  <div style="margin-top:1em;"></div><strong>Selected Fashion Shows:</strong><div style="margin-bottom:1em;"></div>
+  <a class="project-link" href="/archive/2023AprZeus/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Apr ZEUS - CENSORED SS23 Collection, Brooklyn, NY</a>
+  <a class="project-link" href="/archive/2023AprFWBK/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Apr Fashion Week Brooklyn - CENSORED SS23 Collection, Brooklyn, NY</a>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2023 Apr ZEUS - CENSORED SS23 Collection, Brooklyn, NY</span>
+  <a class="project-link" href="/archive/2023AugJapanVillage/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Aug Japan Village - Million Dollar Bag Debut, Brooklyn, NY</a>
+  <a class="project-link" href="/archive/2023SepTosh/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Sep TOSH - CASH ME IF YOU CAN, New York, NY</a>
+  <a class="project-link" href="/archive/2023OctFWBK/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2023 Oct Fashion Week Brooklyn - POWER NAP Collection, Brooklyn, NY</a>
+  <a class="project-link" href="/archive/2024FebFWBKLondon/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Feb Fashion Week Brooklyn - POWER NAP Collection, London, United Kingdom</a>
+  <a class="project-link" href="/archive/2024FebFWBKParis/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Feb Fashion Week Brooklyn - POWER NAP Collection, Paris, France</a>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2024 Apr Fashion Week Brooklyn - PLUGGED IN Collection, Brooklyn, NY</span>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Oct Fashion Week Brooklyn - PLUGGED IN TOO Collection, Brooklyn, NY</span>
+  <a class="project-link" href="/archive/2024NovRunway27/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2024 Nov Runway 27 - TV Backpack, Fashion Institute of Technology, New York, NY</a>
   
-    // Close overlay button listener
-    const closeBtn = document.getElementById('closeOverlay');
-    closeBtn.addEventListener('click', () => {
-      open = false;
-      overlay.style.display = 'none';
-      btn.textContent = 'View 3D Model';
-    });
-</script>
-<!-- Slideshow Script -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    let slideIndex = 1;
-    showSlides(slideIndex);
+  <p><strong>Books/Zines:</strong>
+  <a class="project-link" href="/archive/2020EastRiverTitans/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2020 Apr East River Titans, Brooklyn, NY</a>
+  <a class="project-link" href="/archive/2021Backgrounds/" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_self">2021 Mar Backgrounds, Brooklyn, NY</a>
+  </p>
 
-    window.plusSlides = function(n) {
-        showSlides(slideIndex += n);
-    }
-
-    window.currentSlide = function(n) {
-        showSlides(slideIndex = n);
-    }
-
-    function showSlides(n) {
-        let i;
-        let slides = document.getElementsByClassName("slides");
-        let counter = document.getElementById("slide-counter");
-
-        if (n > slides.length) slideIndex = 1;
-        if (n < 1) slideIndex = slides.length;
-
-        for (i = 0; i < slides.length; i++) {
-            slides[i].style.display = "none";
-        }
-
-        slides[slideIndex - 1].style.display = "block";
-        if (counter) counter.textContent = slideIndex + '/' + slides.length;
-    }
-});
-</script>
-<div style="height:4em;"></div>
-<div class="bottom-nav">
-<button onclick="location.href='https://www.richardkauli.com'">RICHARD KAULI</button>
-<button onclick="location.href='https://www.richardkauli.com/portfolio/'">PORTFOLIO</button>
-<button onclick="location.href='https://www.richardkauli.com/archive/'">ARCHIVE</button>
-<button onclick="location.href='https://www.richardkauli.com/contact/'">CONTACT</button>
-<a class="instagram-icon" href="https://www.instagram.com/richard.kauli" target="_blank"></a>
-</div>
+  <p><strong>Honors/Awards:</strong>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Scholastic Gold Key Award for Photography</span>
+  <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022 Scholastic Silver Key Award for Photography</span>
+  </p>
+  <p><strong>Employment:</strong>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2021 - 2024  Lifeguard for American Pool, Greater NYC Region</span>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">2022      Studio Intern for _by.Alexander, New York, NY</span>
+    <a class="project-link" href="https://freeinquotes.com" style="display: block; padding-left: 5.5em; text-indent: -5.5em" target="_blank">2022 - 2025 Founder of “FREE”, Brooklyn, NY</a>
+  </p>
+  <p>
+    <strong>Technical Skills:</strong>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">Adobe Creative Suite: Illustrator, Photoshop, Lightroom, Premiere Pro, After Effects, InDesign</span>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">Web Design &amp; Coding: HTML, CSS, Javascript, Github, Vercel</span>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">3D Modeling: CLO 3D, Blender, AutoCAD, SketchUp</span>
+    <span class="project-link" style="display: block; padding-left: 5.5em; text-indent: -5.5em">Marketing &amp; Analytics: Shopify, Meta Ads, Google Ads, Google Analytics, Excel</span>
+  </p></p></div>
+<div class="bottom-nav"><button onclick="location.href='https://www.richardkauli.com'">RICHARD KAULI</button><button onclick="location.href='../portfolio/'">PORTFOLIO</button><button onclick="location.href='../archive/'">ARCHIVE</button><button onclick="location.href='../contact/'">CONTACT</button><a class="instagram-icon" href="https://www.instagram.com/richard.kauli" target="_blank"></a></div>
+<!-- Mobile Hamburger Menu -->
 <div class="hamburger" id="hamburger">
 <span></span>
 <span></span>
@@ -731,10 +674,9 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 <div class="mobile-menu-overlay" id="menuOverlay">
 <ul>
-<li><a href="https://www.richardkauli.com/">RICHARD KAULI</a></li>
-<li><a href="https://www.richardkauli.com/portfolio/">PORTFOLIO</a></li>
-<li><a href="https://www.richardkauli.com/archive/">ARCHIVE</a></li>
-<li><a href="https://www.richardkauli.com/contact/">CONTACT</a></li>
+<li><a href="https://www.richardkauli.com">RICHARD KAULI</a></li><li><a href="../portfolio/">PORTFOLIO</a></li>
+<li><a href="../archive/">ARCHIVE</a></li>
+<li><a href="../contact/">CONTACT</a></li>
 <li><a class="mobile-menu-link" href="https://www.instagram.com/richard.kauli" target="_blank"><div class="instagram-icon"></div></a></li>
 </ul>
 </div>
@@ -742,23 +684,7 @@ document.addEventListener('DOMContentLoaded', function () {
 document.getElementById('hamburger').addEventListener('click', function() {
   document.body.classList.toggle('menu-open');
 });
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const container = document.querySelector('.slideshow-container');
-  if (!container) return;
-  const imgs = container.querySelectorAll('img');
-  if (imgs.length > 1) {
-    imgs[0].addEventListener('load', function() {
-      for (let i = 1; i < imgs.length; i++) {
-        const preload = new Image();
-        preload.src = imgs[i].src;
-      }
-    }, { once: true });
-  }
-});
-</script>
-<script>document.addEventListener('DOMContentLoaded', function() {
+</script><script>document.addEventListener('DOMContentLoaded', function() {
   const container = document.querySelector('.slideshow-container');
   if (!container) return;
   let startX = null;
