@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Classroom Economy Game</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,27 +13,32 @@
       --bg:#000000;
       --greenDim: rgba(34,197,94,.12);
     }
-    html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: 'VT323', monospace; }
-    .crt-card{ border:2px solid var(--green); border-radius:14px; background: rgba(0,0,0,0.45); }
-    .crt-btn{ border:2px solid var(--green); color: var(--fg); background: transparent; padding:.5rem .75rem; border-radius:12px; }
+    html, body { height:100%; background:var(--bg); color:var(--fg); font-family:'VT323', monospace; }
+    .crt-card{ border:2px solid var(--green); border-radius:14px; background:rgba(0,0,0,.45); }
+    .crt-btn{ border:2px solid var(--green); color:var(--fg); background:transparent; padding:.5rem .75rem; border-radius:12px; }
     .crt-btn[disabled]{ opacity:.4; cursor:not-allowed; }
-    .crt-btn:hover{ background: var(--greenDim);}
-    .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .number-input[type=number] { -moz-appearance: textfield; }
-    .scroll-table { max-height: 70vh; overflow: auto; }
-    .score-total{ font-size: 2.75rem; line-height: 1; }
-    .score-sub{ font-size: .95rem; opacity: .95; }
-    .label{ font-size: .95rem; opacity:.9; }
-    .accent{ color: var(--green); }
-    select, input[type=number], input[type=range]{ background: transparent; color: var(--fg); border:2px solid var(--green); border-radius:10px; padding:.25rem .5rem; }
+    .crt-btn:hover{ background:var(--greenDim); }
+    .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    .number-input[type=number]{ -moz-appearance:textfield; }
+    .scroll-table{ max-height:70vh; overflow:auto; }
+    .score-total{ font-size:2.75rem; line-height:1; }
+    .score-sub{ font-size:.95rem; opacity:.95; }
+    .label{ font-size:.95rem; opacity:.9; }
+    .accent{ color:var(--green); }
+    select, input[type=number], input[type=range], input[type=text]{ background:transparent; color:var(--fg); border:2px solid var(--green); border-radius:10px; padding:.25rem .5rem; }
     option{ color:#000; }
     table{ width:100%; }
-    th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,0.15); }
-    .muted{ color: rgba(255,255,255,.8); }
+    th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,.15); }
+    .muted{ color:rgba(255,255,255,.8); }
     .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:50; }
-    .panel{ width: min(95vw, 1000px); }
+    .panel{ width:min(95vw,1000px); }
     .pulse{ animation:pulse 1s ease-in-out infinite; }
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
+
+    /* Toggle buttons (selected = green background + white text) */
+    .toggle-group{ display:flex; gap:.5rem; flex-wrap:wrap; }
+    .toggle{ border:2px solid var(--green); border-radius:10px; padding:.4rem .7rem; cursor:pointer; user-select:none; }
+    .toggle.active{ background:var(--green); color:#ffffff; }
   </style>
 </head>
 <body>
@@ -44,6 +49,7 @@
   <script>
     const { useState, useMemo } = React;
 
+    // Families
     const DEFAULT_FAMILIES = [
       { family_id: 1, role: "Serf",   name: "Serfs",   job: "Retail associate", sector: "Retail",    base_income: 5000,  housing: 1500, starting_bank: 3000 },
       { family_id: 2, role: "Knight", name: "Knights", job: "Butcher",          sector: "Food",      base_income: 8500,  housing: 3500, starting_bank: 4000 },
@@ -51,11 +57,19 @@
       { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 }
     ];
 
-    // Role multipliers for BOTH economic and happiness scores
+    // Scoring multipliers for BOTH economic and happiness
     const ROLE_MULT = { Serf: 8, Knight: 4, Noble: 4, King: 1 };
+
+    const INVESTMENTS = [
+      { name: "IndexFund" },
+      { name: "CorporateBond" },
+      { name: "Crypto" },
+      { name: "FriendBusiness" }
+    ];
 
     const SECTORS = ["Retail", "Food", "Healthcare", "Tech"];
 
+    // Insurance mapping (group scenario on Turn 1 only)
     const INSURER_MAP = {
       "Aetna": "Aetna",
       "Coventry": "Aetna",
@@ -66,20 +80,29 @@
     };
     const INSURERS = { Aetna: 800, Anthem: 850 };
 
+    // Group events after Turn 1
     const GROUP_EVENTS = [
-      { id: 1, title: "Sales tax change next turn", description: "Government raises sales tax next turn",
+      { id: 1, title: "Sales tax increase next turn", description: "Government will raise sales tax next turn by 3%.",
+        taxDelta: +0.03,
         choices: [
           { key: "A", label: "Increase clothing spend by 200", cost: 200,   happy: 2 },
           { key: "B", label: "No change",                       cost: 0,     happy: 0 },
           { key: "C", label: "Cut clothing by 100",             cost: -100,  happy: -1 }
         ] },
-      { id: 2, title: "Fuel price spike", description: "Gas gets expensive across the city",
+      { id: 2, title: "Sales tax cut next turn", description: "Government will cut sales tax next turn by 3%.",
+        taxDelta: -0.03,
+        choices: [
+          { key: "A", label: "Treat yourself a bit", cost: 120, happy: 1 },
+          { key: "B", label: "No change",            cost: 0,   happy: 0 },
+          { key: "C", label: "Save instead",         cost: -80, happy: 1 }
+        ] },
+      { id: 3, title: "Fuel price spike", description: "Gas gets expensive across the city.",
         choices: [
           { key: "A", label: "Transit and carpool", cost: 50,  happy: 1 },
           { key: "B", label: "Drive as usual",      cost: 200, happy: 0 },
           { key: "C", label: "Buy electric scooter", cost: 400, happy: 1 }
         ] },
-      { id: 3, title: "Stimulus checks arrive", description: "Households receive 500 in one time cash",
+      { id: 4, title: "Stimulus checks arrive", description: "Households receive 500 in one-time cash.",
         choices: [
           { key: "A", label: "Spend it",   cost: -500, happy: 2 },
           { key: "B", label: "Save it",    cost: -500, happy: 1 },
@@ -87,6 +110,23 @@
         ] }
     ];
 
+    // Turn-1 insurance event (group scenario only on first turn)
+    const INSURANCE_EVENT = {
+      id: 'INS_T1',
+      title: "Choose health insurance",
+      description: "Pick a plan. Your choice sets your monthly premium.",
+      isInsurance: true,
+      choices: [
+        { key: "A", label: "Aetna" },
+        { key: "B", label: "Coventry" },
+        { key: "C", label: "Humana" },
+        { key: "D", label: "Cigna" },
+        { key: "E", label: "Health Spring" },
+        { key: "F", label: "Anthem" }
+      ]
+    };
+
+    // Family-specific events
     const FAMILY_EVENTS_BY_FAMILY = {
       1: [
         { id: 101, title: "Daycare for Timmy", description: "Pick care for your toddler", choices: [
@@ -138,56 +178,81 @@
       ]
     };
 
-    const INVESTMENTS = [
-      { name: "IndexFund", min_amount: 100, expected: 0.02, stdev: 0.01, lock_turns: 1 },
-      { name: "CorporateBond", min_amount: 100, expected: 0.01, stdev: 0.003, lock_turns: 1 },
-      { name: "Crypto", min_amount: 50, expected: 0.05, stdev: 0.10, lock_turns: 0 },
-      { name: "FriendBusiness", min_amount: 200, expected: 0.03, stdev: 0.05, lock_turns: 2 }
-    ];
-
-    function fmt(n){ return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n || 0); }
-    function randomNormal(mean, stdev){ mean = mean||0; stdev = stdev||1; var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); var num=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); return num*stdev+mean; }
-    function csvEscape(v){ var s=String(v==null?"":v); if(s.indexOf('"')>-1 || s.indexOf(',')>-1 || s.indexOf('\n')>-1){ return '"' + s.split('"').join('""') + '"'; } return s; }
+    // Utils
+    function fmt(n){ return new Intl.NumberFormat(undefined, { style:"currency", currency:"USD" }).format(n||0); }
+    function clamp(x, lo, hi){ return Math.max(lo, Math.min(hi, x)); }
+    function csvEscape(v){ var s=String(v==null?"":v); if(s.indexOf('"')>-1||s.indexOf(',')>-1||s.indexOf('\n')>-1){ return '"' + s.split('"').join('""') + '"'; } return s; }
     function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
 
     function App(){
+      // Core game state
       const [turn, setTurn] = useState(1);
       const [salesTaxNow, setSalesTaxNow] = useState(0.06);
       const [salesTaxNext, setSalesTaxNext] = useState(0.06);
-      const [sectorMult, setSectorMult] = useState({ Retail: 1.0, Food: 1.0, Healthcare: 1.0, Tech: 1.0 });
+      const [sectorMult, setSectorMult] = useState({ Retail:1.0, Food:1.0, Healthcare:1.0, Tech:1.0 });
 
       const initialBank = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f.starting_bank]; })); }, []);
       const [bank, setBank] = useState(initialBank);
       const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, "Aetna"]; })));
       const [ledger, setLedger] = useState([]);
-      const [lockedInv, setLockedInv] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, []]; })));
 
+      // Points
       const [gainVsStart, setGainVsStart] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
       const [econPoints, setEconPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
       const [happyPoints, setHappyPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
 
+      // Turn flow
       const [currentFamilyIdx, setCurrentFamilyIdx] = useState(0);
       const currentFamily = DEFAULT_FAMILIES[currentFamilyIdx];
       const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, false]; })));
-
       const [groupIdx, setGroupIdx] = useState(0);
       const [familyIdx, setFamilyIdx] = useState(0);
 
-      const [groupChoiceKey, setGroupChoiceKey] = useState("B");
-      const [familyChoiceKey, setFamilyChoiceKey] = useState("B");
-      const [invName, setInvName] = useState("None");
-      const [invAmt, setInvAmt] = useState(0);
+      // Choices
+      const [groupChoiceKey, setGroupChoiceKey] = useState(""); // no default selected
+      const [familyChoiceKey, setFamilyChoiceKey] = useState("");
 
+      // Investment UI
+      const [invAction, setInvAction] = useState(""); // "", "Buy", "Sell"
+      const [invName, setInvName] = useState("");     // "", or one of INVESTMENTS
+      const [invAmtStr, setInvAmtStr] = useState(""); // text to allow blank
+
+      // Overlays
       const [showLedger, setShowLedger] = useState(false);
       const [showEnd, setShowEnd] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
       const [showIntro, setShowIntro] = useState(true);
       const [anim, setAnim] = useState(false);
 
+      // Derived
       const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f]; })); }, []);
-      const groupEvent = GROUP_EVENTS[groupIdx % GROUP_EVENTS.length];
+      const isTurn1 = turn === 1;
+      const baseGroupEvent = isTurn1 ? INSURANCE_EVENT : GROUP_EVENTS[groupIdx % GROUP_EVENTS.length];
+      const groupEvent = baseGroupEvent;
       const familyEventsForSelected = FAMILY_EVENTS_BY_FAMILY[currentFamily.family_id] || [];
       const familyEvent = familyEventsForSelected.length>0 ? familyEventsForSelected[familyIdx % familyEventsForSelected.length] : null;
+
+      // Market prices: start 100 each; update each turn by -30%..+50%
+      const [investmentPrices, setInvestmentPrices] = useState(Object.fromEntries(INVESTMENTS.map(function(x){ return [x.name, 100]; })));
+      // Portfolio units per family per investment
+      const [portfolioUnits, setPortfolioUnits] = useState(Object.fromEntries(
+        DEFAULT_FAMILIES.map(function(f){
+          return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){ return [x.name, 0]; }))];
+        })
+      ));
+
+      function updateMarketPrices(){
+        setInvestmentPrices(function(prev){
+          var next = Object.assign({}, prev);
+          INVESTMENTS.forEach(function(x){
+            var p = prev[x.name] || 100;
+            var r = (Math.random()*0.8) - 0.3; // -0.30..+0.50
+            var np = p * (1 + r);
+            next[x.name] = Math.max(1, Number(np.toFixed(2)));
+          });
+          return next;
+        });
+      }
 
       function allSubmitted(){ return DEFAULT_FAMILIES.every(function(f){ return submittedMap[f.family_id]; }); }
       function resetSubmitted(){ setSubmittedMap(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, false]; }))); }
@@ -205,102 +270,165 @@
 
         var fam = famMap[fid];
         var incomeThisTurn = fam.base_income * (sectorMult[fam.sector] || 1);
-        var insChoice = chosenInsurance[fid] || "Aetna";
-        var carrier = INSURER_MAP[insChoice] || "Aetna";
-        var monthlyCost = INSURERS[carrier] || 0;
 
-        var gChoice = (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || {cost:0, happy:0});
-        var fChoice = familyEvent ? (familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) || {cost:0, happy:0}) : {cost:0, happy:0};
-
-        var taxable = Math.max(gChoice.cost,0);
-        var tax = taxable * salesTaxNow;
-
-        var realized = 0; var remaining=[];
-        for(var j=0;j<lockedInv[fid].length;j++){
-          var inv = lockedInv[fid][j];
-          if(turn - inv.turn_bought >= inv.lock_turns){
-            var rnd = randomNormal(inv.expected, inv.stdev);
-            realized += inv.amount * (1 + rnd);
-          } else { remaining.push(inv); }
+        // Resolve group choice: if insurance event on T1, set plan
+        var gChoiceObj = null;
+        if(groupEvent && groupChoiceKey){
+          gChoiceObj = groupEvent.choices.find(function(c){ return c.key === groupChoiceKey; }) || null;
+        }
+        if(isTurn1){
+          if(!gChoiceObj){ alert("Choose a health insurance plan first."); return; }
+          var label = gChoiceObj.label;
+          var carrierSet = INSURER_MAP[label] || "Aetna";
+          var nextIns = Object.assign({}, chosenInsurance);
+          nextIns[fid] = carrierSet;
+          setChosenInsurance(nextIns);
         }
 
-        var notes=""; var gCostPlusInv=gChoice.cost;
-        if(invName && invName!=="None" && invAmt>0){
-          var spec = INVESTMENTS.find(function(x){return x.name===invName;});
-          if(spec){
-            if(invAmt >= spec.min_amount){
-              remaining.push({turn_bought:turn, investment:invName, amount:invAmt, expected:spec.expected, stdev:spec.stdev, lock_turns:spec.lock_turns});
-              notes = "Invested " + fmt(invAmt) + " in " + invName;
-              gCostPlusInv += invAmt;
-            } else { notes = "Skipped, min for " + invName + " is " + fmt(spec.min_amount); }
+        // Monthly insurance cost always applies (from chosenInsurance)
+        var insChoice = chosenInsurance[fid] || "Aetna";
+        var carrier = INSURER_MAP[insChoice] || insChoice || "Aetna";
+        var monthlyCost = INSURERS[carrier] || 0;
+
+        // Resolve non-insurance group costs/happy
+        var gCost = 0, gHappy = 0;
+        var taxDeltaEvent = 0;
+        if(!isTurn1 && gChoiceObj){
+          gCost = gChoiceObj.cost || 0;
+          gHappy = gChoiceObj.happy || 0;
+          if(typeof groupEvent.taxDelta === "number"){
+            taxDeltaEvent = groupEvent.taxDelta; // ±0.03 to apply NEXT turn
           }
         }
 
-        var expenses = fam.housing + monthlyCost + fChoice.cost + gCostPlusInv + tax;
-        var prevBank = bank[fid]||0;
-        var delta = incomeThisTurn - expenses + realized;
-        var newBankVal = prevBank + delta;
-        var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
+        // Family event
+        var fChoiceObj = null;
+        if(familyEvent && familyChoiceKey){
+          fChoiceObj = familyEvent.choices.find(function(c){ return c.key === familyChoiceKey; }) || null;
+        }
+        if(!fChoiceObj){ alert("Choose a family event option."); return; }
+        var fCost = fChoiceObj.cost || 0;
+        var fHappy = fChoiceObj.happy || 0;
 
-        // Economic points: 100x smaller then role multiplier
+        // Sales tax applies to all purchases made for each family (group and family positive spends)
+        var taxable = 0;
+        if(gCost > 0) taxable += gCost;
+        if(fCost > 0) taxable += fCost;
+        var tax = taxable * salesTaxNow;
+
+        // Investment transaction (optional)
+        var action = invAction;
+        var inv = invName;
+        var raw = invAmtStr.trim();
+        var amt = raw === "" ? NaN : parseFloat(raw);
+        var investNotes = "";
+        var investCashFlow = 0; // positive adds to bank, negative subtracts
+        var newPortfolioUnits = JSON.parse(JSON.stringify(portfolioUnits));
+
+        if(action === "Buy" || action === "Sell"){
+          if(inv === ""){ alert("Pick an investment."); return; }
+          if(!(amt > 0)){ alert("Enter a positive dollar amount."); return; }
+          var price = investmentPrices[inv] || 100;
+          if(action === "Buy"){
+            var cash = bank[fid] || 0;
+            if(amt > cash + 1e-9){
+              alert("You cannot invest more than your available cash.");
+              return;
+            }
+            var buyUnits = amt / price;
+            newPortfolioUnits[fid][inv] = (newPortfolioUnits[fid][inv] || 0) + buyUnits;
+            investCashFlow -= amt;
+            investNotes = "Bought " + buyUnits.toFixed(4) + " " + inv + " @ " + fmt(price);
+          } else {
+            var have = newPortfolioUnits[fid][inv] || 0;
+            var maxValue = have * price;
+            if(amt > maxValue + 1e-8){
+              alert("You cannot sell more than you hold.");
+              return;
+            }
+            var sellUnits = amt / price;
+            newPortfolioUnits[fid][inv] = have - sellUnits;
+            investCashFlow += amt;
+            investNotes = "Sold " + sellUnits.toFixed(4) + " " + inv + " @ " + fmt(price);
+          }
+        }
+
+        // Expenses and bank update
+        var expenses = fam.housing + monthlyCost + fCost + gCost + tax;
+        var prevBank = bank[fid]||0;
+        var delta = incomeThisTurn - expenses + investCashFlow;
+        var newBankVal = prevBank + delta;
+
+        var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
+        setBank(newBank);
+        setPortfolioUnits(newPortfolioUnits);
+
+        // Apply pending sales tax change for next turn if event declares it
+        if(!isTurn1 && taxDeltaEvent !== 0){
+          setSalesTaxNext(function(p){ return clamp(p + taxDeltaEvent, 0, 0.15); });
+        }
+
+        // Econ points: peak gain vs start (scaled 100x smaller internally), times role multiplier
         var gainNow = Math.max(newBankVal - fam.starting_bank, 0);
         var gainPrev = gainVsStart[fid] || 0;
         var newGainPeak = Math.max(gainNow, gainPrev);
         var gainDelta = Math.max(newGainPeak - gainPrev, 0);
         var econEarned = (gainDelta * (ROLE_MULT[fam.role] || 1)) / 100;
 
-        // Happiness points: choices + money bump, then role multiplier (8x/4x/4x/1x)
+        // Happiness points: choices + money bump, times role multiplier
         var bankDelta = newBankVal - prevBank;
         var happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0;
-        var happyBase = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
+        var happyBase = (gHappy||0) + (fHappy||0) + happyMoney;
         var happyEarned = happyBase * (ROLE_MULT[fam.role] || 1);
 
-        setBank(newBank);
-        var newLocked = Object.assign({}, lockedInv); newLocked[fid] = remaining; setLockedInv(newLocked);
         var newGvs = Object.assign({}, gainVsStart); newGvs[fid] = newGainPeak; setGainVsStart(newGvs);
         var newEcon = Object.assign({}, econPoints); newEcon[fid] = (econPoints[fid]||0) + econEarned; setEconPoints(newEcon);
         var newHappy = Object.assign({}, happyPoints); newHappy[fid] = (happyPoints[fid]||0) + happyEarned; setHappyPoints(newHappy);
 
+        // Ledger
         var row = {
-          turn: turn, family_id: fid, role: fam.role, family: fam.name,
+          turn: turn, role: fam.role, family: fam.name,
           income: Number(incomeThisTurn.toFixed(2)), housing: fam.housing, insurance: monthlyCost,
-          group_spend: Number(gCostPlusInv.toFixed(2)), family_spend: fChoice.cost, sales_tax_paid: Number(tax.toFixed(2)),
-          investments_realized: Number(realized.toFixed(2)), net_change: Number(delta.toFixed(2)), bank_after: Number(newBankVal.toFixed(2)),
-          points_econ_earned: Math.round(econEarned), points_happy_earned: Math.round(happyEarned),
-          points_econ_total: Math.round((econPoints[fid]||0)+econEarned), points_happy_total: Math.round((happyPoints[fid]||0)+happyEarned),
-          points_total: Math.round((econPoints[fid]||0)+econEarned+(happyPoints[fid]||0)+happyEarned),
-          notes: (notes ? notes + "  " : "") + (happyMoney ? "Money happiness +" + happyMoney : "")
+          group_spend: Number(gCost.toFixed(2)), family_spend: fCost, sales_tax_paid: Number(tax.toFixed(2)),
+          investments_realized: 0,
+          net_change: Number(delta.toFixed(2)), bank_after: Number(newBankVal.toFixed(2)),
+          econ_earned: Math.round(econEarned), happy_earned: Math.round(happyEarned),
+          econ_total: Math.round((newEcon[fid]||0)), happy_total: Math.round((newHappy[fid]||0)),
+          points_total: Math.round((newEcon[fid]||0) + (newHappy[fid]||0)),
+          notes: investNotes || (isTurn1 ? ("Insurance: " + (INSURER_MAP[gChoiceObj.label] || gChoiceObj.label)) : "")
         };
-        setLedger(function(prev){ var copy = prev.slice(); copy.push(row); return copy; });
+        setLedger(function(prev){ var copy=prev.slice(); copy.push(row); return copy; });
 
+        // Reset UI for this family
         var nextMap = Object.assign({}, submittedMap); nextMap[fid] = true; setSubmittedMap(nextMap);
-        setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
+        setGroupChoiceKey(""); setFamilyChoiceKey("");
+        setInvAction(""); setInvName(""); setInvAmtStr("");
         goNextFamily();
       }
 
       function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 1000); }
 
-      function advanceTurn(){
-        if(!allSubmitted()) return;
-        setTurn(function(p){ return p+1; });
-        setSalesTaxNow(salesTaxNext);
-        setGroupIdx(function(p){ return p+1; });
+      function doTurnAdvanceCommon(){
+        setSalesTaxNow(salesTaxNext); // the scheduled change applies now
+        if(!isTurn1){ setGroupIdx(function(p){ return p+1; }); } // rotate only after T1 insurance
         setFamilyIdx(function(p){ return p+1; });
         resetSubmitted();
         setCurrentFamilyIdx(0);
-        setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
+        setGroupChoiceKey(""); setFamilyChoiceKey("");
+        setInvAction(""); setInvName(""); setInvAmtStr("");
+        updateMarketPrices(); // investments change value randomly each turn
         animateToNextTurn();
+      }
+
+      function advanceTurn(){
+        if(!allSubmitted()) return;
+        setTurn(function(p){ return p+1; });
+        doTurnAdvanceCommon();
       }
 
       function skipTurn(){
         setTurn(function(p){ return p+1; });
-        setSalesTaxNow(salesTaxNext);
-        setGroupIdx(function(p){ return p+1; });
-        setFamilyIdx(function(p){ return p+1; });
-        resetSubmitted();
-        setCurrentFamilyIdx(0);
-        setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
-        animateToNextTurn();
+        doTurnAdvanceCommon();
       }
 
       function restartGame(){
@@ -309,17 +437,25 @@
         setSectorMult({ Retail:1.0, Food:1.0, Healthcare:1.0, Tech:1.0 });
         setBank(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,f.starting_bank]; })));
         setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,"Aetna"]; })));
-        setLockedInv(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,[]]; })));
         setLedger([]);
         setGainVsStart(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
         setEconPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
         setHappyPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
         setGroupIdx(0); setFamilyIdx(0);
         setCurrentFamilyIdx(0); resetSubmitted();
-        setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
+        setGroupChoiceKey(""); setFamilyChoiceKey("");
+        setInvAction(""); setInvName(""); setInvAmtStr("");
         setShowEnd(false); setShowLedger(false); setShowAdmin(false); setShowIntro(true);
+        // Reset market and portfolios
+        setInvestmentPrices(Object.fromEntries(INVESTMENTS.map(function(x){ return [x.name, 100]; })));
+        setPortfolioUnits(Object.fromEntries(
+          DEFAULT_FAMILIES.map(function(f){
+            return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){ return [x.name, 0]; }))];
+          })
+        ));
       }
 
+      // Scoreboard
       const perFamilyScores = DEFAULT_FAMILIES.map(function(f){
         var fid = f.family_id;
         var econ = Math.round(econPoints[fid] || 0);
@@ -332,60 +468,89 @@
       var incomeThisTurn = fam.base_income * (sectorMult[fam.sector] || 1);
       var remainingCount = DEFAULT_FAMILIES.filter(function(f){ return !submittedMap[f.family_id]; }).length;
 
-      function labelCell(txt){ return React.createElement("div", { className: "muted" }, txt); }
-      function accentCell(txt){ return React.createElement("div", { className: "accent" }, txt); }
+      // Family investments value summary for visible family
+      var holdingsValue = INVESTMENTS.reduce(function(acc, x){
+        var units = (portfolioUnits[fam.family_id]||{})[x.name] || 0;
+        var price = investmentPrices[x.name] || 100;
+        return acc + units * price;
+      }, 0);
+
+      function labelCell(txt){ return React.createElement("div", { className:"muted" }, txt); }
+
+      // Toggle helpers
+      function Toggle(props){
+        const {active, onClick, children} = props;
+        return React.createElement('span', { className:'toggle' + (active?' active':''), onClick:onClick }, children);
+      }
+
+      // Build toggle rows for group/family choices
+      function ChoiceToggles({ choices, selectedKey, onSelect }){
+        return React.createElement("div", { className:"toggle-group" },
+          choices.map(function(c){
+            return React.createElement(Toggle, {
+              key:c.key,
+              active: selectedKey === c.key,
+              onClick: function(){ onSelect(c.key); }
+            }, c.key + ". " + c.label);
+          })
+        );
+      }
 
       return React.createElement(React.Fragment, null,
 
-        /* INTRO OVERLAY with big Start button */
-        showIntro ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "crt-card p-6 panel space-y-4 text-center" },
-            React.createElement("div", { className: "text-3xl accent" }, "We live in a society with tradeoffs"),
-            React.createElement("p", { className: "muted" },
-              "Prices move. Taxes change. Families choose. Your goal is simple. Grow wealth and keep people happy."
-            ),
-            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-left" },
+        /* INTRO */
+        showIntro ? React.createElement("div", { className:"overlay" },
+          React.createElement("div", { className:"crt-card p-6 panel space-y-4 text-center" },
+            React.createElement("div", { className:"text-3xl accent" }, "We live in a society with tradeoffs"),
+            React.createElement("p", { className:"muted" }, "Prices move. Taxes change. Families choose. Grow wealth and keep people happy."),
+            React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-left" },
               DEFAULT_FAMILIES.map(function(f){
-                return React.createElement("div", { key: f.family_id, className: "crt-card p-4" },
-                  React.createElement("div", { className: "text-xl" }, f.name + " (" + f.role + ")"),
-                  React.createElement("div", { className: "mt-1" }, labelCell("Job")),
-                  React.createElement("div", { className: "accent" }, f.job),
-                  React.createElement("div", { className: "mt-1" }, labelCell("Income")),
-                  React.createElement("div", { className: "accent" }, fmt(f.base_income)),
-                  React.createElement("div", { className: "mt-1" }, labelCell("Housing")),
-                  React.createElement("div", { className: "accent" }, fmt(f.housing)),
-                  React.createElement("div", { className: "mt-1" }, labelCell("Role multiplier")),
-                  React.createElement("div", { className: "accent" }, "x" + ROLE_MULT[f.role])
+                return React.createElement("div", { key:f.family_id, className:"crt-card p-4" },
+                  React.createElement("div", { className:"text-xl" }, f.name),
+                  React.createElement("div", { className:"mt-1" }, labelCell("Job")),
+                  React.createElement("div", { className:"accent" }, f.job),
+                  React.createElement("div", { className:"mt-1" }, labelCell("Income")),
+                  React.createElement("div", { className:"accent" }, fmt(f.base_income)),
+                  React.createElement("div", { className:"mt-1" }, labelCell("Housing")),
+                  React.createElement("div", { className:"accent" }, fmt(f.housing)),
+                  React.createElement("div", { className:"mt-1" }, labelCell("Role multiplier")),
+                  React.createElement("div", { className:"accent" }, "x" + ROLE_MULT[f.role])
                 );
               })
             ),
-            React.createElement("div", { className: "crt-card p-4 text-left space-y-1" },
-              React.createElement("div", null, React.createElement("span", { className: "accent" }, "How to score")),
-              React.createElement("div", null, "Economic points come from growing bank above the start, scaled 100x smaller, then multiplied by your role."),
-              React.createElement("div", null, "Happiness comes from choices and money growth, and also uses your role multiplier.")
+            React.createElement("div", { className:"crt-card p-4 text-left space-y-2" },
+              React.createElement("div", null, React.createElement("span", { className:"accent" }, "Each turn")),
+              React.createElement("div", null, "1. A group scenario applies to everyone."),
+              React.createElement("div", null, "2. A family scenario applies to the active family."),
+              React.createElement("div", null, "3. Investment opportunities are available and change in value every turn."),
+              React.createElement("div", { className:"mt-2" }, React.createElement("span", { className:"accent" }, "Turn 1")),
+              React.createElement("div", null, "You must choose health insurance as the group scenario. It sets your monthly premium."),
+              React.createElement("div", { className:"mt-2" }, React.createElement("span", { className:"accent" }, "Scoring")),
+              React.createElement("div", null, "Economic points: bank growth above start, times the role multiplier."),
+              React.createElement("div", null, "Happiness: choices plus money growth, times the role multiplier.")
             ),
-            React.createElement("div", { className: "pt-2" },
-              React.createElement("button", { className: "crt-btn text-2xl px-6 py-3", onClick: function(){ setShowIntro(false); } }, "Click here to start")
+            React.createElement("div", { className:"pt-2" },
+              React.createElement("button", { className:"crt-btn text-2xl px-6 py-3", onClick:function(){ setShowIntro(false); } }, "Click here to start")
             )
           )
         ) : null,
 
-        React.createElement("div", { className: "max-w-7xl mx-auto p-4 md:p-6 space-y-4" },
+        React.createElement("div", { className:"max-w-7xl mx-auto p-4 md:p-6 space-y-4" },
 
           /* SCOREBOARD */
-          React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
+          React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
             perFamilyScores.map(function(s){
-              return React.createElement("div", { key: s.fid, className: "crt-card p-4" },
-                React.createElement("div", { className: "text-xl" }, s.name),
-                React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
-                React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
-                  React.createElement("div", { className: "crt-card p-2 text-center" },
+              return React.createElement("div", { key:s.fid, className:"crt-card p-4" },
+                React.createElement("div", { className:"text-xl" }, s.name),
+                React.createElement("div", { className:"score-total font-bold mt-2 accent" }, s.total),
+                React.createElement("div", { className:"mt-2 grid grid-cols-2 gap-2" },
+                  React.createElement("div", { className:"crt-card p-2 text-center" },
                     labelCell("Economic"),
-                    React.createElement("div", { className: "score-sub accent font-bold" }, s.econ)
+                    React.createElement("div", { className:"score-sub accent font-bold" }, s.econ)
                   ),
-                  React.createElement("div", { className: "crt-card p-2 text-center" },
+                  React.createElement("div", { className:"crt-card p-2 text-center" },
                     labelCell("Happiness"),
-                    React.createElement("div", { className: "score-sub accent font-bold" }, s.happy)
+                    React.createElement("div", { className:"score-sub accent font-bold" }, s.happy)
                   )
                 )
               );
@@ -393,113 +558,142 @@
           ),
 
           /* CONTROL BAR */
-          React.createElement("div", { className: "flex gap-2" },
-            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowLedger(true); } }, "View ledger"),
-            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(true); } }, "Admin"),
-            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowEnd(true); } }, "End game"),
-            React.createElement("div", { className: "ml-auto flex gap-2" },
-              React.createElement("button", { className: "crt-btn", onClick: skipTurn }, "Skip turn"),
-              React.createElement("button", { className: "crt-btn", disabled: !allSubmitted(), onClick: advanceTurn },
+          React.createElement("div", { className:"flex gap-2 items-center" },
+            React.createElement("button", { className:"crt-btn", onClick:function(){ setShowLedger(true); } }, "View ledger"),
+            React.createElement("button", { className:"crt-btn", onClick:function(){ setShowAdmin(true); } }, "Admin"),
+            React.createElement("button", { className:"crt-btn", onClick:function(){ setShowEnd(true); } }, "End game"),
+            React.createElement("div", { className:"ml-auto flex items-center gap-3" },
+              React.createElement("div", { className:"crt-card px-3 py-2" },
+                React.createElement("div", { className:"muted text-sm" }, "Sales tax"),
+                React.createElement("div", { className:"accent" }, (salesTaxNow*100).toFixed(1) + "% now  →  " + (salesTaxNext*100).toFixed(1) + "% next")
+              ),
+              React.createElement("button", { className:"crt-btn", onClick:skipTurn }, "Skip turn"),
+              React.createElement("button", { className:"crt-btn", disabled:!allSubmitted(), onClick:advanceTurn },
                 "Advance turn" + (!allSubmitted() ? " (" + remainingCount + " left)" : "")
               )
             )
           ),
 
           /* MAIN FLOW */
-          React.createElement("main", { className: "flex-1 space-y-4" },
-            React.createElement("div", { className: "crt-card p-4" },
-              React.createElement("div", { className: "flex items-center justify-between" },
+          React.createElement("main", { className:"flex-1 space-y-4" },
+            React.createElement("div", { className:"crt-card p-4" },
+              React.createElement("div", { className:"flex items-center justify-between" },
                 React.createElement("div", null,
-                  React.createElement("div", { className: "text-2xl" }, fam.name + " (" + fam.role + ")"),
-                  React.createElement("div", { className: "muted" }, "Sector " + fam.sector + "  Income this turn " + fmt(incomeThisTurn))
+                  React.createElement("div", { className:"text-2xl" }, fam.name + " (" + fam.role + ")"),
+                  React.createElement("div", { className:"muted" }, "Sector " + fam.sector + "  Income this turn " + fmt(incomeThisTurn))
                 ),
-                React.createElement("div", { className: "text-right" },
-                  labelCell("Bank"),
-                  React.createElement("div", { className: "text-2xl accent" }, fmt(bank[fam.family_id]))
+                React.createElement("div", { className:"text-right" },
+                  React.createElement("div", { className:"muted" }, "Bank"),
+                  React.createElement("div", { className:"text-2xl accent" }, fmt(bank[fam.family_id]))
                 )
               ),
-              React.createElement("div", { className: "mt-3 grid grid-cols-1 md:grid-cols-3 gap-4" },
-                React.createElement("div", { className: "p-3 crt-card" },
+              React.createElement("div", { className:"mt-3 grid grid-cols-1 md:grid-cols-3 gap-4" },
+                React.createElement("div", { className:"p-3 crt-card" },
                   labelCell("Housing"),
-                  React.createElement("div", { className: "text-2xl accent" }, fmt(fam.housing))
+                  React.createElement("div", { className:"text-2xl accent" }, fmt(fam.housing))
                 ),
-                React.createElement("div", { className: "p-3 crt-card" },
-                  labelCell("Role multiplier"),
-                  React.createElement("div", { className: "text-2xl accent" }, "x" + ROLE_MULT[fam.role])
-                ),
-                React.createElement("div", { className: "p-3 crt-card" },
-                  labelCell("Insurance"),
-                  (function(){ var carrier = INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"; var monthly = INSURERS[carrier] || 0; return accentCell("Coverage " + carrier + "  Monthly " + fmt(monthly)); })()
+                React.createElement("div", { className:"p-3 crt-card md:col-span-2" },
+                  labelCell("Investments (value only)"),
+                  React.createElement("div", { className:"text-2xl accent mt-1" }, fmt(holdingsValue)),
+                  React.createElement("div", { className:"mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2" },
+                    INVESTMENTS.map(function(x){
+                      var units = (portfolioUnits[fam.family_id]||{})[x.name] || 0;
+                      var price = investmentPrices[x.name] || 100;
+                      var value = units * price;
+                      return React.createElement("div", { key:x.name, className:"crt-card p-2 text-center" },
+                        React.createElement("div", { className:"muted" }, x.name),
+                        React.createElement("div", { className:"accent" }, fmt(value))
+                      );
+                    })
+                  )
                 )
               )
             ),
 
-            React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-4" },
-              React.createElement("section", { className: "crt-card p-4" },
-                React.createElement("h3", { className: "text-xl mb-2" }, "Health insurance"),
-                React.createElement("label", { className: "label" }, "Your choice"),
-                React.createElement("select", { value: (chosenInsurance[fam.family_id] || "Aetna"), onChange: function(e){ var o={}; for(var k in chosenInsurance) o[k]=chosenInsurance[k]; o[fam.family_id]=e.target.value; setChosenInsurance(o);} },
-                  Object.keys(INSURER_MAP).map(function(k){ return React.createElement("option", { key: k, value: k }, k); })
-                )
-              ),
+            React.createElement("div", { className:"grid grid-cols-1 lg:grid-cols-3 gap-4" },
 
-              React.createElement("section", { className: "crt-card p-4" },
-                React.createElement("h3", { className: "text-xl" }, "Group scenario"),
-                React.createElement("div", null, groupEvent.title + ". " + groupEvent.description),
-                React.createElement("div", { className: "mt-2 space-y-2" },
-                  groupEvent.choices.map(function(c){
-                    return React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
-                      React.createElement("input", { type: "radio", name: "groupChoice", checked: groupChoiceKey === c.key, onChange: function(){ setGroupChoiceKey(c.key); } }),
-                      React.createElement("span", null, c.key + ". " + c.label + " ("),
-                      React.createElement("span", { className: "accent" }, fmt(c.cost)),
-                      React.createElement("span", null, "  happy " + (c.happy>=0?"+":"") + c.happy + ")")
-                    );
+              /* Group event (Turn 1 = Insurance) */
+              React.createElement("section", { className:"crt-card p-4" },
+                React.createElement("h3", { className:"text-xl" }, "Group scenario"),
+                React.createElement("div", null, groupEvent.title + (groupEvent.description ? ". " + groupEvent.description : "")),
+                React.createElement("div", { className:"mt-2" },
+                  React.createElement(ChoiceToggles, {
+                    choices: groupEvent.choices,
+                    selectedKey: groupChoiceKey,
+                    onSelect: function(k){ setGroupChoiceKey(k); }
                   })
                 )
               ),
 
-              React.createElement("section", { className: "crt-card p-4" },
-                React.createElement("h3", { className: "text-xl" }, "Family event"),
+              /* Family event */
+              React.createElement("section", { className:"crt-card p-4" },
+                React.createElement("h3", { className:"text-xl" }, "Family event"),
                 familyEvent
                   ? React.createElement(React.Fragment, null,
                       React.createElement("div", null, familyEvent.title + ". " + familyEvent.description),
-                      React.createElement("div", { className: "mt-2 space-y-2" },
-                        familyEvent.choices.map(function(c){
-                          return React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
-                            React.createElement("input", { type: "radio", name: "familyChoice", checked: familyChoiceKey === c.key, onChange: function(){ setFamilyChoiceKey(c.key); } }),
-                            React.createElement("span", null, c.key + ". " + c.label + " ("),
-                            React.createElement("span", { className: "accent" }, fmt(c.cost)),
-                            React.createElement("span", null, "  happy " + (c.happy>=0?"+":"") + c.happy + ")")
-                          );
+                      React.createElement("div", { className:"mt-2" },
+                        React.createElement(ChoiceToggles, {
+                          choices: familyEvent.choices,
+                          selectedKey: familyChoiceKey,
+                          onSelect: function(k){ setFamilyChoiceKey(k); }
                         })
                       )
                     )
-                  : React.createElement("div", { className: "muted" }, "No events configured for this family.")
-              )
-            ),
+                  : React.createElement("div", { className:"muted" }, "No events configured for this family.")
+              ),
 
-            /* INVESTMENTS + SUBMIT OR ADVANCE */
-            React.createElement("div", { className: "crt-card p-4" },
-              React.createElement("h3", { className: "text-xl mb-2" }, "Investments"),
-              React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-3" },
-                React.createElement("div", null,
-                  React.createElement("label", { className: "label" }, "Option"),
-                  React.createElement("select", { value: invName, onChange: function(e){ setInvName(e.target.value); } },
-                    React.createElement("option", { value: "None" }, "None"),
-                    INVESTMENTS.map(function(x){ return React.createElement("option", { key: x.name, value: x.name }, x.name + " (min " + fmt(x.min_amount) + ")"); })
+              /* Investments: prices + trade controls */
+              React.createElement("section", { className:"crt-card p-4 space-y-3" },
+                React.createElement("h3", { className:"text-xl" }, "Investments"),
+                React.createElement("div", { className:"muted" }, "You can buy or sell any turn. Values change randomly every turn."),
+                React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-4 gap-2" },
+                  INVESTMENTS.map(function(x){
+                    var price = investmentPrices[x.name] || 100;
+                    return React.createElement("div", { key:x.name, className:"crt-card p-3 text-center" },
+                      React.createElement("div", { className:"muted" }, x.name),
+                      React.createElement("div", { className:"text-xl accent" }, fmt(price))
+                    );
+                  })
+                ),
+                React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-4 gap-3 items-end" },
+                  React.createElement("div", null,
+                    React.createElement("div", { className:"label mb-1" }, "Action"),
+                    React.createElement("div", { className:"toggle-group" },
+                      React.createElement(Toggle, { active:invAction==="Buy", onClick:function(){ setInvAction("Buy"); } }, "Buy"),
+                      React.createElement(Toggle, { active:invAction==="Sell", onClick:function(){ setInvAction("Sell"); } }, "Sell")
+                    )
+                  ),
+                  React.createElement("div", null,
+                    React.createElement("div", { className:"label mb-1" }, "Investment"),
+                    React.createElement("div", { className:"toggle-group" },
+                      INVESTMENTS.map(function(x){
+                        return React.createElement(Toggle, {
+                          key:x.name,
+                          active:invName===x.name,
+                          onClick:function(){ setInvName(x.name); }
+                        }, x.name);
+                      })
+                    )
+                  ),
+                  React.createElement("div", null,
+                    React.createElement("label", { className:"label" }, "Amount ($)"),
+                    React.createElement("input", {
+                      type:"text",
+                      inputMode:"decimal",
+                      placeholder:"e.g. 500",
+                      className:"w-full",
+                      value:invAmtStr,
+                      onChange:function(e){ setInvAmtStr(e.target.value); }
+                    })
+                  ),
+                  React.createElement("div", { className:"flex items-end" },
+                    allSubmitted()
+                      ? React.createElement("button", { onClick:advanceTurn, className:"crt-btn" }, "Advance turn")
+                      : (submittedMap[fam.family_id]
+                          ? React.createElement("button", { className:"crt-btn", disabled:true }, "Submitted")
+                          : React.createElement("button", { onClick:submitChoices, className:"crt-btn" }, "Submit choices for this family")
+                        )
                   )
-                ),
-                React.createElement("div", null,
-                  React.createElement("label", { className: "label" }, "Amount"),
-                  React.createElement("input", { type: "number", className: "number-input w-full", min: 0, step: 50, value: invAmt, onChange: function(e){ setInvAmt(Number(e.target.value)); } })
-                ),
-                React.createElement("div", { className: "flex items-end" },
-                  allSubmitted()
-                    ? React.createElement("button", { onClick: advanceTurn, className: "crt-btn" }, "Advance turn")
-                    : (submittedMap[fam.family_id]
-                        ? React.createElement("button", { className: "crt-btn", disabled: true }, "Submitted")
-                        : React.createElement("button", { onClick: submitChoices, className: "crt-btn" }, "Submit choices for this family")
-                      )
                 )
               )
             )
@@ -507,21 +701,21 @@
         ),
 
         /* LEDGER MODAL */
-        showLedger ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "crt-card p-4 panel" },
-            React.createElement("div", { className: "flex items-center justify-between mb-2" },
-              React.createElement("h3", { className: "text-xl" }, "Ledger"),
-              React.createElement("div", { className: "flex gap-2" },
-                React.createElement("button", { className: "crt-btn", onClick: function(){
+        showLedger ? React.createElement("div", { className:"overlay" },
+          React.createElement("div", { className:"crt-card p-4 panel" },
+            React.createElement("div", { className:"flex items-center justify-between mb-2" },
+              React.createElement("h3", { className:"text-xl" }, "Ledger"),
+              React.createElement("div", { className:"flex gap-2" },
+                React.createElement("button", { className:"crt-btn", onClick:function(){
                   var csv = toCSV(ledger);
                   var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
                   var url = URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='ledger.csv'; a.click(); URL.revokeObjectURL(url);
                 } }, "Download CSV"),
-                React.createElement("button", { className: "crt-btn", onClick: function(){ setShowLedger(false); } }, "Close")
+                React.createElement("button", { className:"crt-btn", onClick:function(){ setShowLedger(false); } }, "Close")
               )
             ),
-            ledger.length===0 ? React.createElement("div", { className: "muted" }, "No entries yet.") :
-            React.createElement("div", { className: "scroll-table" },
+            ledger.length===0 ? React.createElement("div", { className:"muted" }, "No entries yet.") :
+            React.createElement("div", { className:"scroll-table" },
               React.createElement("table", null,
                 React.createElement("thead", null,
                   React.createElement("tr", null,
@@ -545,10 +739,10 @@
                       React.createElement("td", null, fmt(row.investments_realized)),
                       React.createElement("td", null, fmt(row.net_change)),
                       React.createElement("td", null, fmt(row.bank_after)),
-                      React.createElement("td", null, Math.round(row.points_econ_earned)),
-                      React.createElement("td", null, Math.round(row.points_happy_earned)),
-                      React.createElement("td", null, Math.round(row.points_econ_total)),
-                      React.createElement("td", null, Math.round(row.points_happy_total)),
+                      React.createElement("td", null, Math.round(row.econ_earned)),
+                      React.createElement("td", null, Math.round(row.happy_earned)),
+                      React.createElement("td", null, Math.round(row.econ_total)),
+                      React.createElement("td", null, Math.round(row.happy_total)),
                       React.createElement("td", null, Math.round(row.points_total)),
                       React.createElement("td", null, row.notes)
                     );
@@ -560,25 +754,25 @@
         ) : null,
 
         /* ADMIN MODAL */
-        showAdmin ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
-            React.createElement("div", { className: "flex items-center justify-between" },
-              React.createElement("h3", { className: "text-2xl" }, "Admin Controls"),
-              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(false); } }, "Close")
+        showAdmin ? React.createElement("div", { className:"overlay" },
+          React.createElement("div", { className:"crt-card p-6 panel space-y-4" },
+            React.createElement("div", { className:"flex items-center justify-between" },
+              React.createElement("h3", { className:"text-2xl" }, "Admin Controls"),
+              React.createElement("button", { className:"crt-btn", onClick:function(){ setShowAdmin(false); } }, "Close")
             ),
             React.createElement("div", null,
-              React.createElement("div", { className: "label" }, "Sales tax next turn"),
-              React.createElement("input", { type: "range", min: 0, max: 0.15, step: 0.01, value: salesTaxNext, onChange: function(e){ setSalesTaxNext(Number(e.target.value)); }, className: "w-full" }),
-              React.createElement("div", { className: "muted" }, (salesTaxNext*100).toFixed(1) + "%")
+              React.createElement("div", { className:"label" }, "Sales tax next turn"),
+              React.createElement("input", { type:"range", min:0, max:0.15, step:0.01, value:salesTaxNext, onChange:function(e){ setSalesTaxNext(Number(e.target.value)); }, className:"w-full" }),
+              React.createElement("div", { className:"muted" }, (salesTaxNext*100).toFixed(1) + "%")
             ),
-            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3" },
+            React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-2 gap-3" },
               SECTORS.map(function(sec){
-                return React.createElement("div", { key: sec, className: "crt-card p-4" },
-                  React.createElement("div", { className: "flex justify-between muted" },
+                return React.createElement("div", { key:sec, className:"crt-card p-4" },
+                  React.createElement("div", { className:"flex justify-between muted" },
                     React.createElement("span", null, sec),
                     React.createElement("span", null, sectorMult[sec].toFixed(2))
                   ),
-                  React.createElement("input", { type: "range", min: 0.5, max: 1.5, step: 0.05, value: sectorMult[sec], onChange: function(e){ var m=Object.assign({}, sectorMult); m[sec]=Number(e.target.value); setSectorMult(m); }, className: "w-full mt-2" })
+                  React.createElement("input", { type:"range", min:0.5, max:1.5, step:0.05, value:sectorMult[sec], onChange:function(e){ var m=Object.assign({}, sectorMult); m[sec]=Number(e.target.value); setSectorMult(m); }, className:"w-full mt-2" })
                 );
               })
             )
@@ -586,29 +780,29 @@
         ) : null,
 
         /* END SCREEN */
-        showEnd ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
-            React.createElement("h2", { className: "text-3xl text-center" }, "Final Scores"),
-            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
+        showEnd ? React.createElement("div", { className:"overlay" },
+          React.createElement("div", { className:"crt-card p-6 panel space-y-4" },
+            React.createElement("h2", { className:"text-3xl text-center" }, "Final Scores"),
+            React.createElement("div", { className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
               perFamilyScores.map(function(s){
-                return React.createElement("div", { key: s.fid, className: "crt-card p-4 text-center" },
-                  React.createElement("div", { className: "muted" }, s.name + " (" + s.role + ")"),
-                  React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
-                  React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
-                    React.createElement("div", { className: "crt-card p-2" },
-                      React.createElement("div", { className: "muted" }, "Economic"),
-                      React.createElement("div", { className: "score-sub accent font-bold" }, s.econ)
+                return React.createElement("div", { key:s.fid, className:"crt-card p-4 text-center" },
+                  React.createElement("div", { className:"muted" }, s.name + " (" + s.role + ")"),
+                  React.createElement("div", { className:"score-total font-bold mt-2 accent" }, s.total),
+                  React.createElement("div", { className:"mt-2 grid grid-cols-2 gap-2" },
+                    React.createElement("div", { className:"crt-card p-2" },
+                      React.createElement("div", { className:"muted" }, "Economic"),
+                      React.createElement("div", { className:"score-sub accent font-bold" }, s.econ)
                     ),
-                    React.createElement("div", { className: "crt-card p-2" },
-                      React.createElement("div", { className: "muted" }, "Happiness"),
-                      React.createElement("div", { className: "score-sub accent font-bold" }, s.happy)
+                    React.createElement("div", { className:"crt-card p-2" },
+                      React.createElement("div", { className:"muted" }, "Happiness"),
+                      React.createElement("div", { className:"score-sub accent font-bold" }, s.happy)
                     )
                   )
                 );
               })
             ),
-            React.createElement("div", { className: "crt-card p-4" },
-              React.createElement("table", { className: "w-full" },
+            React.createElement("div", { className:"crt-card p-4" },
+              React.createElement("table", { className:"w-full" },
                 React.createElement("thead", null,
                   React.createElement("tr", null,
                     ["Family","Role","Start $","End $"].map(function(h){ return React.createElement("th", { key:h }, h); })
@@ -626,15 +820,15 @@
                 )
               )
             ),
-            React.createElement("div", { className: "flex justify-end gap-2" },
-              React.createElement("button", { className: "crt-btn", onClick: restartGame }, "Restart")
+            React.createElement("div", { className:"flex justify-end gap-2" },
+              React.createElement("button", { className:"crt-btn", onClick:restartGame }, "Restart")
             )
           )
         ) : null,
 
         /* TURN ANIMATION */
-        anim ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "text-4xl pulse" }, "Advancing to Turn " + turn)
+        anim ? React.createElement("div", { className:"overlay" },
+          React.createElement("div", { className:"text-4xl pulse" }, "Advancing to Turn " + turn)
         ) : null
       );
     }
