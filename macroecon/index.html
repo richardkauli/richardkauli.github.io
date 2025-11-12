@@ -8,25 +8,28 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root{
-      --green:#39ff14; /* phosphor green */
-      --bg:#000000;
+      --fg:#ffffff;           /* main text */
+      --green:#22c55e;        /* money green accent */
+      --bg:#000000;           /* black background */
+      --greenDim: rgba(34,197,94,.12);
     }
-    html, body { height: 100%; background: var(--bg); color: var(--green); font-family: 'VT323', monospace; }
-    .crt-card{ border:2px solid var(--green); border-radius:14px; background: rgba(0,0,0,0.4); }
-    .crt-btn{ border:2px solid var(--green); color: var(--green); background: transparent; padding:.5rem .75rem; border-radius:12px; }
+    html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: 'VT323', monospace; }
+    .crt-card{ border:2px solid var(--green); border-radius:14px; background: rgba(0,0,0,0.45); }
+    .crt-btn{ border:2px solid var(--green); color: var(--fg); background: transparent; padding:.5rem .75rem; border-radius:12px; }
     .crt-btn[disabled]{ opacity:.4; cursor:not-allowed; }
-    .crt-btn:hover{ background: rgba(57,255,20,0.08);}    
+    .crt-btn:hover{ background: var(--greenDim);}    
     .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .number-input[type=number] { -moz-appearance: textfield; }
     .scroll-table { max-height: 70vh; overflow: auto; }
-    .score-total{ font-size: 3rem; line-height: 1; }
-    .score-sub{ font-size: 1rem; opacity: .9; }
-    .label{ font-size: .95rem; opacity:.85; }
-    select, input[type=number], input[type=range]{ background: transparent; color: var(--green); border:2px solid var(--green); border-radius:10px; padding:.25rem .5rem; }
+    .score-total{ font-size: 2.75rem; line-height: 1; }
+    .score-sub{ font-size: .95rem; opacity: .95; }
+    .label{ font-size: .95rem; opacity:.9; }
+    .accent{ color: var(--green); }
+    select, input[type=number], input[type=range]{ background: transparent; color: var(--fg); border:2px solid var(--green); border-radius:10px; padding:.25rem .5rem; }
     option{ color:#000; }
     table{ width:100%; }
-    th, td{ padding:.5rem; border-bottom:1px solid rgba(57,255,20,0.25); }
-    .muted{ opacity:.8; }
+    th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,0.15); }
+    .muted{ color: rgba(255,255,255,.8); }
     .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:50; }
     .pulse{ animation:pulse 1s ease-in-out infinite; }
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
@@ -204,7 +207,6 @@
       function allSubmitted(){ return DEFAULT_FAMILIES.every(f => submittedMap[f.family_id]); }
       function resetSubmitted(){ setSubmittedMap(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,false]))); }
       function goNextFamily(){
-        // move to the next unsubmitted family; if all done, stay
         for(let i=1;i<=DEFAULT_FAMILIES.length;i++){
           const idx=(currentFamilyIdx+i)%DEFAULT_FAMILIES.length;
           const f=DEFAULT_FAMILIES[idx];
@@ -250,8 +252,9 @@
         }
 
         const expenses = fam.housing + monthlyCost + fChoice.cost + gCostPlusInv + tax;
+        const prevBank = bank[fid]||0;
         const delta = incomeThisTurn - expenses + realized;
-        const newBankVal = (bank[fid]||0) + delta;
+        const newBankVal = prevBank + delta;
         const newBank = { ...bank, [fid]: newBankVal };
 
         // econ points award on new peak vs starting bank
@@ -260,7 +263,11 @@
         const newGainPeak = Math.max(gainNow, gainPrev);
         const gainDelta = Math.max(newGainPeak - gainPrev, 0);
         const econEarned = gainDelta * (ROLE_MULT[fam.role] || 1);
-        const happyEarned = (gChoice.happy||0) + (fChoice.happy||0);
+
+        // happiness points from choices + money change influence
+        const bankDelta = newBankVal - prevBank; // net change this submission
+        const happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0; // +1 happy per $500 net gain
+        const happyEarned = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
 
         setBank(newBank);
         setLockedInv({ ...lockedInv, [fid]: remaining });
@@ -274,7 +281,8 @@
           investments_realized: Number(realized.toFixed(2)), net_change: Number(delta.toFixed(2)), bank_after: Number(newBankVal.toFixed(2)),
           points_econ_earned: Math.round(econEarned), points_happy_earned: Math.round(happyEarned),
           points_econ_total: Math.round((econPoints[fid]||0)+econEarned), points_happy_total: Math.round((happyPoints[fid]||0)+happyEarned),
-          points_total: Math.round((econPoints[fid]||0)+econEarned+(happyPoints[fid]||0)+happyEarned), notes };
+          points_total: Math.round((econPoints[fid]||0)+econEarned+(happyPoints[fid]||0)+happyEarned),
+          notes: (notes?notes+"  ":"") + (happyMoney?`Money happiness +${happyMoney}`:"") };
         setLedger(prev=>[...prev,row]);
 
         // mark submitted and move to next family decision
@@ -284,10 +292,7 @@
         goNextFamily();
       }
 
-      function animateToNextTurn(){
-        setAnim(true);
-        setTimeout(()=>{ setAnim(false); }, 1000);
-      }
+      function animateToNextTurn(){ setAnim(true); setTimeout(()=>{ setAnim(false); }, 1000); }
 
       function advanceTurn(){
         if(!allSubmitted()) return; // gate
@@ -330,43 +335,52 @@
         setShowEnd(false); setShowLedger(false);
       }
 
-      // Scoreboard totals
-      const totalEcon = Object.values(econPoints).reduce((a,b)=>a+b,0);
-      const totalHappy = Object.values(happyPoints).reduce((a,b)=>a+b,0);
-      const totalScore = totalEcon + totalHappy;
+      // Scoreboard per family
+      const perFamilyScores = DEFAULT_FAMILIES.map(f=>{
+        const fid = f.family_id;
+        const econ = Math.round(econPoints[fid] || 0);
+        const happy = Math.round(happyPoints[fid] || 0);
+        const total = econ + happy;
+        return { fid, name: f.name, role: f.role, econ, happy, total };
+      });
 
       const fam = currentFamily;
       const incomeThisTurn = fam.base_income * (sectorMult[fam.sector] ?? 1);
-
       const remainingCount = DEFAULT_FAMILIES.filter(f=>!submittedMap[f.family_id]).length;
 
       return (
         React.createElement("div", { className: "max-w-7xl mx-auto p-4 md:p-6 space-y-4" },
 
-          // SCOREBOARD AND CONTROLS
-          React.createElement("div", { className: "grid grid-cols-1 gap-2" },
-            React.createElement("div", { className: "crt-card p-4 flex items-center justify-between" },
-              React.createElement("div", { className: "label" }, `Turn ${turn}`),
-              React.createElement("div", { className: "score-total font-bold" }, Math.round(totalScore)),
-              React.createElement("div", { className: "label" }, `Sales tax ${(salesTaxNow*100).toFixed(1)}%`)
-            ),
-            React.createElement("div", { className: "grid grid-cols-2 gap-2" },
-              React.createElement("div", { className: "crt-card p-3 text-center" },
-                React.createElement("div", { className: "muted" }, "Economic points"),
-                React.createElement("div", { className: "score-sub font-bold" }, Math.round(totalEcon))
-              ),
-              React.createElement("div", { className: "crt-card p-3 text-center" },
-                React.createElement("div", { className: "muted" }, "Happiness points"),
-                React.createElement("div", { className: "score-sub font-bold" }, Math.round(totalHappy))
+          // SCOREBOARD: 12 scores total 3 per family
+          React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
+            perFamilyScores.map(s => (
+              React.createElement("div", { key: s.fid, className: "crt-card p-4" },
+                React.createElement("div", { className: "flex items-center justify-between" },
+                  React.createElement("div", { className: "text-xl" }, s.name),
+                  React.createElement("div", { className: "muted" }, s.role)
+                ),
+                React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
+                React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
+                  React.createElement("div", { className: "crt-card p-2 text-center" },
+                    React.createElement("div", { className: "muted" }, "Economic"),
+                    React.createElement("div", { className: "score-sub accent font-bold" }, s.econ)
+                  ),
+                  React.createElement("div", { className: "crt-card p-2 text-center" },
+                    React.createElement("div", { className: "muted" }, "Happiness"),
+                    React.createElement("div", { className: "score-sub accent font-bold" }, s.happy)
+                  )
+                )
               )
-            ),
-            React.createElement("div", { className: "flex gap-2" },
-              React.createElement("button", { className: "crt-btn", onClick: ()=>setShowLedger(true) }, "View ledger"),
-              React.createElement("button", { className: "crt-btn", onClick: ()=>setShowEnd(true) }, "End game"),
-              React.createElement("div", { className: "ml-auto flex gap-2" },
-                React.createElement("button", { className: "crt-btn", onClick: skipTurn }, "Skip turn"),
-                React.createElement("button", { className: "crt-btn", disabled: !allSubmitted(), onClick: advanceTurn }, `Advance turn${!allSubmitted()?` (${remainingCount} left)`:''}`)
-              )
+            ))
+          ),
+
+          // CONTROLS BAR
+          React.createElement("div", { className: "flex gap-2" },
+            React.createElement("button", { className: "crt-btn", onClick: ()=>setShowLedger(true) }, "View ledger"),
+            React.createElement("button", { className: "crt-btn", onClick: ()=>setShowEnd(true) }, "End game"),
+            React.createElement("div", { className: "ml-auto flex gap-2" },
+              React.createElement("button", { className: "crt-btn", onClick: skipTurn }, "Skip turn"),
+              React.createElement("button", { className: "crt-btn", disabled: !allSubmitted(), onClick: advanceTurn }, `Advance turn${!allSubmitted()?` (${remainingCount} left)`:''}`)
             )
           ),
 
@@ -405,21 +419,21 @@
                   ),
                   React.createElement("div", { className: "text-right" },
                     React.createElement("div", { className: "muted" }, "Bank"),
-                    React.createElement("div", { className: "text-2xl" }, fmt(bank[fam.family_id]))
+                    React.createElement("div", { className: "text-2xl accent" }, fmt(bank[fam.family_id]))
                   )
                 ),
                 React.createElement("div", { className: "mt-3 grid grid-cols-1 md:grid-cols-3 gap-4" },
                   React.createElement("div", { className: "p-3 crt-card" },
                     React.createElement("div", { className: "muted" }, "Housing"),
-                    React.createElement("div", { className: "text-2xl" }, fmt(fam.housing))
+                    React.createElement("div", { className: "text-2xl accent" }, fmt(fam.housing))
                   ),
                   React.createElement("div", { className: "p-3 crt-card" },
                     React.createElement("div", { className: "muted" }, "Role multiplier"),
-                    React.createElement("div", { className: "text-2xl" }, `x${ROLE_MULT[fam.role]}`)
+                    React.createElement("div", { className: "text-2xl accent" }, `x${ROLE_MULT[fam.role]}`)
                   ),
                   React.createElement("div", { className: "p-3 crt-card" },
                     React.createElement("div", { className: "muted" }, "Insurance"),
-                    (()=>{ const carrier = INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"; const monthly = INSURERS[carrier] || 0; return React.createElement("div", null, `Coverage ${carrier}  Monthly ${fmt(monthly)}`); })()
+                    (()=>{ const carrier = INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"; const monthly = INSURERS[carrier] || 0; return React.createElement("div", { className: "accent" }, `Coverage ${carrier}  Monthly ${fmt(monthly)}`); })()
                   )
                 )
               ),
@@ -442,7 +456,9 @@
                     groupEvent.choices.map(c => (
                       React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
                         React.createElement("input", { type: "radio", name: "groupChoice", checked: groupChoiceKey === c.key, onChange: () => setGroupChoiceKey(c.key) }),
-                        React.createElement("span", null, `${c.key}. ${c.label} (${fmt(c.cost)}  happy ${c.happy>=0?'+':''}${c.happy})`)
+                        React.createElement("span", null, `${c.key}. ${c.label} (`),
+                        React.createElement("span", { className: "accent" }, `${fmt(c.cost)}`),
+                        React.createElement("span", null, `  happy ${c.happy>=0?'+':''}${c.happy})`)
                       )
                     ))
                   )
@@ -459,7 +475,9 @@
                           familyEvent.choices.map(c => (
                             React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
                               React.createElement("input", { type: "radio", name: "familyChoice", checked: familyChoiceKey === c.key, onChange: () => setFamilyChoiceKey(c.key) }),
-                              React.createElement("span", null, `${c.key}. ${c.label} (${fmt(c.cost)}  happy ${c.happy>=0?'+':''}${c.happy})`)
+                              React.createElement("span", null, `${c.key}. ${c.label} (`),
+                              React.createElement("span", { className: "accent" }, `${fmt(c.cost)}`),
+                              React.createElement("span", null, `  happy ${c.happy>=0?'+':''}${c.happy})`)
                             )
                           ))
                         )
@@ -549,11 +567,11 @@
               React.createElement("div", { className: "grid grid-cols-2 gap-3" },
                 React.createElement("div", { className: "crt-card p-4 text-center" },
                   React.createElement("div", { className: "muted" }, "Economic points"),
-                  React.createElement("div", { className: "text-3xl" }, Math.round(totalEcon))
+                  React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce((a,b)=>a+b.econ,0)))
                 ),
                 React.createElement("div", { className: "crt-card p-4 text-center" },
                   React.createElement("div", { className: "muted" }, "Happiness points"),
-                  React.createElement("div", { className: "text-3xl" }, Math.round(totalHappy))
+                  React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce((a,b)=>a+b.happy,0)))
                 )
               ),
               React.createElement("div", { className: "crt-card p-4" },
