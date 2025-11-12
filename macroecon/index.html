@@ -51,9 +51,8 @@
       { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 }
     ];
 
-    // Multipliers and happiness scaling
+    // Role multipliers for BOTH economic and happiness scores
     const ROLE_MULT = { Serf: 8, Knight: 4, Noble: 4, King: 1 };
-    const HAPPY_MULT = 10;
 
     const SECTORS = ["Retail", "Food", "Healthcare", "Tech"];
 
@@ -243,17 +242,18 @@
         var newBankVal = prevBank + delta;
         var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
 
-        // Econ points: 100x smaller, then role multiplier
+        // Economic points: 100x smaller then role multiplier
         var gainNow = Math.max(newBankVal - fam.starting_bank, 0);
         var gainPrev = gainVsStart[fid] || 0;
         var newGainPeak = Math.max(gainNow, gainPrev);
         var gainDelta = Math.max(newGainPeak - gainPrev, 0);
         var econEarned = (gainDelta * (ROLE_MULT[fam.role] || 1)) / 100;
 
-        // Happiness: choices plus a money bump
+        // Happiness points: choices + money bump, then role multiplier (8x/4x/4x/1x)
         var bankDelta = newBankVal - prevBank;
         var happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0;
-        var happyEarned = HAPPY_MULT * ((gChoice.happy||0) + (fChoice.happy||0) + happyMoney);
+        var happyBase = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
+        var happyEarned = happyBase * (ROLE_MULT[fam.role] || 1);
 
         setBank(newBank);
         var newLocked = Object.assign({}, lockedInv); newLocked[fid] = remaining; setLockedInv(newLocked);
@@ -337,8 +337,8 @@
 
       return React.createElement(React.Fragment, null,
 
-        /* INTRO OVERLAY */
-        showIntro ? React.createElement("div", { className: "overlay", onClick: function(){ setShowIntro(false); } },
+        /* INTRO OVERLAY with big Start button */
+        showIntro ? React.createElement("div", { className: "overlay" },
           React.createElement("div", { className: "crt-card p-6 panel space-y-4 text-center" },
             React.createElement("div", { className: "text-3xl accent" }, "We live in a society with tradeoffs"),
             React.createElement("p", { className: "muted" },
@@ -361,12 +361,12 @@
             ),
             React.createElement("div", { className: "crt-card p-4 text-left space-y-1" },
               React.createElement("div", null, React.createElement("span", { className: "accent" }, "How to score")),
-              React.createElement("div", null, "Economic points come from growing your bank above the start."),
-              React.createElement("div", null, "Your role multiplier boosts economic points."),
-              React.createElement("div", null, "Happiness comes from choices and money growth."),
-              React.createElement("div", null, "Happiness is scaled by " + HAPPY_MULT + ".")
+              React.createElement("div", null, "Economic points come from growing bank above the start, scaled 100x smaller, then multiplied by your role."),
+              React.createElement("div", null, "Happiness comes from choices and money growth, and also uses your role multiplier.")
             ),
-            React.createElement("div", { className: "muted pt-2" }, "Click anywhere to start")
+            React.createElement("div", { className: "pt-2" },
+              React.createElement("button", { className: "crt-btn text-2xl px-6 py-3", onClick: function(){ setShowIntro(false); } }, "Click here to start")
+            )
           )
         ) : null,
 
@@ -555,6 +555,32 @@
                   })
                 )
               )
+            )
+          )
+        ) : null,
+
+        /* ADMIN MODAL */
+        showAdmin ? React.createElement("div", { className: "overlay" },
+          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
+            React.createElement("div", { className: "flex items-center justify-between" },
+              React.createElement("h3", { className: "text-2xl" }, "Admin Controls"),
+              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(false); } }, "Close")
+            ),
+            React.createElement("div", null,
+              React.createElement("div", { className: "label" }, "Sales tax next turn"),
+              React.createElement("input", { type: "range", min: 0, max: 0.15, step: 0.01, value: salesTaxNext, onChange: function(e){ setSalesTaxNext(Number(e.target.value)); }, className: "w-full" }),
+              React.createElement("div", { className: "muted" }, (salesTaxNext*100).toFixed(1) + "%")
+            ),
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3" },
+              SECTORS.map(function(sec){
+                return React.createElement("div", { key: sec, className: "crt-card p-4" },
+                  React.createElement("div", { className: "flex justify-between muted" },
+                    React.createElement("span", null, sec),
+                    React.createElement("span", null, sectorMult[sec].toFixed(2))
+                  ),
+                  React.createElement("input", { type: "range", min: 0.5, max: 1.5, step: 0.05, value: sectorMult[sec], onChange: function(e){ var m=Object.assign({}, sectorMult); m[sec]=Number(e.target.value); setSectorMult(m); }, className: "w-full mt-2" })
+                );
+              })
             )
           )
         ) : null,
