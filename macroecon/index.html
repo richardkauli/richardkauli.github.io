@@ -41,7 +41,6 @@
     .row { display:grid; grid-template-columns: 1fr auto; gap:.25rem .6rem; align-items:baseline; }
     .row .k { color:rgba(255,255,255,.9); }
     .row .v { color:var(--green); text-align:right; }
-    /* tighter layout */
     .tight-y > * + * { margin-top:.5rem !important; }
     .tight-card { padding:.6rem !important; }
     .tight-gap { gap:.5rem !important; }
@@ -647,7 +646,7 @@
                 // Per-investment holdings and value
                 INVESTMENTS.map(function(x){
                   var units = (portfolioUnits[fam.family_id] || {})[x.name] || 0;
-                  var price = investmentPrices[x.name] || 100;
+                  var price = (investmentPrices[x.name] || 100);
                   var val = units * price;
                   return React.createElement("div",{key:x.name,className:"row"},
                     React.createElement("div",{className:"k"}, x.name + " (" + fmtUnits(units) + "u)"),
@@ -707,7 +706,6 @@
                 );
               })
             ),
-            /* One row: Action | Investment | Amount */
             React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-2 items-end"},
               React.createElement("div",null,
                 React.createElement("div",{className:"label mb-1"},"Action"),
@@ -755,7 +753,7 @@
           )
         ),
 
-        /* EXPENSES MODAL (breakdown) */
+        /* EXPENSES MODAL */
         showExpenses ? React.createElement("div",{className:"overlay"},
           React.createElement("div",{className:"crt-card p-5 panel tight-y"},
             React.createElement("div",{className:"text-2xl mb-1"},"Expense breakdown"),
@@ -916,15 +914,17 @@
             React.createElement("div",{className:"crt-card p-3"},
               React.createElement("table",{className:"w-full"},
                 React.createElement("thead",null,
-                  React.createElement("tr",null, ["Family","Role","Start $","End $"].map(function(h){return React.createElement("th",{key:h},h);}))
+                  React.createElement("tr",null, ["Family","Role","Start net worth","End net worth"].map(function(h){return React.createElement("th",{key:h},h);}))
                 ),
                 React.createElement("tbody",null,
                   DEFAULT_FAMILIES.map(function(f){
+                    var startNW = f.starting_bank; // no starting investments
+                    var endNW = (bank[f.family_id]||0) + calcHoldingsValue(f.family_id);
                     return React.createElement("tr",{key:f.family_id},
                       React.createElement("td",null,f.name),
                       React.createElement("td",null,f.role),
-                      React.createElement("td",null,fmt(f.starting_bank)),
-                      React.createElement("td",null,fmt(bank[f.family_id]))
+                      React.createElement("td",null,fmt(startNW)),
+                      React.createElement("td",null,fmt(endNW))
                     );
                   })
                 )
