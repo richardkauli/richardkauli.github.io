@@ -202,6 +202,7 @@
     function csvEscape(v){ var s=String(v==null?"":v); if(s.indexOf('"')>-1||s.indexOf(',')>-1||s.indexOf('\n')>-1){ return '"' + s.split('"').join('""') + '"'; } return s; }
     function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
     function randBetween(a,b){ return a + Math.random()*(b-a); }
+    function fmtUnits(n){ return (n||0).toFixed(4).replace(/\.?0+$/,''); }
 
     function App(){
       const [turn, setTurn] = useState(1);
@@ -642,10 +643,18 @@
                   React.createElement("div",{className:"k"},"Bank"),
                   React.createElement("div",{className:"v"}, fmt(bank[fam.family_id]))
                 ),
-                React.createElement("div",{className:"row"},
-                  React.createElement("div",{className:"k"},"Investments value"),
-                  React.createElement("div",{className:"v"}, fmt(holdingsValue))
-                ),
+
+                // Per-investment holdings and value
+                INVESTMENTS.map(function(x){
+                  var units = (portfolioUnits[fam.family_id] || {})[x.name] || 0;
+                  var price = investmentPrices[x.name] || 100;
+                  var val = units * price;
+                  return React.createElement("div",{key:x.name,className:"row"},
+                    React.createElement("div",{className:"k"}, x.name + " (" + fmtUnits(units) + "u)"),
+                    React.createElement("div",{className:"v"}, fmt(val))
+                  );
+                }),
+
                 React.createElement("div",{className:"row"},
                   React.createElement("div",{className:"k muted"},"Total net worth"),
                   React.createElement("div",{className:"v accent"}, fmt((bank[fam.family_id]||0) + holdingsValue))
