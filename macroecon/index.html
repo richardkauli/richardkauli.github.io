@@ -14,31 +14,37 @@
       --greenDim: rgba(34,197,94,.12);
     }
     html, body { height:100%; background:var(--bg); color:var(--fg); font-family:'VT323', monospace; }
-    .crt-card{ border:2px solid var(--green); border-radius:14px; background:rgba(0,0,0,.45); }
-    .crt-btn{ border:2px solid var(--green); color:var(--fg); background:transparent; padding:.5rem .75rem; border-radius:12px; }
+    .crt-card{ border:2px solid var(--green); border-radius:12px; background:rgba(0,0,0,.45); }
+    .crt-btn{ border:2px solid var(--green); color:var(--fg); background:transparent; padding:.5rem .7rem; border-radius:10px; }
     .crt-btn[disabled]{ opacity:.4; cursor:not-allowed; }
     .crt-btn:hover{ background:var(--greenDim); }
     .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
     .number-input[type=number]{ -moz-appearance:textfield; }
     .scroll-table{ max-height:70vh; overflow:auto; }
-    .score-total{ font-size:2.75rem; line-height:1; }
-    .score-sub{ font-size:.95rem; opacity:.95; }
-    .label{ font-size:.95rem; opacity:.9; }
+    .score-total{ font-size:2.4rem; line-height:1; }
+    .score-sub{ font-size:1.0rem; opacity:.95; }
+    .label{ font-size:1.0rem; opacity:.95; }
+    .muted{ color:rgba(255,255,255,.9); font-size:1.0rem; }
     .accent{ color:var(--green); }
-    select, input[type=number], input[type=range], input[type=text]{ background:transparent; color:var(--fg); border:2px solid var(--green); border-radius:10px; padding:.25rem .5rem; }
+    select, input[type=number], input[type=range], input[type=text]{ background:transparent; color:var(--fg); border:2px solid var(--green); border-radius:10px; padding:.3rem .5rem; }
     option{ color:#000; }
     table{ width:100%; }
-    th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,.15); }
-    .muted{ color:rgba(255,255,255,.8); }
+    th, td{ padding:.4rem; border-bottom:1px solid rgba(255,255,255,.15); }
     .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:50; }
     .panel{ width:min(95vw,1000px); }
     .pulse{ animation:pulse 1s ease-in-out infinite; }
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
-
-    /* Toggle buttons */
-    .toggle-group{ display:flex; gap:.5rem; flex-wrap:wrap; }
-    .toggle{ border:2px solid var(--green); border-radius:10px; padding:.4rem .7rem; cursor:pointer; user-select:none; }
+    .toggle-group{ display:flex; gap:.4rem; flex-wrap:wrap; }
+    .toggle-group.nowrap{ flex-wrap:nowrap; overflow:auto; }
+    .toggle{ border:2px solid var(--green); border-radius:10px; padding:.35rem .65rem; cursor:pointer; user-select:none; font-size:1.0rem; white-space:nowrap; }
     .toggle.active{ background:var(--green); color:#ffffff; }
+    .row { display:grid; grid-template-columns: 1fr auto; gap:.25rem .6rem; align-items:baseline; }
+    .row .k { color:rgba(255,255,255,.9); }
+    .row .v { color:var(--green); text-align:right; }
+    /* tighter layout */
+    .tight-y > * + * { margin-top:.5rem !important; }
+    .tight-card { padding:.6rem !important; }
+    .tight-gap { gap:.5rem !important; }
   </style>
 </head>
 <body>
@@ -49,21 +55,32 @@
   <script>
     const { useState, useMemo } = React;
 
+    /* Families and base expense categories */
     const DEFAULT_FAMILIES = [
-      { family_id: 1, role: "Serf",   name: "Serfs",   job: "Retail associate", sector: "Retail",    base_income: 5000,  housing: 1500, starting_bank: 3000 },
-      { family_id: 2, role: "Knight", name: "Knights", job: "Butcher",          sector: "Food",      base_income: 8500,  housing: 3500, starting_bank: 4000 },
-      { family_id: 3, role: "Noble",  name: "Nobles",  job: "Nurse",            sector: "Healthcare",base_income: 15000, housing: 8000, starting_bank: 5000 },
-      { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 }
+      { family_id:1, role:"Serf",   name:"Serfs",   job:"Retail associate", sector:"Retail",
+        base_income:5000,  housing:1500, starting_bank:3000, food:600,  clothes:100, misc:200 },
+      { family_id:2, role:"Knight", name:"Knights", job:"Butcher",          sector:"Food",
+        base_income:8500,  housing:3500, starting_bank:4000, food:800,  clothes:200, misc:300 },
+      { family_id:3, role:"Noble",  name:"Nobles",  job:"Nurse",            sector:"Healthcare",
+        base_income:15000, housing:8000, starting_bank:5000, food:1200, clothes:500, misc:600 },
+      { family_id:4, role:"King",   name:"Kings",   job:"Software",         sector:"Tech",
+        base_income:26000, housing:9200, starting_bank:6000, food:1800, clothes:800, misc:1000 }
     ];
 
-    // multipliers for both econ and happiness
-    const ROLE_MULT = { Serf: 8, Knight: 4, Noble: 4, King: 1 };
-    const INVESTMENTS = [{name:"IndexFund"}, {name:"CorporateBond"}, {name:"Crypto"}, {name:"FriendBusiness"}];
+    /* Multipliers for econ and happiness */
+    const ROLE_MULT = { Serf:8, Knight:4, Noble:4, King:1 };
+
+    /* Investments list */
+    const INVESTMENTS = [{name:"IndexFund"}, {name:"Crypto"}, {name:"FriendBusiness"}];
+
+    /* Sectors for admin multipliers */
     const SECTORS = ["Retail","Food","Healthcare","Tech"];
 
+    /* Insurance mapping used on Turn 1 only */
     const INSURER_MAP = { "Aetna":"Aetna", "Coventry":"Aetna", "Humana":"Aetna", "Cigna":"Anthem", "Health Spring":"Anthem", "Anthem":"Anthem" };
     const INSURERS = { Aetna:800, Anthem:850 };
 
+    /* Group and family events */
     const GROUP_EVENTS = [
       { id:1, title:"Sales tax increase next turn", description:"Government will raise sales tax next turn by 3%.", taxDelta:+0.03,
         choices:[ {key:"A",label:"Increase clothing spend by 200", cost:200,  happy:2},
@@ -73,14 +90,34 @@
         choices:[ {key:"A",label:"Treat yourself a bit", cost:120, happy:1},
                   {key:"B",label:"No change",            cost:0,   happy:0},
                   {key:"C",label:"Save instead",         cost:-80, happy:1} ] },
-      { id:3, title:"Fuel price spike", description:"Gas gets expensive across the city.",
+      { id:3, title:"Fuel price spike", description:"Higher gas shifts budgets to complements of transit.",
         choices:[ {key:"A",label:"Transit and carpool", cost:50,  happy:1},
                   {key:"B",label:"Drive as usual",      cost:200, happy:0},
                   {key:"C",label:"Buy electric scooter", cost:400, happy:1} ] },
       { id:4, title:"Stimulus checks arrive", description:"Households receive 500 in one-time cash.",
         choices:[ {key:"A",label:"Spend it",  cost:-500, happy:2},
                   {key:"B",label:"Save it",   cost:-500, happy:1},
-                  {key:"C",label:"Invest it", cost:-500, happy:1} ] }
+                  {key:"C",label:"Invest it", cost:-500, happy:1} ] },
+      { id:5, title:"Credit APR hike", description:"Interest rates rise on revolving credit.",
+        choices:[ {key:"A",label:"Pay down balance", cost:300, happy:1},
+                  {key:"B",label:"Minimum only",     cost:50,  happy:-1},
+                  {key:"C",label:"Balance transfer fee", cost:75, happy:0} ] },
+      { id:6, title:"Drought hits produce", description:"Food prices rise.",
+        choices:[ {key:"A",label:"Switch to staples", cost:60,  happy:0},
+                  {key:"B",label:"Keep quality",      cost:220, happy:1},
+                  {key:"C",label:"Bulk cook",         cost:120, happy:1} ] },
+      { id:7, title:"Congestion pricing", description:"Commuting costs change.",
+        choices:[ {key:"A",label:"Monthly transit pass", cost:129, happy:1},
+                  {key:"B",label:"Carpool permits",     cost:60,  happy:0},
+                  {key:"C",label:"Drive solo",          cost:250, happy:-1} ] },
+      { id:8, title:"Public goods drive", description:"Neighborhood park fund.",
+        choices:[ {key:"A",label:"Donate modestly", cost:50,  happy:1},
+                  {key:"B",label:"Donate generously", cost:200, happy:2},
+                  {key:"C",label:"Opt out",           cost:0,   happy:0} ] },
+      { id:9, title:"Tech sale week", description:"Discount temptations.",
+        choices:[ {key:"A",label:"Buy laptop",      cost:1200, happy:1},
+                  {key:"B",label:"Buy refurbished", cost:600,  happy:1},
+                  {key:"C",label:"Wait",            cost:0,    happy:0} ] }
     ];
 
     const INSURANCE_EVENT = {
@@ -90,58 +127,86 @@
     };
 
     const FAMILY_EVENTS_BY_FAMILY = {
-      1:[ {id:101,title:"Daycare for Timmy",description:"Pick care for your toddler",choices:[
-              {key:"A",label:"Local daycare class of 40",cost:800,happy:1},
-              {key:"B",label:"Montessori school",cost:1000,happy:2},
-              {key:"C",label:"Family and friends help",cost:200,happy:0}
-          ]},
-          {id:102,title:"Timmy wants cello",description:"He found a used cello",choices:[
-              {key:"A",label:"Lessons plus instrument",cost:500,happy:2},
-              {key:"B",label:"Not now",cost:0,happy:-1},
-              {key:"C",label:"Rent instrument only",cost:120,happy:1}
-          ]} ],
-      2:[ {id:201,title:"Rent increase",description:"Landlord raises rent",choices:[
-              {key:"A",label:"Stay and pay higher",cost:500,happy:-1},
-              {key:"B",label:"Move farther, more gas",cost:200,happy:-1},
-              {key:"C",label:"Short term loan",cost:2000,happy:-2}
-          ]},
-          {id:202,title:"Teen insurance spike",description:"Accident raises insurance",choices:[
-              {key:"A",label:"Bike to school",cost:100,happy:0},
-              {key:"B",label:"Use rideshare",cost:350,happy:0},
-              {key:"C",label:"Pay the increase",cost:6000,happy:-2}
-          ]} ],
-      3:[ {id:301,title:"Infant daycare",description:"Two options open up",choices:[
-              {key:"A",label:"Local daycare",cost:2900,happy:1},
-              {key:"B",label:"Private daycare with friends",cost:3500,happy:2},
-              {key:"C",label:"Nanny share part time",cost:1800,happy:1}
-          ]},
-          {id:302,title:"Long commute tradeoff",description:"New hospital role",choices:[
-              {key:"A",label:"Transit pass",cost:129,happy:0},
-              {key:"B",label:"Decline offer",cost:0,happy:0},
-              {key:"C",label:"Drive and parking",cost:350,happy:-1}
-          ]} ],
-      4:[ {id:401,title:"Prep school decision",description:"Improve college chances",choices:[
-              {key:"A",label:"Send one teen",cost:1900,happy:1},
-              {key:"B",label:"Send both",cost:3800,happy:2},
-              {key:"C",label:"Stay public",cost:0,happy:0}
-          ]},
-          {id:402,title:"College books and fees",description:"First semester bills",choices:[
-              {key:"A",label:"All new books",cost:600,happy:-1},
-              {key:"B",label:"Used and rentals",cost:220,happy:1},
-              {key:"C",label:"Library and PDFs only",cost:40,happy:0}
-          ]} ]
+      1:[
+        {id:101,title:"Daycare for Timmy",description:"Pick care for your toddler",choices:[
+          {key:"A",label:"Local daycare class of 40",cost:800,happy:1},
+          {key:"B",label:"Montessori school",cost:1000,happy:2},
+          {key:"C",label:"Family and friends help",cost:200,happy:0}
+        ]},
+        {id:102,title:"Timmy wants cello",description:"He found a used cello",choices:[
+          {key:"A",label:"Lessons plus instrument",cost:500,happy:2},
+          {key:"B",label:"Not now",cost:0,happy:-1},
+          {key:"C",label:"Rent instrument only",cost:120,happy:1}
+        ]},
+        {id:103,title:"Grocery brand choice",description:"Inferior vs normal goods",choices:[
+          {key:"A",label:"Store brand swap",cost:40,happy:0},
+          {key:"B",label:"Name brands",cost:110,happy:1},
+          {key:"C",label:"Coupons and plan",cost:20,happy:1}
+        ]}
+      ],
+      2:[
+        {id:201,title:"Rent increase",description:"Landlord raises rent",choices:[
+          {key:"A",label:"Stay and pay higher",cost:500,happy:-1},
+          {key:"B",label:"Move farther, more gas",cost:200,happy:-1},
+          {key:"C",label:"Short term loan",cost:2000,happy:-2}
+        ]},
+        {id:202,title:"Teen insurance spike",description:"Accident raises insurance",choices:[
+          {key:"A",label:"Bike to school",cost:100,happy:0},
+          {key:"B",label:"Use rideshare",cost:350,happy:0},
+          {key:"C",label:"Pay the increase",cost:6000,happy:-2}
+        ]},
+        {id:203,title:"Meat demand surge",description:"Butcher hours rise",choices:[
+          {key:"A",label:"Overtime gear and meals",cost:180,happy:1},
+          {key:"B",label:"Decline overtime",cost:0,happy:0},
+          {key:"C",label:"Hire helper one week",cost:400,happy:1}
+        ]}
+      ],
+      3:[
+        {id:301,title:"Infant daycare",description:"Two options open up",choices:[
+          {key:"A",label:"Local daycare",cost:2900,happy:1},
+          {key:"B",label:"Private daycare with friends",cost:3500,happy:2},
+          {key:"C",label:"Nanny share part time",cost:1800,happy:1}
+        ]},
+        {id:302,title:"Long commute tradeoff",description:"New hospital role",choices:[
+          {key:"A",label:"Transit pass",cost:129,happy:0},
+          {key:"B",label:"Decline offer",cost:0,happy:0},
+          {key:"C",label:"Drive and parking",cost:350,happy:-1}
+        ]},
+        {id:303,title:"Continuing education",description:"Human capital",choices:[
+          {key:"A",label:"Certification",cost:1200,happy:2},
+          {key:"B",label:"Reimbursed later",cost:600,happy:1},
+          {key:"C",label:"Skip this year",cost:0,happy:0}
+        ]}
+      ],
+      4:[
+        {id:401,title:"Prep school decision",description:"Improve college chances",choices:[
+          {key:"A",label:"Send one teen",cost:1900,happy:1},
+          {key:"B",label:"Send both",cost:3800,happy:2},
+          {key:"C",label:"Stay public",cost:0,happy:0}
+        ]},
+        {id:402,title:"College books and fees",description:"First semester bills",choices:[
+          {key:"A",label:"All new books",cost:600,happy:-1},
+          {key:"B",label:"Used and rentals",cost:220,happy:1},
+          {key:"C",label:"Library and PDFs only",cost:40,happy:0}
+        ]},
+        {id:403,title:"Home services bundle",description:"Complementary goods",choices:[
+          {key:"A",label:"Gigabit internet and TV",cost:280,happy:2},
+          {key:"B",label:"Internet only",cost:120,happy:1},
+          {key:"C",label:"Keep current plan",cost:0,happy:0}
+        ]}
+      ]
     };
 
     function fmt(n){ return new Intl.NumberFormat(undefined,{style:"currency",currency:"USD"}).format(n||0); }
     function clamp(x,lo,hi){ return Math.max(lo, Math.min(hi,x)); }
     function csvEscape(v){ var s=String(v==null?"":v); if(s.indexOf('"')>-1||s.indexOf(',')>-1||s.indexOf('\n')>-1){ return '"' + s.split('"').join('""') + '"'; } return s; }
     function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
+    function randBetween(a,b){ return a + Math.random()*(b-a); }
 
     function App(){
       const [turn, setTurn] = useState(1);
       const [salesTaxNow, setSalesTaxNow] = useState(0.06);
       const [salesTaxNext, setSalesTaxNext] = useState(0.06);
-      // only set once per turn
       const [pendingTaxDelta, setPendingTaxDelta] = useState(0);
       const [taxDeltaRecordedTurn, setTaxDeltaRecordedTurn] = useState(null);
 
@@ -173,6 +238,7 @@
       const [showEnd, setShowEnd] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
       const [showIntro, setShowIntro] = useState(true);
+      const [showExpenses, setShowExpenses] = useState(false);
       const [anim, setAnim] = useState(false);
 
       const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f];})); },[]);
@@ -182,6 +248,7 @@
       const familyEventsForSelected = FAMILY_EVENTS_BY_FAMILY[currentFamily.family_id] || [];
       const familyEvent = familyEventsForSelected.length>0 ? familyEventsForSelected[familyIdx % familyEventsForSelected.length] : null;
 
+      /* market */
       const [investmentPrices, setInvestmentPrices] = useState(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
       const [portfolioUnits, setPortfolioUnits] = useState(Object.fromEntries(
         DEFAULT_FAMILIES.map(function(f){
@@ -189,12 +256,26 @@
         })
       ));
 
+      function calcHoldingsValue(fid, unitsOverride){
+        var units = (unitsOverride || portfolioUnits)[fid] || {};
+        var total = 0;
+        INVESTMENTS.forEach(function(x){
+          var u = units[x.name] || 0;
+          var p = investmentPrices[x.name] || 100;
+          total += u * p;
+        });
+        return total;
+      }
+
       function updateMarketPrices(){
         setInvestmentPrices(function(prev){
           var next = Object.assign({}, prev);
           INVESTMENTS.forEach(function(x){
             var p = prev[x.name] || 100;
-            var r = (Math.random()*0.8) - 0.3; // -30%..+50%
+            var r = 0;
+            if(x.name === "IndexFund")      r = randBetween(-0.10, 0.20);
+            else if(x.name === "Crypto")    r = randBetween(-0.70, 2.00);
+            else if(x.name === "FriendBusiness") r = randBetween(-0.20, 0.40);
             var np = p * (1 + r);
             next[x.name] = Math.max(1, Number(np.toFixed(2)));
           });
@@ -210,6 +291,34 @@
           var f=DEFAULT_FAMILIES[idx];
           if(!submittedMap[f.family_id]){ setCurrentFamilyIdx(idx); return; }
         }
+      }
+
+      function dispHappy(h){
+        var hd = (typeof h==="number") ? h*10 : 0; /* label shows 10x */
+        if(hd > 0) return "+"+hd+" Happy";
+        if(hd < 0) return hd+" Happy";
+        return "+0 Happy";
+      }
+      function dispCost(c){
+        if(typeof c !== "number" || c === 0) return "-$0";
+        return c > 0 ? "-$"+Math.abs(c) : "+$"+Math.abs(c);
+      }
+
+      function ChoiceToggles(props){
+        var choices = props.choices, selectedKey = props.selectedKey, onSelect = props.onSelect, showMeta = props.showMeta;
+        return React.createElement("div",{className:"toggle-group"},
+          choices.map(function(c){
+            var label = c.key + ". " + c.label;
+            if(showMeta){
+              label += " (" + dispHappy(c.happy) + ", " + dispCost(c.cost) + ")";
+            }
+            return React.createElement('span',{
+              key:c.key,
+              className:'toggle'+(selectedKey===c.key?' active':''),
+              onClick:function(){ onSelect(c.key); }
+            }, label);
+          })
+        );
       }
 
       function submitChoices(){
@@ -240,7 +349,6 @@
         if(!isTurn1 && gChoiceObj){
           gCost = gChoiceObj.cost || 0;
           gHappy = gChoiceObj.happy || 0;
-          // record tax delta ONCE per turn
           if(typeof groupEvent.taxDelta === "number" && taxDeltaRecordedTurn !== turn){
             setPendingTaxDelta(groupEvent.taxDelta);
             setTaxDeltaRecordedTurn(turn);
@@ -255,10 +363,16 @@
         var fCost = fChoiceObj.cost || 0;
         var fHappy = fChoiceObj.happy || 0;
 
-        var taxable = 0; if(gCost>0) taxable+=gCost; if(fCost>0) taxable+=fCost;
+        /* Base expense categories */
+        var baseFood = fam.food || 0;
+        var baseClothes = fam.clothes || 0;
+        var baseMisc = fam.misc || 0;
+
+        /* Tax applies to purchases: food, clothes, misc, plus positive scenario spends */
+        var taxable = baseFood + baseClothes + baseMisc + (gCost>0?gCost:0) + (fCost>0?fCost:0);
         var tax = taxable * salesTaxNow;
 
-        // Investment trade (optional)
+        /* Investment trade */
         var action = invAction;
         var inv = invName;
         var raw = invAmtStr.trim();
@@ -276,7 +390,7 @@
             var buyUnits = amt / price;
             newPortfolioUnits[fid][inv] = (newPortfolioUnits[fid][inv] || 0) + buyUnits;
             investCashFlow -= amt;
-            investNotes = "Bought " + buyUnits.toFixed(4) + " " + inv + " @ " + fmt(price);
+            investNotes = "Bought "+buyUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
           } else {
             var have = newPortfolioUnits[fid][inv] || 0;
             var maxValue = have * price;
@@ -284,11 +398,15 @@
             var sellUnits = amt / price;
             newPortfolioUnits[fid][inv] = have - sellUnits;
             investCashFlow += amt;
-            investNotes = "Sold " + sellUnits.toFixed(4) + " " + inv + " @ " + fmt(price);
+            investNotes = "Sold "+sellUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
           }
         }
 
-        var expenses = fam.housing + monthlyCost + fCost + gCost + tax;
+        var expenses =
+          fam.housing + monthlyCost +
+          baseFood + baseClothes + baseMisc +
+          fCost + gCost + tax;
+
         var prevBank = bank[fid]||0;
         var delta = incomeThisTurn - expenses + investCashFlow;
         var newBankVal = prevBank + delta;
@@ -297,7 +415,11 @@
         setBank(newBank);
         setPortfolioUnits(newPortfolioUnits);
 
-        var gainNow = Math.max(newBankVal - fam.starting_bank, 0);
+        /* NET WORTH based econ points */
+        var newHoldingsValue = calcHoldingsValue(fid, newPortfolioUnits);
+        var netWorthNow = newBankVal + newHoldingsValue;
+        var startNetWorth = fam.starting_bank; /* initial holdings are zero */
+        var gainNow = Math.max(netWorthNow - startNetWorth, 0);
         var gainPrev = gainVsStart[fid] || 0;
         var newGainPeak = Math.max(gainNow, gainPrev);
         var gainDelta = Math.max(newGainPeak - gainPrev, 0);
@@ -315,12 +437,13 @@
         var row = {
           turn:turn, role:fam.role, family:fam.name,
           income:Number(incomeThisTurn.toFixed(2)), housing:fam.housing, insurance:monthlyCost,
-          group_spend:Number(gCost.toFixed(2)), family_spend:fCost, sales_tax_paid:Number(tax.toFixed(2)),
+          group_spend:Number(gCost.toFixed(2)), family_spend:fCost,
+          sales_tax_paid:Number(tax.toFixed(2)),
           investments_realized:0, net_change:Number(delta.toFixed(2)), bank_after:Number(newBankVal.toFixed(2)),
           econ_earned:Math.round(econEarned), happy_earned:Math.round(happyEarned),
-          econ_total:Math.round((newEcon[fid]||0)), happy_total:Math.round((newHappy[fid]||0)),
-          points_total:Math.round((newEcon[fid]||0)+(newHappy[fid]||0)),
-          notes: investNotes || (isTurn1 ? ("Insurance: " + (INSURER_MAP[gChoiceObj?.label] || gChoiceObj?.label || "")) : "")
+          econ_total:Math.round(((econPoints[fid]||0)+econEarned)), happy_total:Math.round(((happyPoints[fid]||0)+happyEarned)),
+          points_total:Math.round(((econPoints[fid]||0)+econEarned)+((happyPoints[fid]||0)+happyEarned)),
+          notes: ("Food "+fmt(baseFood)+", Clothes "+fmt(baseClothes)+", Misc "+fmt(baseMisc)) + (investNotes?(" | "+investNotes):"") + (isTurn1 ? (" | Insurance: " + (INSURER_MAP[gChoiceObj?gChoiceObj.label:""] || (gChoiceObj?gChoiceObj.label:""))) : "")
         };
         setLedger(function(prev){ var copy=prev.slice(); copy.push(row); return copy; });
 
@@ -330,17 +453,15 @@
         goNextFamily();
       }
 
-      function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 1000); }
+      function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 800); }
 
       function doTurnAdvanceCommon(){
-        // apply pending tax change ONCE here
         if(pendingTaxDelta !== 0){
           setSalesTaxNext(function(p){ return clamp(p + pendingTaxDelta, 0, 0.15); });
           setPendingTaxDelta(0);
           setTaxDeltaRecordedTurn(null);
         }
-        setSalesTaxNow(salesTaxNext); // the scheduled change applies now
-
+        setSalesTaxNow(salesTaxNext);
         if(!isTurn1){ setGroupIdx(function(p){ return p+1; }); }
         setFamilyIdx(function(p){ return p+1; });
         resetSubmitted();
@@ -377,7 +498,7 @@
         setCurrentFamilyIdx(0); resetSubmitted();
         setGroupChoiceKey(""); setFamilyChoiceKey("");
         setInvAction(""); setInvName(""); setInvAmtStr("");
-        setShowEnd(false); setShowLedger(false); setShowAdmin(false); setShowIntro(true);
+        setShowEnd(false); setShowLedger(false); setShowAdmin(false); setShowIntro(true); setShowExpenses(false);
         setInvestmentPrices(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
         setPortfolioUnits(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,0];}))];})));
       }
@@ -394,45 +515,8 @@
       var incomeThisTurn = fam.base_income*(sectorMult[fam.sector]||1);
       var remainingCount = DEFAULT_FAMILIES.filter(function(f){ return !submittedMap[f.family_id]; }).length;
 
-      var holdingsValue = INVESTMENTS.reduce(function(acc,x){
-        var units=(portfolioUnits[fam.family_id]||{})[x.name]||0;
-        var price=investmentPrices[x.name]||100;
-        return acc + units*price;
-      },0);
+      var holdingsValue = calcHoldingsValue(fam.family_id);
 
-      function labelCell(txt){ return React.createElement("div",{className:"muted"},txt); }
-
-      function Toggle(props){
-        const {active,onClick,children}=props;
-        return React.createElement('span',{className:'toggle'+(active?' active':''),onClick:onClick},children);
-      }
-
-      // helpers for displaying meta
-      function dispHappy(h){
-        var hd = (typeof h==="number") ? h*10 : 0; // 10x shown only
-        if(hd > 0) return "+"+hd+" Happy";
-        if(hd < 0) return hd+" Happy";
-        return "+0 Happy";
-      }
-      function dispCost(c){
-        if(typeof c !== "number" || c === 0) return "-$0";
-        return c > 0 ? "-$"+Math.abs(c) : "+$"+Math.abs(c);
-      }
-
-      function ChoiceToggles({ choices, selectedKey, onSelect, showMeta }){
-        return React.createElement("div",{className:"toggle-group"},
-          choices.map(function(c){
-            var label = c.key + ". " + c.label;
-            if(showMeta){
-              var eff = "(" + dispHappy(c.happy) + ", " + dispCost(c.cost) + ")";
-              label += " " + eff;
-            }
-            return React.createElement(Toggle,{key:c.key,active:selectedKey===c.key,onClick:function(){onSelect(c.key);}},label);
-          })
-        );
-      }
-
-      // top action button
       var topActionLabel="", topActionHandler=null, topActionDisabled=false;
       if(allSubmitted()){
         topActionLabel = "Advance turn";
@@ -445,52 +529,70 @@
         topActionHandler = submitChoices;
       }
 
+      var insChoiceShow = chosenInsurance[fam.family_id] || "Aetna";
+      var carrierShow = INSURER_MAP[insChoiceShow] || insChoiceShow || "Aetna";
+      var monthlyShow = INSURERS[carrierShow] || 0;
+
+      var currentG = !isTurn1 ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
+      var currentF = familyEvent && familyChoiceKey ? familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) : null;
+
+      var gCostShow = (!isTurn1 && currentG) ? (currentG.cost||0) : 0;
+      var fCostShow = currentF ? (currentF.cost||0) : 0;
+
+      var expensesBase = fam.housing + monthlyShow + fam.food + fam.clothes + fam.misc;
+      var taxableShow = fam.food + fam.clothes + fam.misc + (gCostShow>0?gCostShow:0) + (fCostShow>0?fCostShow:0);
+      var taxShow = taxableShow * salesTaxNow;
+      var expensesTotalShow = expensesBase + (gCostShow!==0?gCostShow:0) + (fCostShow!==0?fCostShow:0) + taxShow;
+      var projectedDeltaThisTurn = incomeThisTurn - expensesTotalShow;
+
+      function labelCell(txt){ return React.createElement("div",{className:"muted"},txt); }
+
       return React.createElement(React.Fragment,null,
 
-      /* INTRO */
-      showIntro ? React.createElement("div",{className:"overlay"},
-        React.createElement("div",{className:"crt-card p-6 panel space-y-4 text-center"},
-          React.createElement("div",{className:"text-3xl accent"},"We live in a society with tradeoffs"),
-          React.createElement("p",{className:"muted"},"Prices move. Taxes change. Families choose. Grow wealth and keep people happy."),
-          React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-left"},
-            DEFAULT_FAMILIES.map(function(f){
-              return React.createElement("div",{key:f.family_id,className:"crt-card p-4"},
-                React.createElement("div",{className:"text-xl"},f.name),
-                React.createElement("div",{className:"mt-1"},labelCell("Job")),
-                React.createElement("div",{className:"accent"},f.job),
-                React.createElement("div",{className:"mt-1"},labelCell("Income")),
-                React.createElement("div",{className:"accent"},fmt(f.base_income)),
-                React.createElement("div",{className:"mt-1"},labelCell("Housing")),
-                React.createElement("div",{className:"accent"},fmt(f.housing)),
-                React.createElement("div",{className:"mt-1"},labelCell("Role multiplier")),
-                React.createElement("div",{className:"accent"},"x"+ROLE_MULT[f.role])
-              );
-            })
-          ),
-          React.createElement("div",{className:"crt-card p-4 text-left space-y-2"},
-            React.createElement("div",null,React.createElement("span",{className:"accent"},"Each turn")),
-            React.createElement("div",null,"1. A group scenario applies to everyone."),
-            React.createElement("div",null,"2. A family scenario applies to each family."),
-            React.createElement("div",null,"3. Investment opportunities are available and change in value every turn."),
-            React.createElement("div",{className:"mt-2"},React.createElement("span",{className:"accent"},"Scoring")),
-            React.createElement("div",null,"Economic points: bank growth above start."),
-            React.createElement("div",null,"Happiness: choices plus money growth.")
-          ),
-          React.createElement("div",{className:"pt-2"},
-            React.createElement("button",{className:"crt-btn text-2xl px-6 py-3",onClick:function(){setShowIntro(false);}}, "Click here to start")
+        /* INTRO */
+        showIntro ? React.createElement("div",{className:"overlay"},
+          React.createElement("div",{className:"crt-card p-5 panel tight-y"},
+            React.createElement("div",{className:"text-3xl accent text-center"},"We live in a society with tradeoffs"),
+            React.createElement("p",{className:"muted text-center"},"Prices move. Taxes change. Families choose. Grow net worth and keep people happy."),
+            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 tight-gap mt-2"},
+              DEFAULT_FAMILIES.map(function(f){
+                return React.createElement("div",{key:f.family_id,className:"crt-card tight-card"},
+                  React.createElement("div",{className:"text-xl"},f.name),
+                  React.createElement("div",{className:"mt-1"},labelCell("Job")),
+                  React.createElement("div",{className:"accent"},f.job),
+                  React.createElement("div",{className:"mt-1"},labelCell("Income")),
+                  React.createElement("div",{className:"accent"},fmt(f.base_income)),
+                  React.createElement("div",{className:"mt-1"},labelCell("Housing")),
+                  React.createElement("div",{className:"accent"},fmt(f.housing)),
+                  React.createElement("div",{className:"mt-1"},labelCell("Role multiplier")),
+                  React.createElement("div",{className:"accent"},"x"+ROLE_MULT[f.role])
+                );
+              })
+            ),
+            React.createElement("div",{className:"crt-card p-4 mt-2"},
+              React.createElement("div",{className:"accent mb-1"},"Each turn"),
+              React.createElement("div",null,"1. A group scenario applies to everyone."),
+              React.createElement("div",null,"2. A family scenario applies to each family."),
+              React.createElement("div",null,"3. Investment opportunities are available and change in value every turn."),
+              React.createElement("div",{className:"mt-2 accent"},"Scoring"),
+              React.createElement("div",null,"Economic points: net worth growth above start."),
+              React.createElement("div",null,"Happiness: choices plus money growth.")
+            ),
+            React.createElement("div",{className:"pt-2 text-center"},
+              React.createElement("button",{className:"crt-btn text-2xl px-6 py-3",onClick:function(){setShowIntro(false);}}, "Click here to start")
+            )
           )
-        )
-      ) : null,
+        ) : null,
 
-        React.createElement("div",{className:"max-w-7xl mx-auto p-4 md:p-6 space-y-4"},
+        React.createElement("div",{className:"max-w-7xl mx-auto p-4 space-y-2"},
 
           /* SCOREBOARD */
-          React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"},
+          React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2"},
             perFamilyScores.map(function(s){
-              return React.createElement("div",{key:s.fid,className:"crt-card p-4"},
+              return React.createElement("div",{key:s.fid,className:"crt-card tight-card"},
                 React.createElement("div",{className:"text-xl"},s.name),
-                React.createElement("div",{className:"score-total font-bold mt-2 accent"},s.total),
-                React.createElement("div",{className:"mt-2 grid grid-cols-2 gap-2"},
+                React.createElement("div",{className:"score-total font-bold mt-1 accent"},s.total),
+                React.createElement("div",{className:"mt-1 grid grid-cols-2 gap-2"},
                   React.createElement("div",{className:"crt-card p-2 text-center"},
                     labelCell("Economic"),
                     React.createElement("div",{className:"score-sub accent font-bold"},s.econ)
@@ -504,80 +606,74 @@
             })
           ),
 
-          /* CONTROL BAR */
-          React.createElement("div",{className:"flex gap-2 items-center"},
-            React.createElement("button",{className:"crt-btn",onClick:function(){setShowLedger(true);}},"View ledger"),
-            React.createElement("button",{className:"crt-btn",onClick:function(){setShowAdmin(true);}},"Admin"),
-            React.createElement("button",{className:"crt-btn",onClick:function(){setShowEnd(true);}},"End game"),
-            React.createElement("div",{className:"ml-auto flex items-center gap-3"},
-              React.createElement("div",{className:"crt-card px-3 py-2"},
-                React.createElement("div",{className:"muted text-sm"},"Sales tax"),
-                React.createElement("div",{className:"accent"}, (salesTaxNow*100).toFixed(1) + "%")
-              ),
-              React.createElement("button",{className:"crt-btn",onClick:skipTurn},"Skip turn"),
-              React.createElement("button",{
-                className:"crt-btn",
-                onClick: topActionHandler || undefined,
-                disabled: topActionDisabled
-              }, topActionLabel)
-            )
-          ),
-
-          /* FAMILY HEADER */
-          React.createElement("div",{className:"crt-card p-4"},
+          /* FAMILY HEADER + FINANCE BOXES */
+          React.createElement("div",{className:"crt-card tight-card"},
             React.createElement("div",{className:"flex items-center justify-between"},
-              React.createElement("div",null,
-                React.createElement("div",{className:"text-2xl"}, fam.name + " (" + fam.role + ")"),
-                React.createElement("div",{className:"muted"},"Sector "+fam.sector+"  Income this turn "+fmt(incomeThisTurn))
-              ),
-              React.createElement("div",{className:"text-right"},
-                React.createElement("div",{className:"muted"},"Bank"),
-                React.createElement("div",{className:"text-2xl accent"}, fmt(bank[fam.family_id]))
-              )
+              React.createElement("div",{className:"text-2xl"}, fam.name + " (" + fam.role + ")"),
+              React.createElement("div",{className:"muted"},"Turn "+turn)
             ),
-            React.createElement("div",{className:"mt-3 grid grid-cols-1 md:grid-cols-3 gap-4"},
-              React.createElement("div",{className:"p-3 crt-card"},
-                labelCell("Housing"),
-                React.createElement("div",{className:"text-2xl accent"},fmt(fam.housing))
+
+            React.createElement("div",{className:"mt-2 grid grid-cols-1 lg:grid-cols-3 gap-2"},
+
+              /* Summary income/expenses compact */
+              React.createElement("div",{className:"p-3 crt-card lg:col-span-2 tight-y"},
+                React.createElement("div",{className:"text-xl"},"Income and expenses"),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k accent"},"Income"),
+                  React.createElement("div",{className:"v"}, fmt(incomeThisTurn))
+                ),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k accent"},"Expenses this turn"),
+                  React.createElement("div",{className:"v"}, fmt(expensesTotalShow))
+                ),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k muted"},"Next turn ±"),
+                  React.createElement("div",{className:"v accent"}, fmt(projectedDeltaThisTurn))
+                ),
+                React.createElement("div",{className:"mt-1"},
+                  React.createElement("button",{className:"crt-btn",onClick:function(){setShowExpenses(true);}},"View expenses")
+                )
               ),
-              React.createElement("div",{className:"p-3 crt-card md:col-span-2"},
-                labelCell("Investments (value only)"),
-                React.createElement("div",{className:"text-2xl accent mt-1"}, fmt(holdingsValue)),
-                React.createElement("div",{className:"mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2"},
-                  INVESTMENTS.map(function(x){
-                    var units=(portfolioUnits[fam.family_id]||{})[x.name]||0;
-                    var price=investmentPrices[x.name]||100;
-                    var value=units*price;
-                    return React.createElement("div",{key:x.name,className:"crt-card p-2 text-center"},
-                      React.createElement("div",{className:"muted"},x.name),
-                      React.createElement("div",{className:"accent"},fmt(value))
-                    );
-                  })
+
+              /* Account and Net Worth */
+              React.createElement("div",{className:"p-3 crt-card tight-y"},
+                React.createElement("div",{className:"text-xl"},"Account and net worth"),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k"},"Bank"),
+                  React.createElement("div",{className:"v"}, fmt(bank[fam.family_id]))
+                ),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k"},"Investments value"),
+                  React.createElement("div",{className:"v"}, fmt(holdingsValue))
+                ),
+                React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k muted"},"Total net worth"),
+                  React.createElement("div",{className:"v accent"}, fmt((bank[fam.family_id]||0) + holdingsValue))
                 )
               )
             )
           ),
 
-          /* ROW 1: Group + Family scenarios side by side */
-          React.createElement("div",{className:"grid grid-cols-1 lg:grid-cols-2 gap-4"},
-            React.createElement("section",{className:"crt-card p-4"},
+          /* ROW 1: Group + Family scenarios */
+          React.createElement("div",{className:"grid grid-cols-1 lg:grid-cols-2 gap-2"},
+            React.createElement("section",{className:"crt-card p-3 tight-y"},
               React.createElement("h3",{className:"text-xl"},"Group scenario"),
               React.createElement("div",null, groupEvent.title + (groupEvent.description ? ". " + groupEvent.description : "")),
-              React.createElement("div",{className:"mt-2"},
+              React.createElement("div",{className:"mt-1"},
                 React.createElement(ChoiceToggles,{
                   choices: groupEvent.choices,
                   selectedKey: groupChoiceKey,
                   onSelect: function(k){ setGroupChoiceKey(k); },
-                  showMeta: !isTurn1 // hide meta for insurance turn
+                  showMeta: !isTurn1
                 })
               )
             ),
-            React.createElement("section",{className:"crt-card p-4"},
+            React.createElement("section",{className:"crt-card p-3 tight-y"},
               React.createElement("h3",{className:"text-xl"},"Family event"),
               familyEvent
                 ? React.createElement(React.Fragment,null,
                     React.createElement("div",null, familyEvent.title + ". " + familyEvent.description),
-                    React.createElement("div",{className:"mt-2"},
+                    React.createElement("div",{className:"mt-1"},
                       React.createElement(ChoiceToggles,{
                         choices: familyEvent.choices,
                         selectedKey: familyChoiceKey,
@@ -590,34 +686,34 @@
             )
           ),
 
-          /* ROW 2: Investments (full width) */
-          React.createElement("section",{className:"crt-card p-4 space-y-3"},
+          /* ROW 2: Investments */
+          React.createElement("section",{className:"crt-card p-3 tight-y"},
             React.createElement("h3",{className:"text-xl"},"Investments"),
-            React.createElement("div",{className:"muted"},"You can buy or sell any turn. Values change randomly every turn."),
-            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-4 gap-2"},
+            React.createElement("div",{className:"grid grid-cols-3 gap-2"},
               INVESTMENTS.map(function(x){
                 var price=investmentPrices[x.name]||100;
-                return React.createElement("div",{key:x.name,className:"crt-card p-3 text-center"},
+                return React.createElement("div",{key:x.name,className:"crt-card p-2 text-center"},
                   React.createElement("div",{className:"muted"},x.name),
-                  React.createElement("div",{className:"text-xl accent"},fmt(price))
+                  React.createElement("div",{className:"text-lg accent"},fmt(price))
                 );
               })
             ),
-            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-4 gap-3 items-end"},
+            /* One row: Action | Investment | Amount */
+            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-2 items-end"},
               React.createElement("div",null,
                 React.createElement("div",{className:"label mb-1"},"Action"),
                 React.createElement("div",{className:"toggle-group"},
-                  React.createElement(Toggle,{active:invAction==="Buy",onClick:function(){setInvAction("Buy");}},"Buy"),
-                  React.createElement(Toggle,{active:invAction==="Sell",onClick:function(){setInvAction("Sell");}},"Sell")
+                  React.createElement('span',{className:'toggle'+(invAction==="Buy"?' active':''),onClick:function(){setInvAction("Buy");}},"Buy"),
+                  React.createElement('span',{className:'toggle'+(invAction==="Sell"?' active':''),onClick:function(){setInvAction("Sell");}},"Sell")
                 )
               ),
               React.createElement("div",null,
                 React.createElement("div",{className:"label mb-1"},"Investment"),
-                React.createElement("div",{className:"toggle-group"},
+                React.createElement("div",{className:"toggle-group nowrap"},
                   INVESTMENTS.map(function(x){
-                    return React.createElement(Toggle,{
+                    return React.createElement('span',{
                       key:x.name,
-                      active:invName===x.name,
+                      className:'toggle'+(invName===x.name?' active':''),
                       onClick:function(){ setInvName(x.name); }
                     }, x.name);
                   })
@@ -630,13 +726,83 @@
                   className:"w-full", value:invAmtStr,
                   onChange:function(e){ setInvAmtStr(e.target.value); }
                 })
-              ),
-              React.createElement("div",{className:"flex items-end"},
-                React.createElement("span",{className:"muted"}, "Use the top button to submit.")
               )
+            )
+          ),
+
+          /* BOTTOM CONTROLS BAR */
+          React.createElement("div",{className:"flex gap-2 items-center"},
+            React.createElement("button",{className:"crt-btn",onClick:function(){setShowLedger(true);}},"View ledger"),
+            React.createElement("button",{className:"crt-btn",onClick:function(){setShowAdmin(true);}},"Admin"),
+            React.createElement("button",{className:"crt-btn",onClick:function(){setShowEnd(true);}},"End game"),
+            React.createElement("div",{className:"ml-auto flex items-center gap-2"},
+              React.createElement("button",{className:"crt-btn",onClick:skipTurn},"Skip turn"),
+              React.createElement("button",{
+                className:"crt-btn",
+                onClick: topActionHandler || undefined,
+                disabled: topActionDisabled
+              }, topActionLabel)
             )
           )
         ),
+
+        /* EXPENSES MODAL (breakdown) */
+        showExpenses ? React.createElement("div",{className:"overlay"},
+          React.createElement("div",{className:"crt-card p-5 panel tight-y"},
+            React.createElement("div",{className:"text-2xl mb-1"},"Expense breakdown"),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Housing"),
+              React.createElement("div",{className:"v"}, fmt(fam.housing))
+            ),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Insurance"),
+              React.createElement("div",{className:"v"}, fmt(INSURERS[INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"] || 0))
+            ),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Food"),
+              React.createElement("div",{className:"v"}, fmt(fam.food))
+            ),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Clothes"),
+              React.createElement("div",{className:"v"}, fmt(fam.clothes))
+            ),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Misc"),
+              React.createElement("div",{className:"v"}, fmt(fam.misc))
+            ),
+            (function(){
+              var g = !isTurn1 ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
+              if(g && g.cost !== 0){
+                return React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k"},"Group choice"),
+                  React.createElement("div",{className:"v"}, fmt(g.cost))
+                );
+              }
+              return null;
+            })(),
+            (function(){
+              var fch = familyEvent && familyChoiceKey ? familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) : null;
+              if(fch && fch.cost !== 0){
+                return React.createElement("div",{className:"row"},
+                  React.createElement("div",{className:"k"},"Family choice"),
+                  React.createElement("div",{className:"v"}, fmt(fch.cost))
+                );
+              }
+              return null;
+            })(),
+            React.createElement("div",{className:"row"},
+              React.createElement("div",{className:"k"},"Sales tax"),
+              React.createElement("div",{className:"v"}, fmt(taxableShow * salesTaxNow))
+            ),
+            React.createElement("div",{className:"row mt-1"},
+              React.createElement("div",{className:"k muted"},"Total expenses"),
+              React.createElement("div",{className:"v accent"}, fmt(expensesTotalShow))
+            ),
+            React.createElement("div",{className:"text-right mt-2"},
+              React.createElement("button",{className:"crt-btn",onClick:function(){setShowExpenses(false);}},"Close")
+            )
+          )
+        ) : null,
 
         /* LEDGER MODAL */
         showLedger ? React.createElement("div",{className:"overlay"},
@@ -692,7 +858,7 @@
 
         /* ADMIN MODAL */
         showAdmin ? React.createElement("div",{className:"overlay"},
-          React.createElement("div",{className:"crt-card p-6 panel space-y-4"},
+          React.createElement("div",{className:"crt-card p-5 panel space-y-3"},
             React.createElement("div",{className:"flex items-center justify-between"},
               React.createElement("h3",{className:"text-2xl"},"Admin Controls"),
               React.createElement("button",{className:"crt-btn",onClick:function(){setShowAdmin(false);}},"Close")
@@ -702,9 +868,9 @@
               React.createElement("input",{type:"range",min:0,max:0.15,step:0.01,value:salesTaxNext,onChange:function(e){setSalesTaxNext(Number(e.target.value));},className:"w-full"}),
               React.createElement("div",{className:"muted"}, (salesTaxNext*100).toFixed(1)+"%")
             ),
-            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-3"},
+            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-2"},
               SECTORS.map(function(sec){
-                return React.createElement("div",{key:sec,className:"crt-card p-4"},
+                return React.createElement("div",{key:sec,className:"crt-card p-3"},
                   React.createElement("div",{className:"flex justify-between muted"},
                     React.createElement("span",null,sec),
                     React.createElement("span",null,sectorMult[sec].toFixed(2))
@@ -718,14 +884,14 @@
 
         /* END SCREEN */
         showEnd ? React.createElement("div",{className:"overlay"},
-          React.createElement("div",{className:"crt-card p-6 panel space-y-4"},
+          React.createElement("div",{className:"crt-card p-5 panel space-y-3"},
             React.createElement("h2",{className:"text-3xl text-center"},"Final Scores"),
-            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"},
+            React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2"},
               perFamilyScores.map(function(s){
-                return React.createElement("div",{key:s.fid,className:"crt-card p-4 text-center"},
+                return React.createElement("div",{key:s.fid,className:"crt-card p-3 text-center"},
                   React.createElement("div",{className:"muted"}, s.name + " (" + s.role + ")"),
-                  React.createElement("div",{className:"score-total font-bold mt-2 accent"}, s.total),
-                  React.createElement("div",{className:"mt-2 grid grid-cols-2 gap-2"},
+                  React.createElement("div",{className:"score-total font-bold mt-1 accent"}, s.total),
+                  React.createElement("div",{className:"mt-1 grid grid-cols-2 gap-2"},
                     React.createElement("div",{className:"crt-card p-2"},
                       React.createElement("div",{className:"muted"},"Economic"),
                       React.createElement("div",{className:"score-sub accent font-bold"}, s.econ)
@@ -738,7 +904,7 @@
                 );
               })
             ),
-            React.createElement("div",{className:"crt-card p-4"},
+            React.createElement("div",{className:"crt-card p-3"},
               React.createElement("table",{className:"w-full"},
                 React.createElement("thead",null,
                   React.createElement("tr",null, ["Family","Role","Start $","End $"].map(function(h){return React.createElement("th",{key:h},h);}))
@@ -755,7 +921,7 @@
                 )
               )
             ),
-            React.createElement("div",{className:"flex justify-end gap-2"},
+            React.createElement("div",{className:"flex justify-end"},
               React.createElement("button",{className:"crt-btn",onClick:restartGame},"Restart")
             )
           )
@@ -763,7 +929,7 @@
 
         /* TURN ANIMATION */
         anim ? React.createElement("div",{className:"overlay"},
-          React.createElement("div",{className:"text-4xl pulse"},"Advancing to Turn "+turn)
+          React.createElement("div",{className:"text-3xl pulse"},"Advancing to Turn "+turn)
         ) : null
       );
     }
