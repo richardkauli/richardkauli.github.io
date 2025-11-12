@@ -31,7 +31,7 @@
     th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,0.15); }
     .muted{ color: rgba(255,255,255,.8); }
     .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:50; }
-    .panel{ width: min(95vw, 800px); }
+    .panel{ width: min(95vw, 1000px); }
     .pulse{ animation:pulse 1s ease-in-out infinite; }
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
   </style>
@@ -51,8 +51,9 @@
       { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 }
     ];
 
-    // multipliers: Serf 12x, Knight 4x, Noble 3x, King 1x
-    const ROLE_MULT = { Serf: 12, Knight: 4, Noble: 3, King: 1 };
+    // Multipliers and happiness scaling
+    const ROLE_MULT = { Serf: 8, Knight: 4, Noble: 4, King: 1 };
+    const HAPPY_MULT = 10;
 
     const SECTORS = ["Retail", "Food", "Healthcare", "Tech"];
 
@@ -114,9 +115,9 @@
       ],
       3: [
         { id: 301, title: "Infant daycare", description: "Two options open up", choices: [
-          { key: "A", label: "Local daycare",             cost: 2900, happy: 1 },
-          { key: "B", label: "Private daycare with friends", cost: 3500, happy: 2 },
-          { key: "C", label: "Nanny share part time",     cost: 1800, happy: 1 }
+          { key: "A", label: "Local daycare",                 cost: 2900, happy: 1 },
+          { key: "B", label: "Private daycare with friends",  cost: 3500, happy: 2 },
+          { key: "C", label: "Nanny share part time",         cost: 1800, happy: 1 }
         ]},
         { id: 302, title: "Long commute tradeoff", description: "New hospital role", choices: [
           { key: "A", label: "Transit pass", cost: 129, happy: 0 },
@@ -151,24 +152,22 @@
     function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
 
     function App(){
-      var _useState, _useState2, _useState3, _useState4, _useState5, _useState6, _useState7, _useState8, _useState9, _useState10, _useState11, _useState12;
-
-      const [turn, setTurn] = (_useState = useState(1), _useState);
-      const [salesTaxNow, setSalesTaxNow] = (_useState2 = useState(0.06), _useState2);
-      const [salesTaxNext, setSalesTaxNext] = (_useState3 = useState(0.06), _useState3);
-      const [sectorMult, setSectorMult] = (_useState4 = useState({ Retail: 1.0, Food: 1.0, Healthcare: 1.0, Tech: 1.0 }), _useState4);
+      const [turn, setTurn] = useState(1);
+      const [salesTaxNow, setSalesTaxNow] = useState(0.06);
+      const [salesTaxNext, setSalesTaxNext] = useState(0.06);
+      const [sectorMult, setSectorMult] = useState({ Retail: 1.0, Food: 1.0, Healthcare: 1.0, Tech: 1.0 });
 
       const initialBank = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f.starting_bank]; })); }, []);
-      const [bank, setBank] = (_useState5 = useState(initialBank), _useState5);
-      const [chosenInsurance, setChosenInsurance] = (_useState6 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, "Aetna"]; }))), _useState6);
-      const [ledger, setLedger] = (_useState7 = useState([]), _useState7);
-      const [lockedInv, setLockedInv] = (_useState8 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, []]; }))), _useState8);
+      const [bank, setBank] = useState(initialBank);
+      const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, "Aetna"]; })));
+      const [ledger, setLedger] = useState([]);
+      const [lockedInv, setLockedInv] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, []]; })));
 
-      const [gainVsStart, setGainVsStart] = (_useState9 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState9);
-      const [econPoints, setEconPoints] = (_useState10 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState10);
-      const [happyPoints, setHappyPoints] = (_useState11 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState11);
+      const [gainVsStart, setGainVsStart] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
+      const [econPoints, setEconPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
+      const [happyPoints, setHappyPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; })));
 
-      const [currentFamilyIdx, setCurrentFamilyIdx] = (_useState12 = useState(0), _useState12);
+      const [currentFamilyIdx, setCurrentFamilyIdx] = useState(0);
       const currentFamily = DEFAULT_FAMILIES[currentFamilyIdx];
       const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, false]; })));
 
@@ -183,6 +182,7 @@
       const [showLedger, setShowLedger] = useState(false);
       const [showEnd, setShowEnd] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
+      const [showIntro, setShowIntro] = useState(true);
       const [anim, setAnim] = useState(false);
 
       const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f]; })); }, []);
@@ -243,16 +243,17 @@
         var newBankVal = prevBank + delta;
         var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
 
-        // 100x smaller economic points
+        // Econ points: 100x smaller, then role multiplier
         var gainNow = Math.max(newBankVal - fam.starting_bank, 0);
         var gainPrev = gainVsStart[fid] || 0;
         var newGainPeak = Math.max(gainNow, gainPrev);
         var gainDelta = Math.max(newGainPeak - gainPrev, 0);
         var econEarned = (gainDelta * (ROLE_MULT[fam.role] || 1)) / 100;
 
+        // Happiness: choices plus a money bump
         var bankDelta = newBankVal - prevBank;
         var happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0;
-        var happyEarned = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
+        var happyEarned = HAPPY_MULT * ((gChoice.happy||0) + (fChoice.happy||0) + happyMoney);
 
         setBank(newBank);
         var newLocked = Object.assign({}, lockedInv); newLocked[fid] = remaining; setLockedInv(newLocked);
@@ -316,7 +317,7 @@
         setGroupIdx(0); setFamilyIdx(0);
         setCurrentFamilyIdx(0); resetSubmitted();
         setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
-        setShowEnd(false); setShowLedger(false); setShowAdmin(false);
+        setShowEnd(false); setShowLedger(false); setShowAdmin(false); setShowIntro(true);
       }
 
       const perFamilyScores = DEFAULT_FAMILIES.map(function(f){
@@ -335,15 +336,47 @@
       function accentCell(txt){ return React.createElement("div", { className: "accent" }, txt); }
 
       return React.createElement(React.Fragment, null,
+
+        /* INTRO OVERLAY */
+        showIntro ? React.createElement("div", { className: "overlay", onClick: function(){ setShowIntro(false); } },
+          React.createElement("div", { className: "crt-card p-6 panel space-y-4 text-center" },
+            React.createElement("div", { className: "text-3xl accent" }, "We live in a society with tradeoffs"),
+            React.createElement("p", { className: "muted" },
+              "Prices move. Taxes change. Families choose. Your goal is simple. Grow wealth and keep people happy."
+            ),
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-left" },
+              DEFAULT_FAMILIES.map(function(f){
+                return React.createElement("div", { key: f.family_id, className: "crt-card p-4" },
+                  React.createElement("div", { className: "text-xl" }, f.name + " (" + f.role + ")"),
+                  React.createElement("div", { className: "mt-1" }, labelCell("Job")),
+                  React.createElement("div", { className: "accent" }, f.job),
+                  React.createElement("div", { className: "mt-1" }, labelCell("Income")),
+                  React.createElement("div", { className: "accent" }, fmt(f.base_income)),
+                  React.createElement("div", { className: "mt-1" }, labelCell("Housing")),
+                  React.createElement("div", { className: "accent" }, fmt(f.housing)),
+                  React.createElement("div", { className: "mt-1" }, labelCell("Role multiplier")),
+                  React.createElement("div", { className: "accent" }, "x" + ROLE_MULT[f.role])
+                );
+              })
+            ),
+            React.createElement("div", { className: "crt-card p-4 text-left space-y-1" },
+              React.createElement("div", null, React.createElement("span", { className: "accent" }, "How to score")),
+              React.createElement("div", null, "Economic points come from growing your bank above the start."),
+              React.createElement("div", null, "Your role multiplier boosts economic points."),
+              React.createElement("div", null, "Happiness comes from choices and money growth."),
+              React.createElement("div", null, "Happiness is scaled by " + HAPPY_MULT + ".")
+            ),
+            React.createElement("div", { className: "muted pt-2" }, "Click anywhere to start")
+          )
+        ) : null,
+
         React.createElement("div", { className: "max-w-7xl mx-auto p-4 md:p-6 space-y-4" },
 
+          /* SCOREBOARD */
           React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
             perFamilyScores.map(function(s){
               return React.createElement("div", { key: s.fid, className: "crt-card p-4" },
-                React.createElement("div", { className: "flex items-center justify-between" },
-                  React.createElement("div", { className: "text-xl" }, s.name),
-                  React.createElement("div", { className: "muted" }, s.role)
-                ),
+                React.createElement("div", { className: "text-xl" }, s.name),
                 React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
                 React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
                   React.createElement("div", { className: "crt-card p-2 text-center" },
@@ -359,6 +392,7 @@
             })
           ),
 
+          /* CONTROL BAR */
           React.createElement("div", { className: "flex gap-2" },
             React.createElement("button", { className: "crt-btn", onClick: function(){ setShowLedger(true); } }, "View ledger"),
             React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(true); } }, "Admin"),
@@ -371,6 +405,7 @@
             )
           ),
 
+          /* MAIN FLOW */
           React.createElement("main", { className: "flex-1 space-y-4" },
             React.createElement("div", { className: "crt-card p-4" },
               React.createElement("div", { className: "flex items-center justify-between" },
@@ -443,6 +478,7 @@
               )
             ),
 
+            /* INVESTMENTS + SUBMIT OR ADVANCE */
             React.createElement("div", { className: "crt-card p-4" },
               React.createElement("h3", { className: "text-xl mb-2" }, "Investments"),
               React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-3" },
@@ -458,14 +494,19 @@
                   React.createElement("input", { type: "number", className: "number-input w-full", min: 0, step: 50, value: invAmt, onChange: function(e){ setInvAmt(Number(e.target.value)); } })
                 ),
                 React.createElement("div", { className: "flex items-end" },
-                  React.createElement("button", { onClick: submitChoices, className: "crt-btn" }, submittedMap[fam.family_id] ? "Submitted" : "Submit choices for this family")
+                  allSubmitted()
+                    ? React.createElement("button", { onClick: advanceTurn, className: "crt-btn" }, "Advance turn")
+                    : (submittedMap[fam.family_id]
+                        ? React.createElement("button", { className: "crt-btn", disabled: true }, "Submitted")
+                        : React.createElement("button", { onClick: submitChoices, className: "crt-btn" }, "Submit choices for this family")
+                      )
                 )
-              ),
-              React.createElement("p", { className: "muted mt-2" }, "Income is added. Housing, insurance, scenario costs and tax are subtracted. Investments realize after their lock period.")
+              )
             )
           )
         ),
 
+        /* LEDGER MODAL */
         showLedger ? React.createElement("div", { className: "overlay" },
           React.createElement("div", { className: "crt-card p-4 panel" },
             React.createElement("div", { className: "flex items-center justify-between mb-2" },
@@ -518,44 +559,27 @@
           )
         ) : null,
 
-        showAdmin ? React.createElement("div", { className: "overlay" },
-          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
-            React.createElement("div", { className: "flex items-center justify-between" },
-              React.createElement("h3", { className: "text-2xl" }, "Admin"),
-              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(false); } }, "Close")
-            ),
-            React.createElement("div", null,
-              React.createElement("label", { className: "label" }, "Sales tax next turn"),
-              React.createElement("input", { type: "range", min: 0, max: 0.15, step: 0.01, value: salesTaxNext, onChange: function(e){ setSalesTaxNext(Number(e.target.value)); }, className: "w-full" }),
-              React.createElement("div", { className: "muted" }, (salesTaxNext*100).toFixed(1) + "%")
-            ),
-            React.createElement("div", { className: "pt-2 space-y-3" },
-              React.createElement("p", { className: "label" }, "Sector multipliers"),
-              SECTORS.map(function(sec){
-                return React.createElement("div", { key: sec },
-                  React.createElement("div", { className: "flex justify-between muted" },
-                    React.createElement("span", null, sec),
-                    React.createElement("span", null, sectorMult[sec].toFixed(2))
-                  ),
-                  React.createElement("input", { type: "range", min: 0.5, max: 1.5, step: 0.05, value: sectorMult[sec], onChange: function(e){ var m={}; for(var k in sectorMult) m[k]=sectorMult[k]; m[sec]=Number(e.target.value); setSectorMult(m); }, className: "w-full" })
-                );
-              })
-            )
-          )
-        ) : null,
-
+        /* END SCREEN */
         showEnd ? React.createElement("div", { className: "overlay" },
           React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
             React.createElement("h2", { className: "text-3xl text-center" }, "Final Scores"),
-            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
-              React.createElement("div", { className: "crt-card p-4 text-center" },
-                React.createElement("div", { className: "muted" }, "Economic points"),
-                React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce(function(a,b){return a+b.econ;},0)))
-              ),
-              React.createElement("div", { className: "crt-card p-4 text-center" },
-                React.createElement("div", { className: "muted" }, "Happiness points"),
-                React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce(function(a,b){return a+b.happy;},0)))
-              )
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
+              perFamilyScores.map(function(s){
+                return React.createElement("div", { key: s.fid, className: "crt-card p-4 text-center" },
+                  React.createElement("div", { className: "muted" }, s.name + " (" + s.role + ")"),
+                  React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
+                  React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
+                    React.createElement("div", { className: "crt-card p-2" },
+                      React.createElement("div", { className: "muted" }, "Economic"),
+                      React.createElement("div", { className: "score-sub accent font-bold" }, s.econ)
+                    ),
+                    React.createElement("div", { className: "crt-card p-2" },
+                      React.createElement("div", { className: "muted" }, "Happiness"),
+                      React.createElement("div", { className: "score-sub accent font-bold" }, s.happy)
+                    )
+                  )
+                );
+              })
             ),
             React.createElement("div", { className: "crt-card p-4" },
               React.createElement("table", { className: "w-full" },
@@ -577,12 +601,12 @@
               )
             ),
             React.createElement("div", { className: "flex justify-end gap-2" },
-              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowEnd(false); } }, "Close"),
               React.createElement("button", { className: "crt-btn", onClick: restartGame }, "Restart")
             )
           )
         ) : null,
 
+        /* TURN ANIMATION */
         anim ? React.createElement("div", { className: "overlay" },
           React.createElement("div", { className: "text-4xl pulse" }, "Advancing to Turn " + turn)
         ) : null
