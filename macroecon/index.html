@@ -8,16 +8,16 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root{
-      --fg:#ffffff;           /* main text */
-      --green:#22c55e;        /* money green accent */
-      --bg:#000000;           /* black background */
+      --fg:#ffffff;
+      --green:#22c55e;
+      --bg:#000000;
       --greenDim: rgba(34,197,94,.12);
     }
     html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: 'VT323', monospace; }
     .crt-card{ border:2px solid var(--green); border-radius:14px; background: rgba(0,0,0,0.45); }
     .crt-btn{ border:2px solid var(--green); color: var(--fg); background: transparent; padding:.5rem .75rem; border-radius:12px; }
     .crt-btn[disabled]{ opacity:.4; cursor:not-allowed; }
-    .crt-btn:hover{ background: var(--greenDim);}    
+    .crt-btn:hover{ background: var(--greenDim);}
     .number-input::-webkit-outer-spin-button, .number-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .number-input[type=number] { -moz-appearance: textfield; }
     .scroll-table { max-height: 70vh; overflow: auto; }
@@ -31,6 +31,7 @@
     th, td{ padding:.5rem; border-bottom:1px solid rgba(255,255,255,0.15); }
     .muted{ color: rgba(255,255,255,.8); }
     .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:50; }
+    .panel{ width: min(95vw, 800px); }
     .pulse{ animation:pulse 1s ease-in-out infinite; }
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
   </style>
@@ -38,25 +39,22 @@
 <body>
   <div id="root" class="min-h-screen"></div>
 
-  <!-- React + ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script>
     const { useState, useMemo } = React;
 
-    // ------------------------------
-    // Data
-    // ------------------------------
     const DEFAULT_FAMILIES = [
       { family_id: 1, role: "Serf",   name: "Serfs",   job: "Retail associate", sector: "Retail",    base_income: 5000,  housing: 1500, starting_bank: 3000 },
       { family_id: 2, role: "Knight", name: "Knights", job: "Butcher",          sector: "Food",      base_income: 8500,  housing: 3500, starting_bank: 4000 },
       { family_id: 3, role: "Noble",  name: "Nobles",  job: "Nurse",            sector: "Healthcare",base_income: 15000, housing: 8000, starting_bank: 5000 },
-      { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 },
+      { family_id: 4, role: "King",   name: "Kings",   job: "Software",         sector: "Tech",      base_income: 26000, housing: 9200, starting_bank: 6000 }
     ];
 
-    const ROLE_MULT = { Serf: 4, Knight: 3, Noble: 2, King: 1 };
+    // multipliers: Serf 12x, Knight 4x, Noble 3x, King 1x
+    const ROLE_MULT = { Serf: 12, Knight: 4, Noble: 3, King: 1 };
 
-    const SECTORS = ["Retail", "Food", "Healthcare", "Tech"]; // UI sliders built off this
+    const SECTORS = ["Retail", "Food", "Healthcare", "Tech"];
 
     const INSURER_MAP = {
       "Aetna": "Aetna",
@@ -64,242 +62,229 @@
       "Humana": "Aetna",
       "Cigna": "Anthem",
       "Health Spring": "Anthem",
-      "Anthem": "Anthem",
+      "Anthem": "Anthem"
     };
-
     const INSURERS = { Aetna: 800, Anthem: 850 };
 
-    // Rotate through these each turn
     const GROUP_EVENTS = [
       { id: 1, title: "Sales tax change next turn", description: "Government raises sales tax next turn",
         choices: [
-          { key: "A", label: "Increase clothing spend by 200", cost: 200,   happy: +2 },
-          { key: "B", label: "No change",                     cost: 0,     happy: 0 },
-          { key: "C", label: "Cut clothing by 100",           cost: -100,  happy: -1 },
+          { key: "A", label: "Increase clothing spend by 200", cost: 200,   happy: 2 },
+          { key: "B", label: "No change",                       cost: 0,     happy: 0 },
+          { key: "C", label: "Cut clothing by 100",             cost: -100,  happy: -1 }
         ] },
       { id: 2, title: "Fuel price spike", description: "Gas gets expensive across the city",
         choices: [
-          { key: "A", label: "Transit and carpool", cost: 50,  happy: +1 },
+          { key: "A", label: "Transit and carpool", cost: 50,  happy: 1 },
           { key: "B", label: "Drive as usual",      cost: 200, happy: 0 },
-          { key: "C", label: "Buy electric scooter", cost: 400, happy: +1 },
+          { key: "C", label: "Buy electric scooter", cost: 400, happy: 1 }
         ] },
       { id: 3, title: "Stimulus checks arrive", description: "Households receive 500 in one time cash",
         choices: [
-          { key: "A", label: "Spend it",   cost: -500, happy: +2 },
-          { key: "B", label: "Save it",    cost: -500, happy: +1 },
-          { key: "C", label: "Invest it",  cost: -500, happy: +1 },
-        ] },
+          { key: "A", label: "Spend it",   cost: -500, happy: 2 },
+          { key: "B", label: "Save it",    cost: -500, happy: 1 },
+          { key: "C", label: "Invest it",  cost: -500, happy: 1 }
+        ] }
     ];
 
-    // Family specific events keyed by family_id, with happiness deltas
     const FAMILY_EVENTS_BY_FAMILY = {
       1: [
         { id: 101, title: "Daycare for Timmy", description: "Pick care for your toddler", choices: [
-          { key: "A", label: "Local daycare class of 40", cost: 800,  happy: +1 },
-          { key: "B", label: "Montessori school",        cost: 1000, happy: +2 },
-          { key: "C", label: "Family & friends help",    cost: 200,  happy: 0 },
+          { key: "A", label: "Local daycare class of 40", cost: 800,  happy: 1 },
+          { key: "B", label: "Montessori school",        cost: 1000, happy: 2 },
+          { key: "C", label: "Family and friends help",  cost: 200,  happy: 0 }
         ]},
         { id: 102, title: "Timmy wants cello", description: "He found a used cello", choices: [
-          { key: "A", label: "Lessons + instrument", cost: 500, happy: +2 },
-          { key: "B", label: "Not now",             cost: 0,   happy: -1 },
-          { key: "C", label: "Rent instrument only", cost: 120, happy: +1 },
-        ]},
+          { key: "A", label: "Lessons plus instrument", cost: 500, happy: 2 },
+          { key: "B", label: "Not now",                 cost: 0,   happy: -1 },
+          { key: "C", label: "Rent instrument only",    cost: 120, happy: 1 }
+        ]}
       ],
       2: [
         { id: 201, title: "Rent increase", description: "Landlord raises rent", choices: [
           { key: "A", label: "Stay and pay higher",     cost: 500,  happy: -1 },
           { key: "B", label: "Move farther, more gas",  cost: 200,  happy: -1 },
-          { key: "C", label: "Short term loan",         cost: 2000, happy: -2 },
+          { key: "C", label: "Short term loan",         cost: 2000, happy: -2 }
         ]},
         { id: 202, title: "Teen insurance spike", description: "Accident raises insurance", choices: [
           { key: "A", label: "Bike to school", cost: 100,  happy: 0 },
           { key: "B", label: "Use rideshare",  cost: 350,  happy: 0 },
-          { key: "C", label: "Pay the increase", cost: 6000, happy: -2 },
-        ]},
+          { key: "C", label: "Pay the increase", cost: 6000, happy: -2 }
+        ]}
       ],
       3: [
         { id: 301, title: "Infant daycare", description: "Two options open up", choices: [
-          { key: "A", label: "Local daycare (8 infants)", cost: 2900, happy: +1 },
-          { key: "B", label: "Private daycare w/ friends", cost: 3500, happy: +2 },
-          { key: "C", label: "Nanny share part time",    cost: 1800, happy: +1 },
+          { key: "A", label: "Local daycare",             cost: 2900, happy: 1 },
+          { key: "B", label: "Private daycare with friends", cost: 3500, happy: 2 },
+          { key: "C", label: "Nanny share part time",     cost: 1800, happy: 1 }
         ]},
         { id: 302, title: "Long commute tradeoff", description: "New hospital role", choices: [
           { key: "A", label: "Transit pass", cost: 129, happy: 0 },
           { key: "B", label: "Decline offer", cost: 0,   happy: 0 },
-          { key: "C", label: "Drive & parking", cost: 350, happy: -1 },
-        ]},
+          { key: "C", label: "Drive and parking", cost: 350, happy: -1 }
+        ]}
       ],
       4: [
         { id: 401, title: "Prep school decision", description: "Improve college chances", choices: [
-          { key: "A", label: "Send one teen", cost: 1900, happy: +1 },
-          { key: "B", label: "Send both",     cost: 3800, happy: +2 },
-          { key: "C", label: "Stay public",   cost: 0,    happy: 0 },
+          { key: "A", label: "Send one teen", cost: 1900, happy: 1 },
+          { key: "B", label: "Send both",     cost: 3800, happy: 2 },
+          { key: "C", label: "Stay public",   cost: 0,    happy: 0 }
         ]},
-        { id: 402, title: "College books & fees", description: "First semester bills", choices: [
+        { id: 402, title: "College books and fees", description: "First semester bills", choices: [
           { key: "A", label: "All new books",        cost: 600, happy: -1 },
-          { key: "B", label: "Used & rentals",       cost: 220, happy: +1 },
-          { key: "C", label: "Library & PDFs only",  cost: 40,  happy: 0 },
-        ]},
-      ],
+          { key: "B", label: "Used and rentals",     cost: 220, happy: 1 },
+          { key: "C", label: "Library and PDFs only", cost: 40,  happy: 0 }
+        ]}
+      ]
     };
 
     const INVESTMENTS = [
       { name: "IndexFund", min_amount: 100, expected: 0.02, stdev: 0.01, lock_turns: 1 },
       { name: "CorporateBond", min_amount: 100, expected: 0.01, stdev: 0.003, lock_turns: 1 },
       { name: "Crypto", min_amount: 50, expected: 0.05, stdev: 0.10, lock_turns: 0 },
-      { name: "FriendBusiness", min_amount: 200, expected: 0.03, stdev: 0.05, lock_turns: 2 },
+      { name: "FriendBusiness", min_amount: 200, expected: 0.03, stdev: 0.05, lock_turns: 2 }
     ];
 
-    // ------------------------------
-    // Utils
-    // ------------------------------
-    const fmt = (n) => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n || 0);
-    function randomNormal(mean = 0, stdev = 1){ let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); const num=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); return num*stdev+mean; }
-    function csvEscape(v){ const s=String(v??""); if(s.includes('"')||s.includes(',')||s.includes('\n')) return '"'+s.replaceAll('"','""')+'"'; return s; }
-    function toCSV(rows){ if(!rows||rows.length===0) return ""; const headers=Object.keys(rows[0]); const lines=[headers.join(',')]; for(const r of rows){ lines.push(headers.map(h=>csvEscape(r[h])).join(',')); } return lines.join("\n"); }
+    function fmt(n){ return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n || 0); }
+    function randomNormal(mean, stdev){ mean = mean||0; stdev = stdev||1; var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); var num=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); return num*stdev+mean; }
+    function csvEscape(v){ var s=String(v==null?"":v); if(s.indexOf('"')>-1 || s.indexOf(',')>-1 || s.indexOf('\n')>-1){ return '"' + s.split('"').join('""') + '"'; } return s; }
+    function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
 
-    // ------------------------------
-    // App
-    // ------------------------------
     function App(){
-      // Global state
-      const [turn, setTurn] = useState(1);
-      const [salesTaxNow, setSalesTaxNow] = useState(0.06);
-      const [salesTaxNext, setSalesTaxNext] = useState(0.06);
-      const [sectorMult, setSectorMult] = useState({ Retail: 1.0, Food: 1.0, Healthcare: 1.0, Tech: 1.0 });
+      var _useState, _useState2, _useState3, _useState4, _useState5, _useState6, _useState7, _useState8, _useState9, _useState10, _useState11, _useState12;
 
-      const initialBank = useMemo(()=>Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,f.starting_bank])),[]);
-      const [bank, setBank] = useState(initialBank);
-      const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,"Aetna"])));
-      const [ledger, setLedger] = useState([]);
-      const [lockedInv, setLockedInv] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,[]])));
+      const [turn, setTurn] = (_useState = useState(1), _useState);
+      const [salesTaxNow, setSalesTaxNow] = (_useState2 = useState(0.06), _useState2);
+      const [salesTaxNext, setSalesTaxNext] = (_useState3 = useState(0.06), _useState3);
+      const [sectorMult, setSectorMult] = (_useState4 = useState({ Retail: 1.0, Food: 1.0, Healthcare: 1.0, Tech: 1.0 }), _useState4);
 
-      // Scores
-      const [gainVsStart, setGainVsStart] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
-      const [econPoints, setEconPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
-      const [happyPoints, setHappyPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
+      const initialBank = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f.starting_bank]; })); }, []);
+      const [bank, setBank] = (_useState5 = useState(initialBank), _useState5);
+      const [chosenInsurance, setChosenInsurance] = (_useState6 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, "Aetna"]; }))), _useState6);
+      const [ledger, setLedger] = (_useState7 = useState([]), _useState7);
+      const [lockedInv, setLockedInv] = (_useState8 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, []]; }))), _useState8);
 
-      // Flow control: one family at a time
-      const [currentFamilyIdx, setCurrentFamilyIdx] = useState(0);
+      const [gainVsStart, setGainVsStart] = (_useState9 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState9);
+      const [econPoints, setEconPoints] = (_useState10 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState10);
+      const [happyPoints, setHappyPoints] = (_useState11 = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, 0]; }))), _useState11);
+
+      const [currentFamilyIdx, setCurrentFamilyIdx] = (_useState12 = useState(0), _useState12);
       const currentFamily = DEFAULT_FAMILIES[currentFamilyIdx];
-      const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,false])));
+      const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, false]; })));
 
-      // Event rotation
       const [groupIdx, setGroupIdx] = useState(0);
       const [familyIdx, setFamilyIdx] = useState(0);
 
-      // UI selections per current family
       const [groupChoiceKey, setGroupChoiceKey] = useState("B");
       const [familyChoiceKey, setFamilyChoiceKey] = useState("B");
       const [invName, setInvName] = useState("None");
       const [invAmt, setInvAmt] = useState(0);
 
-      // Overlays
       const [showLedger, setShowLedger] = useState(false);
       const [showEnd, setShowEnd] = useState(false);
+      const [showAdmin, setShowAdmin] = useState(false);
       const [anim, setAnim] = useState(false);
 
-      const famMap = useMemo(()=>Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,f])),[]);
+      const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, f]; })); }, []);
       const groupEvent = GROUP_EVENTS[groupIdx % GROUP_EVENTS.length];
       const familyEventsForSelected = FAMILY_EVENTS_BY_FAMILY[currentFamily.family_id] || [];
       const familyEvent = familyEventsForSelected.length>0 ? familyEventsForSelected[familyIdx % familyEventsForSelected.length] : null;
 
-      function allSubmitted(){ return DEFAULT_FAMILIES.every(f => submittedMap[f.family_id]); }
-      function resetSubmitted(){ setSubmittedMap(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,false]))); }
+      function allSubmitted(){ return DEFAULT_FAMILIES.every(function(f){ return submittedMap[f.family_id]; }); }
+      function resetSubmitted(){ setSubmittedMap(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id, false]; }))); }
       function goNextFamily(){
-        for(let i=1;i<=DEFAULT_FAMILIES.length;i++){
-          const idx=(currentFamilyIdx+i)%DEFAULT_FAMILIES.length;
-          const f=DEFAULT_FAMILIES[idx];
+        for(var i=1;i<=DEFAULT_FAMILIES.length;i++){
+          var idx=(currentFamilyIdx+i)%DEFAULT_FAMILIES.length;
+          var f=DEFAULT_FAMILIES[idx];
           if(!submittedMap[f.family_id]){ setCurrentFamilyIdx(idx); return; }
         }
       }
 
       function submitChoices(){
-        const fid = currentFamily.family_id;
+        var fid = currentFamily.family_id;
         if(submittedMap[fid]){ alert("Already submitted for this family this turn."); return; }
 
-        const fam = famMap[fid];
-        const incomeThisTurn = fam.base_income * (sectorMult[fam.sector] ?? 1);
-        const insChoice = chosenInsurance[fid] || "Aetna";
-        const carrier = INSURER_MAP[insChoice] || "Aetna";
-        const monthlyCost = INSURERS[carrier] || 0;
+        var fam = famMap[fid];
+        var incomeThisTurn = fam.base_income * (sectorMult[fam.sector] || 1);
+        var insChoice = chosenInsurance[fid] || "Aetna";
+        var carrier = INSURER_MAP[insChoice] || "Aetna";
+        var monthlyCost = INSURERS[carrier] || 0;
 
-        const gChoice = groupEvent.choices.find(c=>c.key===groupChoiceKey) || {cost:0, happy:0};
-        const fChoice = familyEvent ? (familyEvent.choices.find(c=>c.key===familyChoiceKey) || {cost:0, happy:0}) : {cost:0, happy:0};
+        var gChoice = (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || {cost:0, happy:0});
+        var fChoice = familyEvent ? (familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) || {cost:0, happy:0}) : {cost:0, happy:0};
 
-        const taxable = Math.max(gChoice.cost,0);
-        const tax = taxable * salesTaxNow;
+        var taxable = Math.max(gChoice.cost,0);
+        var tax = taxable * salesTaxNow;
 
-        // resolve matured investments
-        let realized = 0; const remaining=[];
-        for(const inv of lockedInv[fid]){
+        var realized = 0; var remaining=[];
+        for(var j=0;j<lockedInv[fid].length;j++){
+          var inv = lockedInv[fid][j];
           if(turn - inv.turn_bought >= inv.lock_turns){
-            const rnd = randomNormal(inv.expected, inv.stdev);
+            var rnd = randomNormal(inv.expected, inv.stdev);
             realized += inv.amount * (1 + rnd);
           } else { remaining.push(inv); }
         }
 
-        // add new investment
-        let notes=""; let gCostPlusInv=gChoice.cost;
+        var notes=""; var gCostPlusInv=gChoice.cost;
         if(invName && invName!=="None" && invAmt>0){
-          const spec = INVESTMENTS.find(x=>x.name===invName);
+          var spec = INVESTMENTS.find(function(x){return x.name===invName;});
           if(spec){
             if(invAmt >= spec.min_amount){
               remaining.push({turn_bought:turn, investment:invName, amount:invAmt, expected:spec.expected, stdev:spec.stdev, lock_turns:spec.lock_turns});
-              notes=`Invested ${fmt(invAmt)} in ${invName}`; gCostPlusInv += invAmt;
-            } else { notes=`Skipped, min for ${invName} is ${fmt(spec.min_amount)}`; }
+              notes = "Invested " + fmt(invAmt) + " in " + invName;
+              gCostPlusInv += invAmt;
+            } else { notes = "Skipped, min for " + invName + " is " + fmt(spec.min_amount); }
           }
         }
 
-        const expenses = fam.housing + monthlyCost + fChoice.cost + gCostPlusInv + tax;
-        const prevBank = bank[fid]||0;
-        const delta = incomeThisTurn - expenses + realized;
-        const newBankVal = prevBank + delta;
-        const newBank = { ...bank, [fid]: newBankVal };
+        var expenses = fam.housing + monthlyCost + fChoice.cost + gCostPlusInv + tax;
+        var prevBank = bank[fid]||0;
+        var delta = incomeThisTurn - expenses + realized;
+        var newBankVal = prevBank + delta;
+        var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
 
-        // econ points award on new peak vs starting bank
-        const gainNow = Math.max(newBankVal - fam.starting_bank, 0);
-        const gainPrev = gainVsStart[fid] || 0;
-        const newGainPeak = Math.max(gainNow, gainPrev);
-        const gainDelta = Math.max(newGainPeak - gainPrev, 0);
-        const econEarned = gainDelta * (ROLE_MULT[fam.role] || 1);
+        // 100x smaller economic points
+        var gainNow = Math.max(newBankVal - fam.starting_bank, 0);
+        var gainPrev = gainVsStart[fid] || 0;
+        var newGainPeak = Math.max(gainNow, gainPrev);
+        var gainDelta = Math.max(newGainPeak - gainPrev, 0);
+        var econEarned = (gainDelta * (ROLE_MULT[fam.role] || 1)) / 100;
 
-        // happiness points from choices + money change influence
-        const bankDelta = newBankVal - prevBank; // net change this submission
-        const happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0; // +1 happy per $500 net gain
-        const happyEarned = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
+        var bankDelta = newBankVal - prevBank;
+        var happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0;
+        var happyEarned = (gChoice.happy||0) + (fChoice.happy||0) + happyMoney;
 
         setBank(newBank);
-        setLockedInv({ ...lockedInv, [fid]: remaining });
-        setGainVsStart({ ...gainVsStart, [fid]: newGainPeak });
-        setEconPoints({ ...econPoints, [fid]: (econPoints[fid]||0) + econEarned });
-        setHappyPoints({ ...happyPoints, [fid]: (happyPoints[fid]||0) + happyEarned });
+        var newLocked = Object.assign({}, lockedInv); newLocked[fid] = remaining; setLockedInv(newLocked);
+        var newGvs = Object.assign({}, gainVsStart); newGvs[fid] = newGainPeak; setGainVsStart(newGvs);
+        var newEcon = Object.assign({}, econPoints); newEcon[fid] = (econPoints[fid]||0) + econEarned; setEconPoints(newEcon);
+        var newHappy = Object.assign({}, happyPoints); newHappy[fid] = (happyPoints[fid]||0) + happyEarned; setHappyPoints(newHappy);
 
-        const row = { turn, family_id: fid, role: fam.role, family: fam.name,
+        var row = {
+          turn: turn, family_id: fid, role: fam.role, family: fam.name,
           income: Number(incomeThisTurn.toFixed(2)), housing: fam.housing, insurance: monthlyCost,
           group_spend: Number(gCostPlusInv.toFixed(2)), family_spend: fChoice.cost, sales_tax_paid: Number(tax.toFixed(2)),
           investments_realized: Number(realized.toFixed(2)), net_change: Number(delta.toFixed(2)), bank_after: Number(newBankVal.toFixed(2)),
           points_econ_earned: Math.round(econEarned), points_happy_earned: Math.round(happyEarned),
           points_econ_total: Math.round((econPoints[fid]||0)+econEarned), points_happy_total: Math.round((happyPoints[fid]||0)+happyEarned),
           points_total: Math.round((econPoints[fid]||0)+econEarned+(happyPoints[fid]||0)+happyEarned),
-          notes: (notes?notes+"  ":"") + (happyMoney?`Money happiness +${happyMoney}`:"") };
-        setLedger(prev=>[...prev,row]);
+          notes: (notes ? notes + "  " : "") + (happyMoney ? "Money happiness +" + happyMoney : "")
+        };
+        setLedger(function(prev){ var copy = prev.slice(); copy.push(row); return copy; });
 
-        // mark submitted and move to next family decision
-        const nextMap = { ...submittedMap, [fid]: true };
-        setSubmittedMap(nextMap);
+        var nextMap = Object.assign({}, submittedMap); nextMap[fid] = true; setSubmittedMap(nextMap);
         setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
         goNextFamily();
       }
 
-      function animateToNextTurn(){ setAnim(true); setTimeout(()=>{ setAnim(false); }, 1000); }
+      function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 1000); }
 
       function advanceTurn(){
-        if(!allSubmitted()) return; // gate
-        setTurn(prev=>prev+1);
+        if(!allSubmitted()) return;
+        setTurn(function(p){ return p+1; });
         setSalesTaxNow(salesTaxNext);
-        setGroupIdx(prev=>prev+1);
-        setFamilyIdx(prev=>prev+1);
+        setGroupIdx(function(p){ return p+1; });
+        setFamilyIdx(function(p){ return p+1; });
         resetSubmitted();
         setCurrentFamilyIdx(0);
         setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
@@ -307,11 +292,10 @@
       }
 
       function skipTurn(){
-        // No changes to bank or points. Just rotate scenarios and tax into effect.
-        setTurn(prev=>prev+1);
+        setTurn(function(p){ return p+1; });
         setSalesTaxNow(salesTaxNext);
-        setGroupIdx(prev=>prev+1);
-        setFamilyIdx(prev=>prev+1);
+        setGroupIdx(function(p){ return p+1; });
+        setFamilyIdx(function(p){ return p+1; });
         resetSubmitted();
         setCurrentFamilyIdx(0);
         setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
@@ -322,39 +306,40 @@
         setTurn(1);
         setSalesTaxNow(0.06); setSalesTaxNext(0.06);
         setSectorMult({ Retail:1.0, Food:1.0, Healthcare:1.0, Tech:1.0 });
-        setBank(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,f.starting_bank])));
-        setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,"Aetna"])));
-        setLockedInv(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,[]])));
+        setBank(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,f.starting_bank]; })));
+        setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,"Aetna"]; })));
+        setLockedInv(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,[]]; })));
         setLedger([]);
-        setGainVsStart(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
-        setEconPoints(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
-        setHappyPoints(Object.fromEntries(DEFAULT_FAMILIES.map(f=>[f.family_id,0])));
+        setGainVsStart(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
+        setEconPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
+        setHappyPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,0]; })));
         setGroupIdx(0); setFamilyIdx(0);
         setCurrentFamilyIdx(0); resetSubmitted();
         setGroupChoiceKey("B"); setFamilyChoiceKey("B"); setInvName("None"); setInvAmt(0);
-        setShowEnd(false); setShowLedger(false);
+        setShowEnd(false); setShowLedger(false); setShowAdmin(false);
       }
 
-      // Scoreboard per family
-      const perFamilyScores = DEFAULT_FAMILIES.map(f=>{
-        const fid = f.family_id;
-        const econ = Math.round(econPoints[fid] || 0);
-        const happy = Math.round(happyPoints[fid] || 0);
-        const total = econ + happy;
-        return { fid, name: f.name, role: f.role, econ, happy, total };
+      const perFamilyScores = DEFAULT_FAMILIES.map(function(f){
+        var fid = f.family_id;
+        var econ = Math.round(econPoints[fid] || 0);
+        var happy = Math.round(happyPoints[fid] || 0);
+        var total = econ + happy;
+        return { fid: fid, name: f.name, role: f.role, econ: econ, happy: happy, total: total };
       });
 
-      const fam = currentFamily;
-      const incomeThisTurn = fam.base_income * (sectorMult[fam.sector] ?? 1);
-      const remainingCount = DEFAULT_FAMILIES.filter(f=>!submittedMap[f.family_id]).length;
+      var fam = currentFamily;
+      var incomeThisTurn = fam.base_income * (sectorMult[fam.sector] || 1);
+      var remainingCount = DEFAULT_FAMILIES.filter(function(f){ return !submittedMap[f.family_id]; }).length;
 
-      return (
+      function labelCell(txt){ return React.createElement("div", { className: "muted" }, txt); }
+      function accentCell(txt){ return React.createElement("div", { className: "accent" }, txt); }
+
+      return React.createElement(React.Fragment, null,
         React.createElement("div", { className: "max-w-7xl mx-auto p-4 md:p-6 space-y-4" },
 
-          // SCOREBOARD: 12 scores total 3 per family
           React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" },
-            perFamilyScores.map(s => (
-              React.createElement("div", { key: s.fid, className: "crt-card p-4" },
+            perFamilyScores.map(function(s){
+              return React.createElement("div", { key: s.fid, className: "crt-card p-4" },
                 React.createElement("div", { className: "flex items-center justify-between" },
                   React.createElement("div", { className: "text-xl" }, s.name),
                   React.createElement("div", { className: "muted" }, s.role)
@@ -362,179 +347,151 @@
                 React.createElement("div", { className: "score-total font-bold mt-2 accent" }, s.total),
                 React.createElement("div", { className: "mt-2 grid grid-cols-2 gap-2" },
                   React.createElement("div", { className: "crt-card p-2 text-center" },
-                    React.createElement("div", { className: "muted" }, "Economic"),
+                    labelCell("Economic"),
                     React.createElement("div", { className: "score-sub accent font-bold" }, s.econ)
                   ),
                   React.createElement("div", { className: "crt-card p-2 text-center" },
-                    React.createElement("div", { className: "muted" }, "Happiness"),
+                    labelCell("Happiness"),
                     React.createElement("div", { className: "score-sub accent font-bold" }, s.happy)
                   )
                 )
-              )
-            ))
+              );
+            })
           ),
 
-          // CONTROLS BAR
           React.createElement("div", { className: "flex gap-2" },
-            React.createElement("button", { className: "crt-btn", onClick: ()=>setShowLedger(true) }, "View ledger"),
-            React.createElement("button", { className: "crt-btn", onClick: ()=>setShowEnd(true) }, "End game"),
+            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowLedger(true); } }, "View ledger"),
+            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(true); } }, "Admin"),
+            React.createElement("button", { className: "crt-btn", onClick: function(){ setShowEnd(true); } }, "End game"),
             React.createElement("div", { className: "ml-auto flex gap-2" },
               React.createElement("button", { className: "crt-btn", onClick: skipTurn }, "Skip turn"),
-              React.createElement("button", { className: "crt-btn", disabled: !allSubmitted(), onClick: advanceTurn }, `Advance turn${!allSubmitted()?` (${remainingCount} left)`:''}`)
+              React.createElement("button", { className: "crt-btn", disabled: !allSubmitted(), onClick: advanceTurn },
+                "Advance turn" + (!allSubmitted() ? " (" + remainingCount + " left)" : "")
+              )
             )
           ),
 
-          React.createElement("div", { className: "flex items-start gap-4" },
-            // SIDEBAR
-            React.createElement("aside", { className: "w-80 shrink-0 crt-card p-4 space-y-4" },
+          React.createElement("main", { className: "flex-1 space-y-4" },
+            React.createElement("div", { className: "crt-card p-4" },
               React.createElement("div", { className: "flex items-center justify-between" },
-                React.createElement("h2", { className: "text-xl" }, "Admin"),
-                React.createElement("span", { className: "muted" }, `Turn ${turn}`)
+                React.createElement("div", null,
+                  React.createElement("div", { className: "text-2xl" }, fam.name + " (" + fam.role + ")"),
+                  React.createElement("div", { className: "muted" }, "Sector " + fam.sector + "  Income this turn " + fmt(incomeThisTurn))
+                ),
+                React.createElement("div", { className: "text-right" },
+                  labelCell("Bank"),
+                  React.createElement("div", { className: "text-2xl accent" }, fmt(bank[fam.family_id]))
+                )
               ),
-              React.createElement("label", { className: "label" }, "Sales tax next turn"),
-              React.createElement("input", { type: "range", min: 0, max: 0.15, step: 0.01, value: salesTaxNext, onChange: e => setSalesTaxNext(Number(e.target.value)), className: "w-full" }),
-              React.createElement("div", { className: "muted" }, `${(salesTaxNext*100).toFixed(1)}%`),
-
-              React.createElement("div", { className: "pt-2 space-y-3" },
-                React.createElement("p", { className: "label" }, "Sector multipliers"),
-                SECTORS.map(sec => (
-                  React.createElement("div", { key: sec },
-                    React.createElement("div", { className: "flex justify-between muted" },
-                      React.createElement("span", null, sec),
-                      React.createElement("span", null, sectorMult[sec].toFixed(2))
-                    ),
-                    React.createElement("input", { type: "range", min: 0.5, max: 1.5, step: 0.05, value: sectorMult[sec], onChange: e => setSectorMult({ ...sectorMult, [sec]: Number(e.target.value) }), className: "w-full" })
-                  )
-                ))
+              React.createElement("div", { className: "mt-3 grid grid-cols-1 md:grid-cols-3 gap-4" },
+                React.createElement("div", { className: "p-3 crt-card" },
+                  labelCell("Housing"),
+                  React.createElement("div", { className: "text-2xl accent" }, fmt(fam.housing))
+                ),
+                React.createElement("div", { className: "p-3 crt-card" },
+                  labelCell("Role multiplier"),
+                  React.createElement("div", { className: "text-2xl accent" }, "x" + ROLE_MULT[fam.role])
+                ),
+                React.createElement("div", { className: "p-3 crt-card" },
+                  labelCell("Insurance"),
+                  (function(){ var carrier = INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"; var monthly = INSURERS[carrier] || 0; return accentCell("Coverage " + carrier + "  Monthly " + fmt(monthly)); })()
+                )
               )
             ),
 
-            // MAIN SINGLE-FAMILY DECISION FLOW
-            React.createElement("main", { className: "flex-1 space-y-4" },
-              React.createElement("div", { className: "crt-card p-4" },
-                React.createElement("div", { className: "flex items-center justify-between" },
-                  React.createElement("div", null,
-                    React.createElement("div", { className: "text-2xl" }, `${fam.name} (${fam.role})`),
-                    React.createElement("div", { className: "muted" }, `Sector ${fam.sector}  Income this turn ${fmt(incomeThisTurn)}`)
-                  ),
-                  React.createElement("div", { className: "text-right" },
-                    React.createElement("div", { className: "muted" }, "Bank"),
-                    React.createElement("div", { className: "text-2xl accent" }, fmt(bank[fam.family_id]))
-                  )
-                ),
-                React.createElement("div", { className: "mt-3 grid grid-cols-1 md:grid-cols-3 gap-4" },
-                  React.createElement("div", { className: "p-3 crt-card" },
-                    React.createElement("div", { className: "muted" }, "Housing"),
-                    React.createElement("div", { className: "text-2xl accent" }, fmt(fam.housing))
-                  ),
-                  React.createElement("div", { className: "p-3 crt-card" },
-                    React.createElement("div", { className: "muted" }, "Role multiplier"),
-                    React.createElement("div", { className: "text-2xl accent" }, `x${ROLE_MULT[fam.role]}`)
-                  ),
-                  React.createElement("div", { className: "p-3 crt-card" },
-                    React.createElement("div", { className: "muted" }, "Insurance"),
-                    (()=>{ const carrier = INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"; const monthly = INSURERS[carrier] || 0; return React.createElement("div", { className: "accent" }, `Coverage ${carrier}  Monthly ${fmt(monthly)}`); })()
-                  )
+            React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-4" },
+              React.createElement("section", { className: "crt-card p-4" },
+                React.createElement("h3", { className: "text-xl mb-2" }, "Health insurance"),
+                React.createElement("label", { className: "label" }, "Your choice"),
+                React.createElement("select", { value: (chosenInsurance[fam.family_id] || "Aetna"), onChange: function(e){ var o={}; for(var k in chosenInsurance) o[k]=chosenInsurance[k]; o[fam.family_id]=e.target.value; setChosenInsurance(o);} },
+                  Object.keys(INSURER_MAP).map(function(k){ return React.createElement("option", { key: k, value: k }, k); })
                 )
               ),
 
-              React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-4" },
-                // Insurance chooser
-                React.createElement("section", { className: "crt-card p-4" },
-                  React.createElement("h3", { className: "text-xl mb-2" }, "Health insurance"),
-                  React.createElement("label", { className: "label" }, "Your choice"),
-                  React.createElement("select", { value: (chosenInsurance[fam.family_id] || "Aetna"), onChange: e => setChosenInsurance({ ...chosenInsurance, [fam.family_id]: e.target.value }) },
-                    Object.keys(INSURER_MAP).map(k => React.createElement("option", { key: k, value: k }, k))
-                  )
-                ),
-
-                // Group event
-                React.createElement("section", { className: "crt-card p-4" },
-                  React.createElement("h3", { className: "text-xl" }, "Group scenario"),
-                  React.createElement("div", null, `${groupEvent.title}. ${groupEvent.description}`),
-                  React.createElement("div", { className: "mt-2 space-y-2" },
-                    groupEvent.choices.map(c => (
-                      React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
-                        React.createElement("input", { type: "radio", name: "groupChoice", checked: groupChoiceKey === c.key, onChange: () => setGroupChoiceKey(c.key) }),
-                        React.createElement("span", null, `${c.key}. ${c.label} (`),
-                        React.createElement("span", { className: "accent" }, `${fmt(c.cost)}`),
-                        React.createElement("span", null, `  happy ${c.happy>=0?'+':''}${c.happy})`)
-                      )
-                    ))
-                  )
-                ),
-
-                // Family event for current family
-                React.createElement("section", { className: "crt-card p-4" },
-                  React.createElement("h3", { className: "text-xl" }, "Family event"),
-                  familyEvent
-                    ? (
-                      React.createElement(React.Fragment, null,
-                        React.createElement("div", null, `${familyEvent.title}. ${familyEvent.description}`),
-                        React.createElement("div", { className: "mt-2 space-y-2" },
-                          familyEvent.choices.map(c => (
-                            React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
-                              React.createElement("input", { type: "radio", name: "familyChoice", checked: familyChoiceKey === c.key, onChange: () => setFamilyChoiceKey(c.key) }),
-                              React.createElement("span", null, `${c.key}. ${c.label} (`),
-                              React.createElement("span", { className: "accent" }, `${fmt(c.cost)}`),
-                              React.createElement("span", null, `  happy ${c.happy>=0?'+':''}${c.happy})`)
-                            )
-                          ))
-                        )
-                      )
-                    )
-                    : React.createElement("div", { className: "muted" }, "No events configured for this family.")
+              React.createElement("section", { className: "crt-card p-4" },
+                React.createElement("h3", { className: "text-xl" }, "Group scenario"),
+                React.createElement("div", null, groupEvent.title + ". " + groupEvent.description),
+                React.createElement("div", { className: "mt-2 space-y-2" },
+                  groupEvent.choices.map(function(c){
+                    return React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
+                      React.createElement("input", { type: "radio", name: "groupChoice", checked: groupChoiceKey === c.key, onChange: function(){ setGroupChoiceKey(c.key); } }),
+                      React.createElement("span", null, c.key + ". " + c.label + " ("),
+                      React.createElement("span", { className: "accent" }, fmt(c.cost)),
+                      React.createElement("span", null, "  happy " + (c.happy>=0?"+":"") + c.happy + ")")
+                    );
+                  })
                 )
               ),
 
-              // Investments and submit
-              React.createElement("div", { className: "crt-card p-4" },
-                React.createElement("h3", { className: "text-xl mb-2" }, "Investments"),
-                React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-3" },
-                  React.createElement("div", null,
-                    React.createElement("label", { className: "label" }, "Option"),
-                    React.createElement("select", { value: invName, onChange: e => setInvName(e.target.value) },
-                      React.createElement("option", { value: "None" }, "None"),
-                      INVESTMENTS.map(x => React.createElement("option", { key: x.name, value: x.name }, `${x.name} (min ${fmt(x.min_amount)})`))
+              React.createElement("section", { className: "crt-card p-4" },
+                React.createElement("h3", { className: "text-xl" }, "Family event"),
+                familyEvent
+                  ? React.createElement(React.Fragment, null,
+                      React.createElement("div", null, familyEvent.title + ". " + familyEvent.description),
+                      React.createElement("div", { className: "mt-2 space-y-2" },
+                        familyEvent.choices.map(function(c){
+                          return React.createElement("label", { key: c.key, className: "flex items-center gap-2" },
+                            React.createElement("input", { type: "radio", name: "familyChoice", checked: familyChoiceKey === c.key, onChange: function(){ setFamilyChoiceKey(c.key); } }),
+                            React.createElement("span", null, c.key + ". " + c.label + " ("),
+                            React.createElement("span", { className: "accent" }, fmt(c.cost)),
+                            React.createElement("span", null, "  happy " + (c.happy>=0?"+":"") + c.happy + ")")
+                          );
+                        })
+                      )
                     )
-                  ),
-                  React.createElement("div", null,
-                    React.createElement("label", { className: "label" }, "Amount"),
-                    React.createElement("input", { type: "number", className: "number-input w-full", min: 0, step: 50, value: invAmt, onChange: e => setInvAmt(Number(e.target.value)) })
-                  ),
-                  React.createElement("div", { className: "flex items-end" },
-                    React.createElement("button", { onClick: submitChoices, className: "crt-btn" }, submittedMap[fam.family_id] ? "Submitted" : "Submit choices for this family")
-                  )
-                ),
-                React.createElement("p", { className: "muted mt-2" }, "Income is added. Housing, insurance, scenario costs and tax are subtracted. Investments realize after their lock period.")
+                  : React.createElement("div", { className: "muted" }, "No events configured for this family.")
               )
-            )
-          ),
+            ),
 
-          // LEDGER MODAL
-          showLedger && React.createElement("div", { className: "overlay" },
-            React.createElement("div", { className: "crt-card p-4 w-[95vw] max-w-5xl" },
-              React.createElement("div", { className: "flex items-center justify-between mb-2" },
-                React.createElement("h3", { className: "text-xl" }, "Ledger"),
-                React.createElement("div", { className: "flex gap-2" },
-                  React.createElement("button", { className: "crt-btn", onClick: ()=>{
-                    const csv = toCSV(ledger);
-                    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-                    const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ledger.csv'; a.click(); URL.revokeObjectURL(url);
-                  } }, "Download CSV"),
-                  React.createElement("button", { className: "crt-btn", onClick: ()=>setShowLedger(false) }, "Close")
+            React.createElement("div", { className: "crt-card p-4" },
+              React.createElement("h3", { className: "text-xl mb-2" }, "Investments"),
+              React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-3" },
+                React.createElement("div", null,
+                  React.createElement("label", { className: "label" }, "Option"),
+                  React.createElement("select", { value: invName, onChange: function(e){ setInvName(e.target.value); } },
+                    React.createElement("option", { value: "None" }, "None"),
+                    INVESTMENTS.map(function(x){ return React.createElement("option", { key: x.name, value: x.name }, x.name + " (min " + fmt(x.min_amount) + ")"); })
+                  )
+                ),
+                React.createElement("div", null,
+                  React.createElement("label", { className: "label" }, "Amount"),
+                  React.createElement("input", { type: "number", className: "number-input w-full", min: 0, step: 50, value: invAmt, onChange: function(e){ setInvAmt(Number(e.target.value)); } })
+                ),
+                React.createElement("div", { className: "flex items-end" },
+                  React.createElement("button", { onClick: submitChoices, className: "crt-btn" }, submittedMap[fam.family_id] ? "Submitted" : "Submit choices for this family")
                 )
               ),
-              ledger.length===0 ? React.createElement("div", { className: "muted" }, "No entries yet.") :
-              React.createElement("div", { className: "scroll-table" },
-                React.createElement("table", null,
-                  React.createElement("thead", null,
-                    React.createElement("tr", null,
-                      ["turn","role","family","income","housing","insurance","group_spend","family_spend","sales_tax_paid","investments_realized","net_change","bank_after","econ_earned","happy_earned","econ_total","happy_total","points_total","notes"].map(h=>React.createElement("th", { key:h }, h.replaceAll('_',' ')))
-                    )
-                  ),
-                  React.createElement("tbody", null,
-                    ledger.slice().reverse().map((row,idx)=>React.createElement("tr", { key:idx },
+              React.createElement("p", { className: "muted mt-2" }, "Income is added. Housing, insurance, scenario costs and tax are subtracted. Investments realize after their lock period.")
+            )
+          )
+        ),
+
+        showLedger ? React.createElement("div", { className: "overlay" },
+          React.createElement("div", { className: "crt-card p-4 panel" },
+            React.createElement("div", { className: "flex items-center justify-between mb-2" },
+              React.createElement("h3", { className: "text-xl" }, "Ledger"),
+              React.createElement("div", { className: "flex gap-2" },
+                React.createElement("button", { className: "crt-btn", onClick: function(){
+                  var csv = toCSV(ledger);
+                  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                  var url = URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='ledger.csv'; a.click(); URL.revokeObjectURL(url);
+                } }, "Download CSV"),
+                React.createElement("button", { className: "crt-btn", onClick: function(){ setShowLedger(false); } }, "Close")
+              )
+            ),
+            ledger.length===0 ? React.createElement("div", { className: "muted" }, "No entries yet.") :
+            React.createElement("div", { className: "scroll-table" },
+              React.createElement("table", null,
+                React.createElement("thead", null,
+                  React.createElement("tr", null,
+                    ["turn","role","family","income","housing","insurance","group_spend","family_spend","sales_tax_paid","investments_realized","net_change","bank_after","econ_earned","happy_earned","econ_total","happy_total","points_total","notes"].map(function(h){
+                      return React.createElement("th", { key:h }, h.split('_').join(' '));
+                    })
+                  )
+                ),
+                React.createElement("tbody", null,
+                  ledger.slice().reverse().map(function(row,idx){
+                    return React.createElement("tr", { key:idx },
                       React.createElement("td", null, row.turn),
                       React.createElement("td", null, row.role),
                       React.createElement("td", null, row.family),
@@ -553,56 +510,82 @@
                       React.createElement("td", null, Math.round(row.points_happy_total)),
                       React.createElement("td", null, Math.round(row.points_total)),
                       React.createElement("td", null, row.notes)
-                    ))
-                  )
+                    );
+                  })
                 )
               )
             )
-          ),
+          )
+        ) : null,
 
-          // END SCREEN
-          showEnd && React.createElement("div", { className: "overlay" },
-            React.createElement("div", { className: "crt-card p-6 w-[95vw] max-w-3xl space-y-4" },
-              React.createElement("h2", { className: "text-3xl text-center" }, "Final Scores"),
-              React.createElement("div", { className: "grid grid-cols-2 gap-3" },
-                React.createElement("div", { className: "crt-card p-4 text-center" },
-                  React.createElement("div", { className: "muted" }, "Economic points"),
-                  React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce((a,b)=>a+b.econ,0)))
-                ),
-                React.createElement("div", { className: "crt-card p-4 text-center" },
-                  React.createElement("div", { className: "muted" }, "Happiness points"),
-                  React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce((a,b)=>a+b.happy,0)))
-                )
-              ),
-              React.createElement("div", { className: "crt-card p-4" },
-                React.createElement("table", { className: "w-full" },
-                  React.createElement("thead", null,
-                    React.createElement("tr", null,
-                      ["Family","Role","Start $","End $"].map(h=>React.createElement("th", { key:h }, h))
-                    )
+        showAdmin ? React.createElement("div", { className: "overlay" },
+          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
+            React.createElement("div", { className: "flex items-center justify-between" },
+              React.createElement("h3", { className: "text-2xl" }, "Admin"),
+              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowAdmin(false); } }, "Close")
+            ),
+            React.createElement("div", null,
+              React.createElement("label", { className: "label" }, "Sales tax next turn"),
+              React.createElement("input", { type: "range", min: 0, max: 0.15, step: 0.01, value: salesTaxNext, onChange: function(e){ setSalesTaxNext(Number(e.target.value)); }, className: "w-full" }),
+              React.createElement("div", { className: "muted" }, (salesTaxNext*100).toFixed(1) + "%")
+            ),
+            React.createElement("div", { className: "pt-2 space-y-3" },
+              React.createElement("p", { className: "label" }, "Sector multipliers"),
+              SECTORS.map(function(sec){
+                return React.createElement("div", { key: sec },
+                  React.createElement("div", { className: "flex justify-between muted" },
+                    React.createElement("span", null, sec),
+                    React.createElement("span", null, sectorMult[sec].toFixed(2))
                   ),
-                  React.createElement("tbody", null,
-                    DEFAULT_FAMILIES.map(f=>React.createElement("tr", { key:f.family_id },
+                  React.createElement("input", { type: "range", min: 0.5, max: 1.5, step: 0.05, value: sectorMult[sec], onChange: function(e){ var m={}; for(var k in sectorMult) m[k]=sectorMult[k]; m[sec]=Number(e.target.value); setSectorMult(m); }, className: "w-full" })
+                );
+              })
+            )
+          )
+        ) : null,
+
+        showEnd ? React.createElement("div", { className: "overlay" },
+          React.createElement("div", { className: "crt-card p-6 panel space-y-4" },
+            React.createElement("h2", { className: "text-3xl text-center" }, "Final Scores"),
+            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+              React.createElement("div", { className: "crt-card p-4 text-center" },
+                React.createElement("div", { className: "muted" }, "Economic points"),
+                React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce(function(a,b){return a+b.econ;},0)))
+              ),
+              React.createElement("div", { className: "crt-card p-4 text-center" },
+                React.createElement("div", { className: "muted" }, "Happiness points"),
+                React.createElement("div", { className: "text-3xl accent" }, Math.round(perFamilyScores.reduce(function(a,b){return a+b.happy;},0)))
+              )
+            ),
+            React.createElement("div", { className: "crt-card p-4" },
+              React.createElement("table", { className: "w-full" },
+                React.createElement("thead", null,
+                  React.createElement("tr", null,
+                    ["Family","Role","Start $","End $"].map(function(h){ return React.createElement("th", { key:h }, h); })
+                  )
+                ),
+                React.createElement("tbody", null,
+                  DEFAULT_FAMILIES.map(function(f){
+                    return React.createElement("tr", { key:f.family_id },
                       React.createElement("td", null, f.name),
                       React.createElement("td", null, f.role),
                       React.createElement("td", null, fmt(f.starting_bank)),
                       React.createElement("td", null, fmt(bank[f.family_id]))
-                    ))
-                  )
+                    );
+                  })
                 )
-              ),
-              React.createElement("div", { className: "flex justify-end gap-2" },
-                React.createElement("button", { className: "crt-btn", onClick: ()=>setShowEnd(false) }, "Close"),
-                React.createElement("button", { className: "crt-btn", onClick: restartGame }, "Restart")
               )
+            ),
+            React.createElement("div", { className: "flex justify-end gap-2" },
+              React.createElement("button", { className: "crt-btn", onClick: function(){ setShowEnd(false); } }, "Close"),
+              React.createElement("button", { className: "crt-btn", onClick: restartGame }, "Restart")
             )
-          ),
-
-          // TURN ANIMATION
-          anim && React.createElement("div", { className: "overlay" },
-            React.createElement("div", { className: "text-4xl pulse" }, `Advancing to Turn ${turn}`)
           )
-        )
+        ) : null,
+
+        anim ? React.createElement("div", { className: "overlay" },
+          React.createElement("div", { className: "text-4xl pulse" }, "Advancing to Turn " + turn)
+        ) : null
       );
     }
 
