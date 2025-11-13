@@ -180,9 +180,9 @@
           ]},
         {id:"S-GEN-2",title:"Side hustle planning",description:"Johnny can pick up extra shifts with some tradeoffs.",
           choices:[
-            {key:"A",label:"Work overtime and buy easy meals.",cost:150,happy:0},
+            {key:"A",label:"Work overtime and buy easy meals.",cost:-150,happy:-1},
             {key:"B",label:"Skip shifts and enjoy a rest night.",cost:0,happy:2},
-            {key:"C",label:"Split the difference with one shift.",cost:60,happy:1}
+            {key:"C",label:"Split the difference with one shift.",cost:-60,happy:0}
           ]}
       ],
       2:[
@@ -196,7 +196,7 @@
           choices:[
             {key:"A",label:"Theme park day.",cost:320,happy:2},
             {key:"B",label:"Local outing and treats.",cost:140,happy:1},
-            {key:"C",label:"Movie night at home.",cost:40,happy:0}
+            {key:"C",label:"Movie night at home.",cost:0,happy:0}
           ]}
       ],
       3:[
@@ -303,7 +303,7 @@
       const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,DEFAULT_PLAN_KEY];})));
       const [ledger, setLedger] = useState([]);
 
-      const [gainVsStart, setGainVsStart] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
+      const [netWorthPrev, setNetWorthPrev] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f.starting_bank];})));
       const [econPoints, setEconPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
       const [happyPoints, setHappyPoints] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
 
@@ -549,12 +549,9 @@
         var roleMult = ROLE_MULT[fam.role] || 1;
         var newHoldingsValue = calcHoldingsValue(fid, newPortfolioUnits, nextPrices);
         var netWorthNow = newBankVal + newHoldingsValue;
-        var startNetWorth = fam.starting_bank; /* initial holdings are zero */
-        var gainNow = Math.max(netWorthNow - startNetWorth, 0);
-        var gainPrev = gainVsStart[fid] || 0;
-        var newGainPeak = Math.max(gainNow, gainPrev);
-        var gainDelta = Math.max(newGainPeak - gainPrev, 0);
-        var econBasePoints = gainDelta / 1000;
+        var prevNetWorth = (netWorthPrev[fid] == null) ? fam.starting_bank : netWorthPrev[fid];
+        var netWorthGain = Math.max(netWorthNow - prevNetWorth, 0);
+        var econBasePoints = netWorthGain / 100;
         var econEarned = econBasePoints * roleMult;
 
         var groupHappyValue = (gHappy || 0) * 10;
@@ -562,9 +559,9 @@
         var happyBaseValue = groupHappyValue + familyHappyValue;
         var happyEarned = happyBaseValue;
 
-        var econReason = gainDelta > 0
-          ? "Net worth gain " + fmt(gainDelta) + " => base " + econBasePoints.toFixed(2) + " pts (1 point per $1,000) x role x" + roleMult + " = +" + Math.round(econEarned) + " econ points"
-          : "No new net worth peak this turn.";
+        var econReason = netWorthGain > 0
+          ? "Net worth gain " + fmt(netWorthGain) + " => base " + econBasePoints.toFixed(2) + " pts (1 point per $100) x role x" + roleMult + " = +" + Math.round(econEarned) + " econ points"
+          : "No net worth gain over last turn.";
         var happyReasonParts = [];
         if(groupHappyValue) happyReasonParts.push("Group choice " + fmtSignedNumber(groupHappyValue," Happy"));
         if(familyHappyValue) happyReasonParts.push("Family choice " + fmtSignedNumber(familyHappyValue," Happy"));
@@ -585,13 +582,13 @@
         };
 
         var econDetail = {
-          net_gain:Number(gainDelta.toFixed(2)),
+          net_gain:Number(netWorthGain.toFixed(2)),
           base_points:Number(econBasePoints.toFixed(2)),
           role_multiplier:roleMult,
           awarded:Math.round(econEarned)
         };
 
-        var newGvs = Object.assign({}, gainVsStart); newGvs[fid] = newGainPeak; setGainVsStart(newGvs);
+        var nextNetWorthPrev = Object.assign({}, netWorthPrev); nextNetWorthPrev[fid] = netWorthNow; setNetWorthPrev(nextNetWorthPrev);
         var newEcon = Object.assign({}, econPoints); newEcon[fid] = (econPoints[fid]||0) + econEarned; setEconPoints(newEcon);
         var newHappy = Object.assign({}, happyPoints); newHappy[fid] = (happyPoints[fid]||0) + happyEarned; setHappyPoints(newHappy);
 
@@ -661,7 +658,7 @@
         setBank(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f.starting_bank];})));
         setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,DEFAULT_PLAN_KEY];})));
         setLedger([]);
-        setGainVsStart(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
+        setNetWorthPrev(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f.starting_bank];})));
         setEconPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
         setHappyPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
         setCurrentFamilyIdx(0); resetSubmitted();
@@ -743,8 +740,8 @@
                   React.createElement("div",{className:"accent"},f.job),
                   React.createElement("div",{className:"mt-1"},labelCell("Income")),
                   React.createElement("div",{className:"accent"},fmt(f.base_income)),
-                  React.createElement("div",{className:"mt-1"},labelCell("Housing")),
-                  React.createElement("div",{className:"accent"},fmt(f.housing)),
+                  React.createElement("div",{className:"mt-1"},labelCell("Expenses")),
+                  React.createElement("div",{className:"accent"},fmt(f.housing + f.food + f.clothes + f.misc + ((INSURANCE_PLANS[DEFAULT_PLAN_KEY] || {}).premium || 0))),
                   React.createElement("div",{className:"mt-1"},labelCell("Role multiplier")),
                   React.createElement("div",{className:"accent"},"x"+ROLE_MULT[f.role])
                 );
@@ -756,7 +753,7 @@
               React.createElement("div",null,"2. A family scenario applies to each family."),
               React.createElement("div",null,"3. Investment opportunities are available and change in value every turn."),
               React.createElement("div",{className:"mt-2 accent"},"Scoring"),
-              React.createElement("div",null,"Economic points: every $1,000 net worth gain above your starting amount = 1 point (before role multipliers)."),
+              React.createElement("div",null,"Economic points: every $100 net worth gain since last turn = 1 point (before role multipliers)."),
               React.createElement("div",null,"Happiness: only your scenario choices add or subtract points.")
             ),
             React.createElement("div",{className:"pt-2 text-center"},
@@ -1182,17 +1179,20 @@
             React.createElement("div",{className:"crt-card p-3"},
               React.createElement("table",{className:"w-full"},
                 React.createElement("thead",null,
-                  React.createElement("tr",null, ["Family","Role","Start net worth","End net worth"].map(function(h){return React.createElement("th",{key:h},h);}))
+                  React.createElement("tr",null, ["Family","Start net worth","End net worth","Net worth gain %","Happiness gained"].map(function(h){return React.createElement("th",{key:h},h);}))
                 ),
                 React.createElement("tbody",null,
                   DEFAULT_FAMILIES.map(function(f){
                     var startNW = f.starting_bank; // no starting investments
                     var endNW = (bank[f.family_id]||0) + calcHoldingsValue(f.family_id);
+                    var gainPct = startNW > 0 ? ((endNW - startNW) / startNW) * 100 : 0;
+                    var happyTotal = Math.round(happyPoints[f.family_id] || 0);
                     return React.createElement("tr",{key:f.family_id},
                       React.createElement("td",null,f.name),
-                      React.createElement("td",null,f.role),
                       React.createElement("td",null,fmt(startNW)),
-                      React.createElement("td",null,fmt(endNW))
+                      React.createElement("td",null,fmt(endNW)),
+                      React.createElement("td",null, gainPct.toFixed(1) + "%"),
+                      React.createElement("td",null, happyTotal)
                     );
                   })
                 )
