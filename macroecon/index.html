@@ -96,7 +96,7 @@
     ];
 
     /* Multipliers for econ and happiness */
-    const ROLE_MULT = { Serf:8, Knight:4, Noble:4, King:1 };
+    const ROLE_MULT = { Serf:4, Knight:2, Noble:2, King:1 };
 
     /* Investments list */
     const INVESTMENTS = [{name:"IndexFund"}, {name:"Crypto"}, {name:"FriendBusiness"}];
@@ -104,126 +104,183 @@
     /* Sectors for admin multipliers */
     const SECTORS = ["Retail","Food","Healthcare","Tech"];
 
-    /* Insurance mapping used on Turn 1 only */
-    const INSURER_MAP = { "Aetna":"Aetna", "Coventry":"Aetna", "Humana":"Aetna", "Cigna":"Anthem", "Health Spring":"Anthem", "Anthem":"Anthem" };
-    const INSURERS = { Aetna:800, Anthem:850 };
+    /* Insurance plans */
+    const INSURANCE_PLANS = {
+      UnitedHealthcare:{key:"UnitedHealthcare", name:"UnitedHealthcare", premium:300, coverage:0.5, description:"$300 each turn. Covers 50% of medical costs."},
+      KaiserPermanente:{key:"KaiserPermanente", name:"Kaiser Permanente", premium:500, coverage:0.7, description:"$500 each turn. Covers 70% of medical costs."},
+      AnthemBCBS:{key:"AnthemBCBS", name:"Anthem", premium:800, coverage:0.9, description:"$800 each turn. Covers 90% of medical costs."},
+      NoInsurance:{key:"NoInsurance", name:"No insurance", premium:0, coverage:0, description:"$0 each turn. Covers 0% of medical costs."}
+    };
+    const DEFAULT_PLAN_KEY = "NoInsurance";
 
-    /* Group and family events */
+    /* Group scenarios */
     const GROUP_EVENTS = [
-      { id:1, title:"Sales tax increase next turn", description:"Government will raise sales tax next turn by 3%.", taxDelta:+0.03,
-        choices:[ {key:"A",label:"Increase clothing spend by 200", cost:200,  happy:2},
-                  {key:"B",label:"No change",                       cost:0,    happy:0},
-                  {key:"C",label:"Cut clothing by 100",             cost:-100, happy:-1} ] },
-      { id:2, title:"Sales tax cut next turn", description:"Government will cut sales tax next turn by 3%.", taxDelta:-0.03,
-        choices:[ {key:"A",label:"Treat yourself a bit", cost:120, happy:1},
-                  {key:"B",label:"No change",            cost:0,   happy:0},
-                  {key:"C",label:"Save instead",         cost:-80, happy:1} ] },
-      { id:3, title:"Fuel price spike", description:"Higher gas shifts budgets to complements of transit.",
-        choices:[ {key:"A",label:"Transit and carpool", cost:50,  happy:1},
-                  {key:"B",label:"Drive as usual",      cost:200, happy:0},
-                  {key:"C",label:"Buy electric scooter", cost:400, happy:1} ] },
-      { id:4, title:"Stimulus checks arrive", description:"Households receive 500 in one-time cash.",
-        choices:[ {key:"A",label:"Spend it",  cost:-500, happy:2},
-                  {key:"B",label:"Save it",   cost:-500, happy:1},
-                  {key:"C",label:"Invest it", cost:-500, happy:1} ] },
-      { id:5, title:"Credit APR hike", description:"Interest rates rise on revolving credit.",
-        choices:[ {key:"A",label:"Pay down balance", cost:300, happy:1},
-                  {key:"B",label:"Minimum only",     cost:50,  happy:-1},
-                  {key:"C",label:"Balance transfer fee", cost:75, happy:0} ] },
-      { id:6, title:"Drought hits produce", description:"Food prices rise.",
-        choices:[ {key:"A",label:"Switch to staples", cost:60,  happy:0},
-                  {key:"B",label:"Keep quality",      cost:220, happy:1},
-                  {key:"C",label:"Bulk cook",         cost:120, happy:1} ] },
-      { id:7, title:"Congestion pricing", description:"Commuting costs change.",
-        choices:[ {key:"A",label:"Monthly transit pass", cost:129, happy:1},
-                  {key:"B",label:"Carpool permits",     cost:60,  happy:0},
-                  {key:"C",label:"Drive solo",          cost:250, happy:-1} ] },
-      { id:8, title:"Public goods drive", description:"Neighborhood park fund.",
-        choices:[ {key:"A",label:"Donate modestly", cost:50,  happy:1},
-                  {key:"B",label:"Donate generously", cost:200, happy:2},
-                  {key:"C",label:"Opt out",           cost:0,   happy:0} ] },
-      { id:9, title:"Tech sale week", description:"Discount temptations.",
-        choices:[ {key:"A",label:"Buy laptop",      cost:1200, happy:1},
-                  {key:"B",label:"Buy refurbished", cost:600,  happy:1},
-                  {key:"C",label:"Wait",            cost:0,    happy:0} ] }
+      { id:1, title:"Your state passed a tax increase", description:"Sales tax will rise next turn.", taxDelta:+0.03,
+        choices:[ {key:"A",label:"Shop early for essentials.", cost:300,  happy:2},
+                  {key:"B",label:"Split buys between now and next turn.", cost:150, happy:0},
+                  {key:"C",label:"Delay a big buy and save for now.", cost:-150, happy:-1} ] },
+      { id:2, title:"Scheduled tax cut approved", description:"Sales tax will fall next turn.", taxDelta:-0.03,
+        choices:[ {key:"A",label:"Put down a refundable deposit to lock a deal.", cost:150, happy:0},
+                  {key:"B",label:"Buy the item now anyway.", cost:400, happy:0},
+                  {key:"C",label:"Buy small things now and delay the big one.", cost:120, happy:1} ] },
+      { id:3, title:"Refinery outage hit fuel supply", description:"Gas prices spike this turn.",
+        choices:[ {key:"A",label:"Monthly transit pass.", cost:129, happy:1},
+                  {key:"B",label:"Keep driving as usual.", cost:250, happy:0},
+                  {key:"C",label:"Buy an electric scooter for commuting.", cost:500, happy:1} ] },
+      { id:4, title:"Utility raised peak rates today", description:"Time of use pricing applies immediately.",
+        choices:[ {key:"A",label:"Off peak automation kit for appliances.", cost:150, happy:2},
+                  {key:"B",label:"Ignore peak prices and keep routine.", cost:120, happy:-1},
+                  {key:"C",label:"Starter efficiency upgrades at home.", cost:400, happy:1} ] },
+      { id:5, title:"Weather hurt produce yields", description:"Grocery prices jump.",
+        choices:[ {key:"A",label:"Keep quality and buy fresh produce.", cost:300, happy:2},
+                  {key:"B",label:"Mix fresh and frozen to manage cost.", cost:180, happy:0},
+                  {key:"C",label:"Pivot to staples and bulk.", cost:120, happy:-2} ] },
+      { id:6, title:"Key road closed this week", description:"Transit is crowded and roads are jammed.",
+        choices:[ {key:"A",label:"Monthly pass with express options.", cost:150, happy:2},
+                  {key:"B",label:"Organized carpool with fuel split.", cost:120, happy:0},
+                  {key:"C",label:"Drive solo and pay parking.", cost:300, happy:-2} ] },
+      { id:7, title:"Phone battery keeps failing", description:"Reliability is now a problem.",
+        choices:[ {key:"A",label:"New flagship replacement.", cost:1200, happy:2},
+                  {key:"B",label:"Refurb model with warranty.", cost:700, happy:1},
+                  {key:"C",label:"Battery replacement and tune up.", cost:150, happy:-1} ] },
+      { id:8, title:"Home workloads increased", description:"Your internet plan bottlenecks speed.",
+        choices:[ {key:"A",label:"Gigabit upgrade with install.", cost:300, happy:2},
+                  {key:"B",label:"Mid tier speed bump.", cost:180, happy:1},
+                  {key:"C",label:"Keep current plan and buy a better router.", cost:120, happy:-1} ] },
+      { id:9, title:"Banks raised rates on balances", description:"Credit APR is higher.",
+        choices:[ {key:"A",label:"Pay down a chunk to cut interest.", cost:600, happy:1},
+                  {key:"B",label:"Make a heavier than minimum payment.", cost:200, happy:0},
+                  {key:"C",label:"Pay a balance transfer fee to lower APR.", cost:150, happy:-1} ] },
+      { id:10, title:"City will match block donations", description:"Park improvements depend on you.",
+        choices:[ {key:"A",label:"Donate toward the match target.", cost:300, happy:2},
+                  {key:"B",label:"Make a smaller donation to participate.", cost:150, happy:0},
+                  {key:"C",label:"Skip donation and use the park anyway.", cost:120, happy:-2} ] }
     ];
 
     const INSURANCE_EVENT = {
-      id:'INS_T1', title:"Choose health insurance", description:"Pick a plan. Your choice sets your monthly premium.", isInsurance:true,
-      choices:[ {key:"A",label:"Aetna"}, {key:"B",label:"Coventry"}, {key:"C",label:"Humana"},
-                {key:"D",label:"Cigna"}, {key:"E",label:"Health Spring"}, {key:"F",label:"Anthem"} ]
+      id:"INS_T1",
+      title:"Health insurance choice",
+      description:"Open enrollment started. Pick a health insurance plan for your family.",
+      isInsurance:true,
+      choices:[
+        {key:"A",planKey:"UnitedHealthcare",label:"UnitedHealthcare - $300 each turn. Covers 50% of medical costs."},
+        {key:"B",planKey:"KaiserPermanente",label:"Kaiser Permanente - $500 each turn. Covers 70% of medical costs."},
+        {key:"C",planKey:"AnthemBCBS",label:"Anthem - $800 each turn. Covers 90% of medical costs."},
+        {key:"D",planKey:"NoInsurance",label:"No insurance - $0 each turn. Covers 0% of medical costs."}
+      ]
     };
 
-    const FAMILY_EVENTS_BY_FAMILY = {
+    const FAMILY_GENERAL_EVENTS = {
       1:[
-        {id:101,title:"Daycare for Timmy",description:"Pick care for your toddler",choices:[
-          {key:"A",label:"Local daycare class of 40",cost:800,happy:1},
-          {key:"B",label:"Montessori school",cost:1000,happy:2},
-          {key:"C",label:"Family and friends help",cost:200,happy:0}
-        ]},
-        {id:102,title:"Timmy wants cello",description:"He found a used cello",choices:[
-          {key:"A",label:"Lessons plus instrument",cost:500,happy:2},
-          {key:"B",label:"Not now",cost:0,happy:-1},
-          {key:"C",label:"Rent instrument only",cost:120,happy:1}
-        ]},
-        {id:103,title:"Grocery brand choice",description:"Inferior vs normal goods",choices:[
-          {key:"A",label:"Store brand swap",cost:40,happy:0},
-          {key:"B",label:"Name brands",cost:110,happy:1},
-          {key:"C",label:"Coupons and plan",cost:20,happy:1}
+        {id:"S-GEN-1",title:"Pantry prep weekend",description:"Choose how much to restock before schedules get wild.",
+          choices:[
+            {key:"A",label:"Load up on fresh ingredients.",cost:220,happy:2},
+            {key:"B",label:"Split between pantry staples and fresh.",cost:120,happy:1},
+            {key:"C",label:"Stick to current pantry and defer shopping.",cost:0,happy:-1}
+          ]},
+        {id:"S-GEN-2",title:"Side hustle planning",description:"Johnny can pick up extra shifts with some tradeoffs.",
+          choices:[
+            {key:"A",label:"Work overtime and buy easy meals.",cost:150,happy:0},
+            {key:"B",label:"Skip shifts and enjoy a rest night.",cost:0,happy:2},
+            {key:"C",label:"Split the difference with one shift.",cost:60,happy:1}
+          ]}
+      ],
+      2:[
+        {id:"K-GEN-1",title:"Uniform refresh",description:"The butcher shop offered a deal on new uniforms.",
+          choices:[
+            {key:"A",label:"Full refresh with custom gear.",cost:260,happy:2},
+            {key:"B",label:"Replace the worst pieces only.",cost:110,happy:1},
+            {key:"C",label:"Keep the current uniforms a bit longer.",cost:0,happy:-1}
+          ]},
+        {id:"K-GEN-2",title:"Family night plans",description:"Pick how to celebrate the kids' good grades.",
+          choices:[
+            {key:"A",label:"Theme park day.",cost:320,happy:2},
+            {key:"B",label:"Local outing and treats.",cost:140,happy:1},
+            {key:"C",label:"Movie night at home.",cost:40,happy:0}
+          ]}
+      ],
+      3:[
+        {id:"N-GEN-1",title:"Child enrichment signup",description:"Clubs opened for the new semester.",
+          choices:[
+            {key:"A",label:"STEM camp plus art lessons.",cost:450,happy:2},
+            {key:"B",label:"Pick one activity now and reassess later.",cost:220,happy:1},
+            {key:"C",label:"Skip paid programs this session.",cost:0,happy:-1}
+          ]},
+        {id:"N-GEN-2",title:"Commute comforts",description:"Decide how to handle long shifts this month.",
+          choices:[
+            {key:"A",label:"Rideshare on call nights.",cost:180,happy:1},
+            {key:"B",label:"Transit pass with upgrades.",cost:129,happy:0},
+            {key:"C",label:"Drive yourself and skip extras.",cost:60,happy:-1}
+          ]}
+      ],
+      4:[
+        {id:"KING-GEN-1",title:"STEM club donation",description:"Support the school's robotics club?",
+          choices:[
+            {key:"A",label:"Fund new kits.",cost:400,happy:2},
+            {key:"B",label:"Cover a few spare parts.",cost:180,happy:1},
+            {key:"C",label:"Offer mentoring only.",cost:0,happy:0}
+          ]},
+        {id:"KING-GEN-2",title:"Weekend recharge",description:"Pick how Kendall restores energy before exams.",
+          choices:[
+            {key:"A",label:"Wellness retreat.",cost:500,happy:2},
+            {key:"B",label:"Family day trip.",cost:200,happy:1},
+            {key:"C",label:"Staycation at home.",cost:60,happy:0}
+          ]}
+      ]
+    };
+
+    const FAMILY_INJURY_EVENTS = {
+      1:[
+        {id:"S-INJ-1",title:"Johnny strained his wrist",description:"Johnny lifted heavy boxes at work. Insurance coverage applies to the sticker price. You pay the uncovered share. No sales tax on medical.",choices:[
+          {key:"A",label:"Same day urgent care with brace and follow up.",cost:600,happy:2,medical:true},
+          {key:"B",label:"Next day clinic visit and over the counter brace.",cost:300,happy:0,medical:true},
+          {key:"C",label:"Self care with wrap and missed hours.",cost:150,happy:-2,medical:true}
         ]}
       ],
       2:[
-        {id:201,title:"Rent increase",description:"Landlord raises rent",choices:[
-          {key:"A",label:"Stay and pay higher",cost:500,happy:-1},
-          {key:"B",label:"Move farther, more gas",cost:200,happy:-1},
-          {key:"C",label:"Short term loan",cost:2000,happy:-2}
-        ]},
-        {id:202,title:"Teen insurance spike",description:"Accident raises insurance",choices:[
-          {key:"A",label:"Bike to school",cost:100,happy:0},
-          {key:"B",label:"Use rideshare",cost:350,happy:0},
-          {key:"C",label:"Pay the increase",cost:6000,happy:-2}
-        ]},
-        {id:203,title:"Meat demand surge",description:"Butcher hours rise",choices:[
-          {key:"A",label:"Overtime gear and meals",cost:180,happy:1},
-          {key:"B",label:"Decline overtime",cost:0,happy:0},
-          {key:"C",label:"Hire helper one week",cost:400,happy:1}
+        {id:"K-INJ-1",title:"Mary rolled her ankle",description:"Mary rolled her ankle at school soccer. Insurance coverage applies to the sticker price. You pay the uncovered share. No sales tax on medical.",choices:[
+          {key:"A",label:"Emergency room with full imaging and ortho referral.",cost:1800,happy:1,medical:true},
+          {key:"B",label:"Urgent care X-ray and ortho follow up.",cost:900,happy:2,medical:true},
+          {key:"C",label:"Telehealth consult and brace only.",cost:200,happy:-2,medical:true}
         ]}
       ],
       3:[
-        {id:301,title:"Infant daycare",description:"Two options open up",choices:[
-          {key:"A",label:"Local daycare",cost:2900,happy:1},
-          {key:"B",label:"Private daycare with friends",cost:3500,happy:2},
-          {key:"C",label:"Nanny share part time",cost:1800,happy:1}
-        ]},
-        {id:302,title:"Long commute tradeoff",description:"New hospital role",choices:[
-          {key:"A",label:"Transit pass",cost:129,happy:0},
-          {key:"B",label:"Decline offer",cost:0,happy:0},
-          {key:"C",label:"Drive and parking",cost:350,happy:-1}
-        ]},
-        {id:303,title:"Continuing education",description:"Human capital",choices:[
-          {key:"A",label:"Certification",cost:1200,happy:2},
-          {key:"B",label:"Reimbursed later",cost:600,happy:1},
-          {key:"C",label:"Skip this year",cost:0,happy:0}
+        {id:"N-INJ-1",title:"Baby's ear infection",description:"The baby's cold worsened into a painful ear infection. Insurance coverage applies to the sticker price. You pay the uncovered share. No sales tax on medical.",choices:[
+          {key:"A",label:"Pediatrician same day with antibiotics.",cost:250,happy:2,medical:true},
+          {key:"B",label:"Urgent care with short wait.",cost:350,happy:1,medical:true},
+          {key:"C",label:"Watchful waiting with home supplies.",cost:150,happy:-2,medical:true}
         ]}
       ],
       4:[
-        {id:401,title:"Prep school decision",description:"Improve college chances",choices:[
-          {key:"A",label:"Send one teen",cost:1900,happy:1},
-          {key:"B",label:"Send both",cost:3800,happy:2},
-          {key:"C",label:"Stay public",cost:0,happy:0}
-        ]},
-        {id:402,title:"College books and fees",description:"First semester bills",choices:[
-          {key:"A",label:"All new books",cost:600,happy:-1},
-          {key:"B",label:"Used and rentals",cost:220,happy:1},
-          {key:"C",label:"Library and PDFs only",cost:40,happy:0}
-        ]},
-        {id:403,title:"Home services bundle",description:"Complementary goods",choices:[
-          {key:"A",label:"Gigabit internet and TV",cost:280,happy:2},
-          {key:"B",label:"Internet only",cost:120,happy:1},
-          {key:"C",label:"Keep current plan",cost:0,happy:0}
+        {id:"KING-INJ-1",title:"Kendall felt a knee pop",description:"Kendall felt a knee pop in PE class. Insurance coverage applies to the sticker price. You pay the uncovered share. No sales tax on medical.",choices:[
+          {key:"A",label:"MRI first then ortho plan.",cost:1600,happy:2,medical:true},
+          {key:"B",label:"Physical therapy evaluation first.",cost:600,happy:1,medical:true},
+          {key:"C",label:"Rest and ice with supplies.",cost:120,happy:-2,medical:true}
         ]}
       ]
     };
+
+    function pickRandom(list){
+      if(!list || list.length === 0) return null;
+      var idx = Math.floor(Math.random() * list.length);
+      return list[idx];
+    }
+
+    function buildFamilyEventMap(turnNumber){
+      var map = {};
+      DEFAULT_FAMILIES.forEach(function(f){
+        var pool = [];
+        if(turnNumber === 1){
+          pool = FAMILY_GENERAL_EVENTS[f.family_id] || [];
+        } else if(turnNumber === 2){
+          pool = FAMILY_INJURY_EVENTS[f.family_id] || [];
+        } else {
+          pool = (FAMILY_GENERAL_EVENTS[f.family_id] || []).concat(FAMILY_INJURY_EVENTS[f.family_id] || []);
+        }
+        map[f.family_id] = pickRandom(pool) || null;
+      });
+      return map;
+    }
 
     function fmt(n){ return new Intl.NumberFormat(undefined,{style:"currency",currency:"USD"}).format(n||0); }
     function clamp(x,lo,hi){ return Math.max(lo, Math.min(hi,x)); }
@@ -243,7 +300,7 @@
 
       const initialBank = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f.starting_bank];})); },[]);
       const [bank, setBank] = useState(initialBank);
-      const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,"Aetna"];})));
+      const [chosenInsurance, setChosenInsurance] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,DEFAULT_PLAN_KEY];})));
       const [ledger, setLedger] = useState([]);
 
       const [gainVsStart, setGainVsStart] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
@@ -253,8 +310,8 @@
       const [currentFamilyIdx, setCurrentFamilyIdx] = useState(0);
       const currentFamily = DEFAULT_FAMILIES[currentFamilyIdx];
       const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,false];})));
-      const [groupIdx, setGroupIdx] = useState(0);
-      const [familyIdx, setFamilyIdx] = useState(0);
+      const [groupEventCurrent, setGroupEventCurrent] = useState(INSURANCE_EVENT);
+      const [familyEventMap, setFamilyEventMap] = useState(function(){ return buildFamilyEventMap(1); });
 
       const [groupChoiceKey, setGroupChoiceKey] = useState("");
       const [familyChoiceKey, setFamilyChoiceKey] = useState("");
@@ -264,6 +321,8 @@
       const [invAmtStr, setInvAmtStr] = useState("");
 
       const [showLedger, setShowLedger] = useState(false);
+      const [showScores, setShowScores] = useState(false);
+      const [scoreFamilyId, setScoreFamilyId] = useState(null);
       const [showEnd, setShowEnd] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
       const [showIntro, setShowIntro] = useState(true);
@@ -272,10 +331,8 @@
 
       const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f];})); },[]);
       const isTurn1 = turn === 1;
-      const baseGroupEvent = isTurn1 ? INSURANCE_EVENT : GROUP_EVENTS[groupIdx % GROUP_EVENTS.length];
-      const groupEvent = baseGroupEvent;
-      const familyEventsForSelected = FAMILY_EVENTS_BY_FAMILY[currentFamily.family_id] || [];
-      const familyEvent = familyEventsForSelected.length>0 ? familyEventsForSelected[familyIdx % familyEventsForSelected.length] : null;
+      const groupEvent = groupEventCurrent;
+      const familyEvent = familyEventMap[currentFamily.family_id] || null;
 
       /* market */
       const [investmentPrices, setInvestmentPrices] = useState(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
@@ -285,12 +342,13 @@
         })
       ));
 
-      function calcHoldingsValue(fid, unitsOverride){
+      function calcHoldingsValue(fid, unitsOverride, pricesOverride){
         var units = (unitsOverride || portfolioUnits)[fid] || {};
+        var prices = pricesOverride || investmentPrices;
         var total = 0;
         INVESTMENTS.forEach(function(x){
           var u = units[x.name] || 0;
-          var p = investmentPrices[x.name] || 100;
+          var p = prices[x.name] || 100;
           total += u * p;
         });
         return total;
@@ -303,7 +361,7 @@
             var p = prev[x.name] || 100;
             var r = 0;
             if(x.name === "IndexFund")      r = randBetween(-0.10, 0.20);
-            else if(x.name === "Crypto")    r = randBetween(-0.70, 2.00);
+            else if(x.name === "Crypto")    r = randBetween(-0.99, 2.00);
             else if(x.name === "FriendBusiness") r = randBetween(-0.20, 0.40);
             var np = p * (1 + r);
             next[x.name] = Math.max(1, Number(np.toFixed(2)));
@@ -322,7 +380,24 @@
         }
       }
 
-      function dispHappy(h){
+      function prepareEventsForTurn(nextTurn){
+        if(nextTurn === 1){
+          setGroupEventCurrent(INSURANCE_EVENT);
+        } else {
+          setGroupEventCurrent(pickRandom(GROUP_EVENTS) || GROUP_EVENTS[0]);
+        }
+        setFamilyEventMap(buildFamilyEventMap(nextTurn));
+      }
+
+    function fmtSignedNumber(n, suffix){
+      if(typeof n !== "number" || isNaN(n)) return suffix ? "0"+suffix : "0";
+      var rounded = Math.abs(n - Math.round(n)) < 1e-9 ? Math.round(n) : Math.round(n * 100) / 100;
+      if(rounded === 0) rounded = 0; /* avoid -0 */
+      var str = (rounded>=0?"+":"") + rounded;
+      return suffix ? str + suffix : str;
+    }
+
+    function dispHappy(h){
         var hd = (typeof h==="number") ? h*10 : 0; /* label shows 10x */
         if(hd > 0) return "+"+hd+" Happy";
         if(hd < 0) return hd+" Happy";
@@ -350,6 +425,20 @@
         );
       }
 
+      function resolveFamilyChoice(choice, planInfo){
+        if(!choice) return { netCost:0, taxableCost:0 };
+        var baseCost = choice.cost || 0;
+        var coverage = (planInfo && typeof planInfo.coverage === "number") ? planInfo.coverage : 0;
+        var netCost = baseCost;
+        if(choice.medical && baseCost > 0){
+          netCost = baseCost * (1 - coverage);
+        }
+        netCost = Math.round(netCost * 100) / 100;
+        var taxableCost = (choice.medical || choice.taxable === false) ? 0 : (netCost > 0 ? netCost : 0);
+        taxableCost = Math.round(taxableCost * 100) / 100;
+        return { netCost: netCost, taxableCost: taxableCost };
+      }
+
       function submitChoices(){
         var fid = currentFamily.family_id;
         if(submittedMap[fid]){ alert("Already submitted for this family this turn."); return; }
@@ -361,18 +450,16 @@
         if(groupEvent && groupChoiceKey){
           gChoiceObj = groupEvent.choices.find(function(c){ return c.key === groupChoiceKey; }) || null;
         }
+        var activePlanKey = chosenInsurance[fid] || DEFAULT_PLAN_KEY;
         if(isTurn1){
-          if(!gChoiceObj){ alert("Choose a health insurance plan first."); return; }
-          var label = gChoiceObj.label;
-          var carrierSet = INSURER_MAP[label] || "Aetna";
+          if(!gChoiceObj || !gChoiceObj.planKey){ alert("Choose a health insurance plan first."); return; }
+          activePlanKey = gChoiceObj.planKey;
           var nextIns = Object.assign({}, chosenInsurance);
-          nextIns[fid] = carrierSet;
+          nextIns[fid] = activePlanKey;
           setChosenInsurance(nextIns);
         }
-
-        var insChoice = chosenInsurance[fid] || "Aetna";
-        var carrier = INSURER_MAP[insChoice] || insChoice || "Aetna";
-        var monthlyCost = INSURERS[carrier] || 0;
+        var planInfo = INSURANCE_PLANS[activePlanKey] || INSURANCE_PLANS[DEFAULT_PLAN_KEY];
+        var monthlyCost = planInfo.premium || 0;
 
         var gCost = 0, gHappy = 0;
         if(!isTurn1 && gChoiceObj){
@@ -389,7 +476,9 @@
           fChoiceObj = familyEvent.choices.find(function(c){ return c.key === familyChoiceKey; }) || null;
         }
         if(!fChoiceObj){ alert("Choose a family event option."); return; }
-        var fCost = fChoiceObj.cost || 0;
+        var familyChoiceCalc = resolveFamilyChoice(fChoiceObj, planInfo);
+        var fCost = familyChoiceCalc.netCost;
+        var fTaxable = familyChoiceCalc.taxableCost || 0;
         var fHappy = fChoiceObj.happy || 0;
 
         /* Base expense categories */
@@ -398,7 +487,7 @@
         var baseMisc = fam.misc || 0;
 
         /* Tax applies to purchases: food, clothes, misc, plus positive scenario spends */
-        var taxable = baseFood + baseClothes + baseMisc + (gCost>0?gCost:0) + (fCost>0?fCost:0);
+        var taxable = baseFood + baseClothes + baseMisc + (gCost>0?gCost:0) + fTaxable;
         var tax = taxable * salesTaxNow;
 
         /* Investment trade */
@@ -409,10 +498,12 @@
         var investNotes = "";
         var investCashFlow = 0;
         var newPortfolioUnits = JSON.parse(JSON.stringify(portfolioUnits));
+        var nextPrices = Object.assign({}, investmentPrices);
+        var pricesChanged = false;
         if(action === "Buy" || action === "Sell"){
           if(inv === ""){ alert("Pick an investment."); return; }
           if(!(amt > 0)){ alert("Enter a positive dollar amount."); return; }
-          var price = investmentPrices[inv] || 100;
+          var price = nextPrices[inv] || 100;
           if(action === "Buy"){
             var cash = bank[fid] || 0;
             if(amt > cash + 1e-9){ alert("You cannot invest more than your available cash."); return; }
@@ -420,6 +511,10 @@
             newPortfolioUnits[fid][inv] = (newPortfolioUnits[fid][inv] || 0) + buyUnits;
             investCashFlow -= amt;
             investNotes = "Bought "+buyUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
+            var bump = 1 + ((amt / 100) * 0.01);
+            var bumpedPrice = price * bump;
+            nextPrices[inv] = Math.max(1, Number(bumpedPrice.toFixed(2)));
+            pricesChanged = true;
           } else {
             var have = newPortfolioUnits[fid][inv] || 0;
             var maxValue = have * price;
@@ -428,6 +523,11 @@
             newPortfolioUnits[fid][inv] = have - sellUnits;
             investCashFlow += amt;
             investNotes = "Sold "+sellUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
+            var drop = 1 - ((amt / 100) * 0.01);
+            drop = Math.max(0.1, drop);
+            var droppedPrice = price * drop;
+            nextPrices[inv] = Math.max(1, Number(droppedPrice.toFixed(2)));
+            pricesChanged = true;
           }
         }
 
@@ -443,21 +543,53 @@
         var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
         setBank(newBank);
         setPortfolioUnits(newPortfolioUnits);
+        if(pricesChanged){ setInvestmentPrices(nextPrices); }
 
         /* NET WORTH based econ points */
-        var newHoldingsValue = calcHoldingsValue(fid, newPortfolioUnits);
+        var roleMult = ROLE_MULT[fam.role] || 1;
+        var newHoldingsValue = calcHoldingsValue(fid, newPortfolioUnits, nextPrices);
         var netWorthNow = newBankVal + newHoldingsValue;
         var startNetWorth = fam.starting_bank; /* initial holdings are zero */
         var gainNow = Math.max(netWorthNow - startNetWorth, 0);
         var gainPrev = gainVsStart[fid] || 0;
         var newGainPeak = Math.max(gainNow, gainPrev);
         var gainDelta = Math.max(newGainPeak - gainPrev, 0);
-        var econEarned = (gainDelta * (ROLE_MULT[fam.role] || 1)) / 100;
+        var econBasePoints = gainDelta / 1000;
+        var econEarned = econBasePoints * roleMult;
 
-        var bankDelta = newBankVal - prevBank;
-        var happyMoney = bankDelta > 0 ? Math.floor(bankDelta / 500) : 0;
-        var happyBase = (gHappy||0) + (fHappy||0) + happyMoney;
-        var happyEarned = happyBase * (ROLE_MULT[fam.role] || 1);
+        var groupHappyValue = (gHappy || 0) * 10;
+        var familyHappyValue = (fHappy || 0) * 10;
+        var happyBaseValue = groupHappyValue + familyHappyValue;
+        var happyEarned = happyBaseValue;
+
+        var econReason = gainDelta > 0
+          ? "Net worth gain " + fmt(gainDelta) + " => base " + econBasePoints.toFixed(2) + " pts (1 point per $1,000) x role x" + roleMult + " = +" + Math.round(econEarned) + " econ points"
+          : "No new net worth peak this turn.";
+        var happyReasonParts = [];
+        if(groupHappyValue) happyReasonParts.push("Group choice " + fmtSignedNumber(groupHappyValue," Happy"));
+        if(familyHappyValue) happyReasonParts.push("Family choice " + fmtSignedNumber(familyHappyValue," Happy"));
+        if(happyReasonParts.length === 0){
+          happyReasonParts.push("No happiness changes this turn");
+        }
+        var happyReason = happyReasonParts.join(", ") + (happyBaseValue !== 0
+          ? ". Base " + fmtSignedNumber(happyBaseValue," Happy") + " => +" + Math.round(happyEarned) + " happiness points"
+          : "");
+
+        var happyComponents = [];
+        if(groupHappyValue) happyComponents.push({label:"Group scenario", value:groupHappyValue});
+        if(familyHappyValue) happyComponents.push({label:"Family scenario", value:familyHappyValue});
+        var happyDetail = {
+          components:happyComponents,
+          base_total:happyBaseValue,
+          awarded:Math.round(happyEarned)
+        };
+
+        var econDetail = {
+          net_gain:Number(gainDelta.toFixed(2)),
+          base_points:Number(econBasePoints.toFixed(2)),
+          role_multiplier:roleMult,
+          awarded:Math.round(econEarned)
+        };
 
         var newGvs = Object.assign({}, gainVsStart); newGvs[fid] = newGainPeak; setGainVsStart(newGvs);
         var newEcon = Object.assign({}, econPoints); newEcon[fid] = (econPoints[fid]||0) + econEarned; setEconPoints(newEcon);
@@ -472,7 +604,9 @@
           econ_earned:Math.round(econEarned), happy_earned:Math.round(happyEarned),
           econ_total:Math.round(((econPoints[fid]||0)+econEarned)), happy_total:Math.round(((happyPoints[fid]||0)+happyEarned)),
           points_total:Math.round(((econPoints[fid]||0)+econEarned)+((happyPoints[fid]||0)+happyEarned)),
-          notes: ("Food "+fmt(baseFood)+", Clothes "+fmt(baseClothes)+", Misc "+fmt(baseMisc)) + (investNotes?(" | "+investNotes):"") + (isTurn1 ? (" | Insurance: " + (INSURER_MAP[gChoiceObj?gChoiceObj.label:""] || (gChoiceObj?gChoiceObj.label:""))) : "")
+          econ_reason:econReason, happy_reason:happyReason,
+          econ_detail:econDetail, happy_detail:happyDetail,
+          notes: ("Food "+fmt(baseFood)+", Clothes "+fmt(baseClothes)+", Misc "+fmt(baseMisc)) + (investNotes?(" | "+investNotes):"") + (isTurn1 && planInfo ? (" | Insurance: " + planInfo.name) : "")
         };
         setLedger(function(prev){ var copy=prev.slice(); copy.push(row); return copy; });
 
@@ -480,6 +614,10 @@
         setGroupChoiceKey(""); setFamilyChoiceKey("");
         setInvAction(""); setInvName(""); setInvAmtStr("");
         goNextFamily();
+
+        if(fam.role === "King" && Object.values(nextMap).every(function(v){ return v; })){
+          advanceTurnInternal();
+        }
       }
 
       function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 800); }
@@ -491,8 +629,6 @@
           setTaxDeltaRecordedTurn(null);
         }
         setSalesTaxNow(salesTaxNext);
-        if(!isTurn1){ setGroupIdx(function(p){ return p+1; }); }
-        setFamilyIdx(function(p){ return p+1; });
         resetSubmitted();
         setCurrentFamilyIdx(0);
         setGroupChoiceKey(""); setFamilyChoiceKey("");
@@ -501,15 +637,20 @@
         animateToNextTurn();
       }
 
-      function advanceTurn(){
-        if(!allSubmitted()) return;
-        setTurn(function(p){ return p+1; });
+      function advanceTurnInternal(){
+        var nextTurn = turn + 1;
+        setTurn(nextTurn);
+        prepareEventsForTurn(nextTurn);
         doTurnAdvanceCommon();
       }
 
+      function advanceTurn(){
+        if(!allSubmitted()) return;
+        advanceTurnInternal();
+      }
+
       function skipTurn(){
-        setTurn(function(p){ return p+1; });
-        doTurnAdvanceCommon();
+        advanceTurnInternal();
       }
 
       function restartGame(){
@@ -518,18 +659,20 @@
         setPendingTaxDelta(0); setTaxDeltaRecordedTurn(null);
         setSectorMult({Retail:1.0,Food:1.0,Healthcare:1.0,Tech:1.0});
         setBank(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f.starting_bank];})));
-        setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,"Aetna"];})));
+        setChosenInsurance(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,DEFAULT_PLAN_KEY];})));
         setLedger([]);
         setGainVsStart(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
         setEconPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
         setHappyPoints(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,0];})));
-        setGroupIdx(0); setFamilyIdx(0);
         setCurrentFamilyIdx(0); resetSubmitted();
         setGroupChoiceKey(""); setFamilyChoiceKey("");
         setInvAction(""); setInvName(""); setInvAmtStr("");
-        setShowEnd(false); setShowLedger(false); setShowAdmin(false); setShowIntro(true); setShowExpenses(false);
+        setShowEnd(false); setShowLedger(false); setShowScores(false); setShowAdmin(false); setShowIntro(true); setShowExpenses(false);
+        setScoreFamilyId(null);
         setInvestmentPrices(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
         setPortfolioUnits(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,0];}))];})));
+        setGroupEventCurrent(INSURANCE_EVENT);
+        setFamilyEventMap(buildFamilyEventMap(1));
       }
 
       const perFamilyScores = DEFAULT_FAMILIES.map(function(f){
@@ -548,28 +691,37 @@
 
       var topActionLabel="", topActionHandler=null, topActionDisabled=false;
       if(allSubmitted()){
-        topActionLabel = "Advance turn";
+        topActionLabel = "Next turn";
         topActionHandler = advanceTurn;
       } else if(submittedMap[fam.family_id]){
         topActionLabel = "Waiting on others ("+remainingCount+" left)";
         topActionDisabled = true;
       } else {
-        topActionLabel = "Submit choices for this family";
+        topActionLabel = (fam.role === "King") ? "Next turn" : "Next family";
         topActionHandler = submitChoices;
       }
 
-      var insChoiceShow = chosenInsurance[fam.family_id] || "Aetna";
-      var carrierShow = INSURER_MAP[insChoiceShow] || insChoiceShow || "Aetna";
-      var monthlyShow = INSURERS[carrierShow] || 0;
+      var planKeyStored = chosenInsurance[fam.family_id] || DEFAULT_PLAN_KEY;
+      var previewPlanKey = planKeyStored;
+      if(groupEvent.isInsurance && groupChoiceKey){
+        var previewChoice = groupEvent.choices.find(function(c){ return c.key === groupChoiceKey; });
+        if(previewChoice && previewChoice.planKey){
+          previewPlanKey = previewChoice.planKey;
+        }
+      }
+      var planShow = INSURANCE_PLANS[previewPlanKey] || INSURANCE_PLANS[DEFAULT_PLAN_KEY];
+      var monthlyShow = planShow.premium || 0;
 
-      var currentG = !isTurn1 ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
+      var currentG = (!groupEvent.isInsurance && groupChoiceKey) ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
       var currentF = familyEvent && familyChoiceKey ? familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) : null;
 
-      var gCostShow = (!isTurn1 && currentG) ? (currentG.cost||0) : 0;
-      var fCostShow = currentF ? (currentF.cost||0) : 0;
+      var gCostShow = currentG ? (currentG.cost||0) : 0;
+      var familyPreview = resolveFamilyChoice(currentF, planShow);
+      var fCostShow = familyPreview.netCost || 0;
+      var fTaxablePreview = familyPreview.taxableCost || 0;
 
       var expensesBase = fam.housing + monthlyShow + fam.food + fam.clothes + fam.misc;
-      var taxableShow = fam.food + fam.clothes + fam.misc + (gCostShow>0?gCostShow:0) + (fCostShow>0?fCostShow:0);
+      var taxableShow = fam.food + fam.clothes + fam.misc + (gCostShow>0?gCostShow:0) + fTaxablePreview;
       var taxShow = taxableShow * salesTaxNow;
       var expensesTotalShow = expensesBase + (gCostShow!==0?gCostShow:0) + (fCostShow!==0?fCostShow:0) + taxShow;
       var projectedDeltaThisTurn = incomeThisTurn - expensesTotalShow;
@@ -579,7 +731,7 @@
       return React.createElement(React.Fragment,null,
 
         /* INTRO */
-        showIntro ? React.createElement("div",{className:"overlay"},
+        showIntro ? React.createElement("div",{className:"overlay",onClick:function(){setShowIntro(false);}},
           React.createElement("div",{className:"crt-card p-5 panel tight-y"},
             React.createElement("div",{className:"text-3xl accent text-center"},"We live in a society with tradeoffs"),
             React.createElement("p",{className:"muted text-center"},"Prices move. Taxes change. Families choose. Grow net worth and keep people happy."),
@@ -604,8 +756,8 @@
               React.createElement("div",null,"2. A family scenario applies to each family."),
               React.createElement("div",null,"3. Investment opportunities are available and change in value every turn."),
               React.createElement("div",{className:"mt-2 accent"},"Scoring"),
-              React.createElement("div",null,"Economic points: net worth growth above start."),
-              React.createElement("div",null,"Happiness: choices plus money growth.")
+              React.createElement("div",null,"Economic points: every $1,000 net worth gain above your starting amount = 1 point (before role multipliers)."),
+              React.createElement("div",null,"Happiness: only your scenario choices add or subtract points.")
             ),
             React.createElement("div",{className:"pt-2 text-center"},
               React.createElement("button",{className:"crt-btn text-2xl px-6 py-3",onClick:function(){setShowIntro(false);}}, "Click here to start")
@@ -615,22 +767,18 @@
 
         React.createElement("div",{className:"max-w-7xl mx-auto p-4 space-y-2"},
 
-          /* SCOREBOARD */
           React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2"},
             perFamilyScores.map(function(s){
-              return React.createElement("div",{key:s.fid,className:"crt-card tight-card"},
+              return React.createElement("div",{key:s.fid,className:"crt-card tight-card space-y-2"},
                 React.createElement("div",{className:"text-xl"},s.name),
                 React.createElement("div",{className:"score-total font-bold mt-1 accent"},s.total),
-                React.createElement("div",{className:"mt-1 grid grid-cols-2 gap-2"},
-                  React.createElement("div",{className:"crt-card p-2 text-center"},
-                    labelCell("Economic"),
-                    React.createElement("div",{className:"score-sub accent font-bold"},s.econ)
-                  ),
-                  React.createElement("div",{className:"crt-card p-2 text-center"},
-                    labelCell("Happiness"),
-                    React.createElement("div",{className:"score-sub accent font-bold"},s.happy)
-                  )
-                )
+                React.createElement("button",{
+                  className:"crt-btn w-full",
+                  onClick:function(){
+                    setScoreFamilyId(s.fid);
+                    setShowScores(true);
+                  }
+                },"View score breakdown")
               );
             })
           ),
@@ -701,7 +849,7 @@
                   choices: groupEvent.choices,
                   selectedKey: groupChoiceKey,
                   onSelect: function(k){ setGroupChoiceKey(k); },
-                  showMeta: !isTurn1
+                  showMeta: !groupEvent.isInsurance
                 })
               )
             ),
@@ -792,7 +940,7 @@
             ),
             React.createElement("div",{className:"row"},
               React.createElement("div",{className:"k"},"Insurance"),
-              React.createElement("div",{className:"v"}, fmt(INSURERS[INSURER_MAP[chosenInsurance[fam.family_id] || "Aetna"] || "Aetna"] || 0))
+              React.createElement("div",{className:"v"}, fmt(planShow.premium || 0))
             ),
             React.createElement("div",{className:"row"},
               React.createElement("div",{className:"k"},"Food"),
@@ -807,7 +955,7 @@
               React.createElement("div",{className:"v"}, fmt(fam.misc))
             ),
             (function(){
-              var g = !isTurn1 ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
+              var g = (!groupEvent.isInsurance && groupChoiceKey) ? (groupEvent.choices.find(function(c){return c.key===groupChoiceKey;}) || null) : null;
               if(g && g.cost !== 0){
                 return React.createElement("div",{className:"row"},
                   React.createElement("div",{className:"k"},"Group choice"),
@@ -818,14 +966,18 @@
             })(),
             (function(){
               var fch = familyEvent && familyChoiceKey ? familyEvent.choices.find(function(c){return c.key===familyChoiceKey;}) : null;
-              if(fch && fch.cost !== 0){
-                return React.createElement("div",{className:"row"},
-                  React.createElement("div",{className:"k"},"Family choice"),
-                  React.createElement("div",{className:"v"}, fmt(fch.cost))
-                );
+              if(fch){
+                var calc = resolveFamilyChoice(fch, planShow);
+                if(calc.netCost !== 0){
+                  return React.createElement("div",{className:"row"},
+                    React.createElement("div",{className:"k"},"Family choice"),
+                    React.createElement("div",{className:"v"}, fmt(calc.netCost))
+                  );
+                }
               }
               return null;
             })(),
+            
             React.createElement("div",{className:"row"},
               React.createElement("div",{className:"k"},"Sales tax"),
               React.createElement("div",{className:"v"}, fmt(taxableShow * salesTaxNow))
@@ -890,6 +1042,93 @@
               )
             )
           )
+        ) : null,
+
+        /* SCORES MODAL */
+        showScores ? React.createElement("div",{className:"overlay"},
+          (function(){
+            var fallbackFam = DEFAULT_FAMILIES[0];
+            var activeFam = DEFAULT_FAMILIES.find(function(f){ return f.family_id === (scoreFamilyId || fallbackFam.family_id); }) || fallbackFam;
+            var summary = perFamilyScores.find(function(s){ return s.fid === activeFam.family_id; }) || {econ:0,happy:0,total:0};
+            var famRows = ledger.filter(function(row){ return row.family === activeFam.name; }).slice().sort(function(a,b){ return a.turn - b.turn; });
+            return React.createElement("div",{className:"crt-card p-5 panel space-y-3"},
+              React.createElement("div",{className:"flex items-center justify-between"},
+                React.createElement("h3",{className:"text-2xl"},"Score breakdown"),
+                React.createElement("button",{className:"crt-btn",onClick:function(){setShowScores(false);}},"Close")
+              ),
+              React.createElement("div",{className:"toggle-group"},
+                DEFAULT_FAMILIES.map(function(f){
+                  return React.createElement("span",{
+                    key:f.family_id,
+                    className:'toggle'+(f.family_id===activeFam.family_id?' active':''),
+                    onClick:function(){ setScoreFamilyId(f.family_id); }
+                  },f.name);
+                })
+              ),
+              React.createElement("div",{className:"crt-card p-3"},
+                React.createElement("div",{className:"text-xl mb-1"}, activeFam.name + " (" + activeFam.role + ")"),
+                React.createElement("div",{className:"grid grid-cols-3 gap-2"},
+                  React.createElement("div",{className:"crt-card p-2 text-center"},
+                    React.createElement("div",{className:"muted"},"Total"),
+                    React.createElement("div",{className:"score-total accent font-bold"}, summary.total)
+                  ),
+                  React.createElement("div",{className:"crt-card p-2 text-center"},
+                    React.createElement("div",{className:"muted"},"Economic"),
+                    React.createElement("div",{className:"score-sub accent font-bold"}, summary.econ)
+                  ),
+                  React.createElement("div",{className:"crt-card p-2 text-center"},
+                    React.createElement("div",{className:"muted"},"Happiness"),
+                    React.createElement("div",{className:"score-sub accent font-bold"}, summary.happy)
+                  )
+                )
+              ),
+              famRows.length === 0
+                ? React.createElement("div",{className:"muted"},"No turns submitted yet.")
+                : React.createElement("div",{className:"space-y-3 max-h-[60vh] overflow-auto"},
+                    famRows.map(function(row,idx){
+                      var econDetail = row.econ_detail || null;
+                      var happyDetail = row.happy_detail || null;
+                      return React.createElement("div",{key:row.turn+"-"+idx,className:"crt-card p-3 space-y-2"},
+                        React.createElement("div",{className:"flex items-center justify-between"},
+                          React.createElement("div",{className:"text-lg"},"Turn "+row.turn),
+                          React.createElement("div",{className:"accent font-bold"}, "+"+Math.round(row.econ_earned + row.happy_earned)+" pts")
+                        ),
+                        React.createElement("div",{className:"space-y-1"},
+                          React.createElement("div",{className:"muted font-bold"},"Economic +" + Math.round(row.econ_earned) + " pts"),
+                          econDetail
+                            ? React.createElement("div",{className:"text-sm"},
+                                econDetail.net_gain > 0
+                                  ? ("Net worth gain " + fmt(econDetail.net_gain) + " => base " +
+                                      econDetail.base_points.toFixed(2) + " pts x role x" + econDetail.role_multiplier +
+                                      " = +" + econDetail.awarded + " pts")
+                                  : "No new net worth peak this turn."
+                              )
+                            : React.createElement("div",{className:"text-sm"},"No economic change recorded.")
+                        ),
+                        React.createElement("div",{className:"space-y-1"},
+                          React.createElement("div",{className:"muted font-bold"},"Happiness +" + Math.round(row.happy_earned) + " pts"),
+                          happyDetail && happyDetail.components && happyDetail.components.length
+                            ? React.createElement("div",{className:"text-sm space-y-1"},
+                                React.createElement("div",null,"Components:"),
+                                React.createElement("ul",{className:"list-disc ml-5 space-y-1"},
+                                  happyDetail.components.map(function(comp,i){
+                                    return React.createElement("li",{key:i},
+                                      comp.label + ": " + fmtSignedNumber(comp.value," Happy")
+                                    );
+                                  })
+                                ),
+                                React.createElement("div",null,
+                                  "Base " + fmtSignedNumber(happyDetail.base_total," Happy") +
+                                  " => +" + happyDetail.awarded + " pts"
+                                )
+                              )
+                            : React.createElement("div",{className:"text-sm"},"No happiness changes this turn.")
+                        )
+                      );
+                    })
+                  )
+            );
+          })()
         ) : null,
 
         /* ADMIN MODAL */
