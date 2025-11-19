@@ -50,6 +50,19 @@
     .tight-y > * + * { margin-top:.35rem !important; }
     .tight-card { padding:.42rem .6rem !important; }
     .tight-gap { row-gap:.35rem !important; column-gap:.5rem !important; }
+    .price-slot-container{ height:2.4rem; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .price-slot-values{ display:flex; flex-direction:column; gap:0.2rem; align-items:flex-end; }
+    .price-slot-values span{ display:block; text-align:right; width:100%; }
+    .price-slot-static{ text-align:center; font-size:calc(1.2rem * var(--text-scale)); color:var(--green); }
+    .price-slot-values.up{ animation:slotScrollUp 1s ease-in-out forwards; }
+    .price-slot-values.down{ animation:slotScrollDown 1s ease-in-out forwards; }
+    .price-slot-values.flat{ animation:none; }
+    @keyframes slotScrollUp{ from{ transform:translateY(0); } to{ transform:translateY(-80%); } }
+    @keyframes slotScrollDown{ from{ transform:translateY(-80%); } to{ transform:translateY(0); } }
+    .price-arrow{ font-size:1.3em; }
+    .price-arrow.up{ color:var(--green); }
+    .price-arrow.down{ color:#f97316; }
+    .price-arrow.flat{ color:#9ca3af; }
 
     /* Reduce frequently used Tailwind spacing utilities to 70% of default vertically */
     .p-5{ padding-block:0.875rem !important; }
@@ -81,7 +94,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script>
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useRef, useEffect } = React;
 
     /* Families and base expense categories */
     const DEFAULT_FAMILIES = [
@@ -288,6 +301,14 @@
     function toCSV(rows){ if(!rows||rows.length===0) return ""; var headers=Object.keys(rows[0]); var lines=[headers.join(',')]; for(var i=0;i<rows.length;i++){ var r=rows[i]; lines.push(headers.map(function(h){return csvEscape(r[h]);}).join(',')); } return lines.join("\n"); }
     function randBetween(a,b){ return a + Math.random()*(b-a); }
     function fmtUnits(n){ return (n||0).toFixed(4).replace(/\.?0+$/,''); }
+    function buildSlotValues(oldPrice,newPrice){
+      var values=[];
+      for(var i=0;i<4;i++){
+        var mix = oldPrice + (newPrice - oldPrice) * Math.random();
+        values.push(Math.max(1, Number(mix.toFixed(2))));
+      }
+      return values;
+    }
 
     function App(){
       const [turn, setTurn] = useState(1);
@@ -323,11 +344,19 @@
       const [showLedger, setShowLedger] = useState(false);
       const [showScores, setShowScores] = useState(false);
       const [scoreFamilyId, setScoreFamilyId] = useState(null);
+      const [scoreDetailTab, setScoreDetailTab] = useState("Income");
       const [showEnd, setShowEnd] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
       const [showIntro, setShowIntro] = useState(true);
       const [showExpenses, setShowExpenses] = useState(false);
       const [anim, setAnim] = useState(false);
+      const [priceChangeFeed, setPriceChangeFeed] = useState([]);
+      const [priceAnimStage, setPriceAnimStage] = useState(null);
+      const priceAnimTimeouts = useRef([]);
+      const [tradeAnim, setTradeAnim] = useState(null);
+      const [tradeAnimStage, setTradeAnimStage] = useState(null);
+      const tradeAnimTimeouts = useRef([]);
+      const [lastTradeEntry, setLastTradeEntry] = useState(null);
 
       const famMap = useMemo(function(){ return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,f];})); },[]);
       const isTurn1 = turn === 1;
@@ -354,7 +383,67 @@
         return total;
       }
 
+      useEffect(function(){
+        return function(){
+          priceAnimTimeouts.current.forEach(clearTimeout);
+          priceAnimTimeouts.current = [];
+          tradeAnimTimeouts.current.forEach(clearTimeout);
+          tradeAnimTimeouts.current = [];
+        };
+      },[]);
+
+      function endPriceAnimation(){
+        priceAnimTimeouts.current.forEach(clearTimeout);
+        priceAnimTimeouts.current = [];
+        setPriceAnimStage(null);
+        setAnim(false);
+        setPriceChangeFeed([]);
+      }
+
+      function ensureFeed(feed){
+        if(feed && feed.length>0) return feed;
+        return INVESTMENTS.map(function(inv){
+          var price = investmentPrices[inv.name] || 100;
+          return {name:inv.name, oldPrice:price, newPrice:price, slotValues:[price]};
+        });
+      }
+
+      function triggerPriceAnimation(feedRaw){
+        var feed = ensureFeed(feedRaw);
+        priceAnimTimeouts.current.forEach(clearTimeout);
+        priceAnimTimeouts.current = [];
+        setPriceAnimStage("old");
+        priceAnimTimeouts.current.push(setTimeout(function(){ setPriceAnimStage("scroll"); }, 500));
+        priceAnimTimeouts.current.push(setTimeout(function(){ setPriceAnimStage("new"); }, 1500));
+        priceAnimTimeouts.current.push(setTimeout(function(){ endPriceAnimation(); }, 3500));
+      }
+
+      function endTradeAnimation(){
+        tradeAnimTimeouts.current.forEach(clearTimeout);
+        tradeAnimTimeouts.current = [];
+        setTradeAnimStage(null);
+        setTradeAnim(null);
+      }
+
+      function triggerTradeAnimation(entry, opts){
+        if(!entry) return;
+        opts = opts || {};
+        var duration = typeof opts.duration === "number" ? opts.duration : 1900;
+        var onComplete = typeof opts.onComplete === "function" ? opts.onComplete : null;
+        endTradeAnimation();
+        setTradeAnim(entry);
+        setTradeAnimStage("old");
+        tradeAnimTimeouts.current.push(setTimeout(function(){ setTradeAnimStage("scroll"); }, 300));
+        tradeAnimTimeouts.current.push(setTimeout(function(){ setTradeAnimStage("new"); }, 900));
+        tradeAnimTimeouts.current.push(setTimeout(function(){
+          setTradeAnimStage(null);
+          setTradeAnim(null);
+          if(onComplete) onComplete();
+        }, duration));
+      }
+
       function updateMarketPrices(){
+        var feed = [];
         setInvestmentPrices(function(prev){
           var next = Object.assign({}, prev);
           INVESTMENTS.forEach(function(x){
@@ -364,10 +453,19 @@
             else if(x.name === "Crypto")    r = randBetween(-0.99, 2.00);
             else if(x.name === "FriendBusiness") r = randBetween(-0.20, 0.40);
             var np = p * (1 + r);
-            next[x.name] = Math.max(1, Number(np.toFixed(2)));
+            np = Math.max(1, Number(np.toFixed(2)));
+            var slotValues=[];
+            for(var i=0;i<5;i++){
+              var mix = p + (np - p) * Math.random();
+              slotValues.push(Math.max(1, Number(mix.toFixed(2))));
+            }
+            feed.push({name:x.name, oldPrice:p, newPrice:np, slotValues:slotValues});
+            next[x.name] = np;
           });
           return next;
         });
+        setPriceChangeFeed(feed);
+        triggerPriceAnimation(feed);
       }
 
       function allSubmitted(){ return DEFAULT_FAMILIES.every(function(f){ return submittedMap[f.family_id]; }); }
@@ -500,6 +598,7 @@
         var newPortfolioUnits = JSON.parse(JSON.stringify(portfolioUnits));
         var nextPrices = Object.assign({}, investmentPrices);
         var pricesChanged = false;
+        var tradeAnimEntry = null;
         if(action === "Buy" || action === "Sell"){
           if(inv === ""){ alert("Pick an investment."); return; }
           if(!(amt > 0)){ alert("Enter a positive dollar amount."); return; }
@@ -512,9 +611,10 @@
             investCashFlow -= amt;
             investNotes = "Bought "+buyUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
             var bump = 1 + ((amt / 100) * 0.01);
-            var bumpedPrice = price * bump;
-            nextPrices[inv] = Math.max(1, Number(bumpedPrice.toFixed(2)));
+            var bumpedPrice = Math.max(1, Number((price * bump).toFixed(2)));
+            nextPrices[inv] = bumpedPrice;
             pricesChanged = true;
+            tradeAnimEntry = {name:inv, oldPrice:price, newPrice:bumpedPrice, slotValues:buildSlotValues(price,bumpedPrice)};
           } else {
             var have = newPortfolioUnits[fid][inv] || 0;
             var maxValue = have * price;
@@ -525,9 +625,10 @@
             investNotes = "Sold "+sellUnits.toFixed(4)+" "+inv+" @ "+fmt(price);
             var drop = 1 - ((amt / 100) * 0.01);
             drop = Math.max(0.1, drop);
-            var droppedPrice = price * drop;
-            nextPrices[inv] = Math.max(1, Number(droppedPrice.toFixed(2)));
+            var droppedPrice = Math.max(1, Number((price * drop).toFixed(2)));
+            nextPrices[inv] = droppedPrice;
             pricesChanged = true;
+            tradeAnimEntry = {name:inv, oldPrice:price, newPrice:droppedPrice, slotValues:buildSlotValues(price,droppedPrice)};
           }
         }
 
@@ -543,15 +644,22 @@
         var newBank = Object.assign({}, bank); newBank[fid] = newBankVal;
         setBank(newBank);
         setPortfolioUnits(newPortfolioUnits);
-        if(pricesChanged){ setInvestmentPrices(nextPrices); }
+        if(pricesChanged){
+          setInvestmentPrices(nextPrices);
+          triggerTradeAnimation(tradeAnimEntry);
+          setLastTradeEntry(tradeAnimEntry);
+        } else {
+          endTradeAnimation();
+          setLastTradeEntry(null);
+        }
 
         /* NET WORTH based econ points */
         var roleMult = ROLE_MULT[fam.role] || 1;
         var newHoldingsValue = calcHoldingsValue(fid, newPortfolioUnits, nextPrices);
         var netWorthNow = newBankVal + newHoldingsValue;
         var prevNetWorth = (netWorthPrev[fid] == null) ? fam.starting_bank : netWorthPrev[fid];
-        var netWorthGain = Math.max(netWorthNow - prevNetWorth, 0);
-        var econBasePoints = netWorthGain / 100;
+        var netWorthDelta = netWorthNow - prevNetWorth;
+        var econBasePoints = netWorthDelta / 100;
         var econEarned = econBasePoints * roleMult;
 
         var groupHappyValue = (gHappy || 0) * 10;
@@ -559,9 +667,9 @@
         var happyBaseValue = groupHappyValue + familyHappyValue;
         var happyEarned = happyBaseValue;
 
-        var econReason = netWorthGain > 0
-          ? "Net worth gain " + fmt(netWorthGain) + " => base " + econBasePoints.toFixed(2) + " pts (1 point per $100) x role x" + roleMult + " = +" + Math.round(econEarned) + " econ points"
-          : "No net worth gain over last turn.";
+        var econReason = netWorthDelta !== 0
+          ? "Net worth change " + fmt(netWorthDelta) + " => base " + econBasePoints.toFixed(2) + " pts (1 point per $100) x role x" + roleMult + " = " + fmtSignedNumber(Math.round(econEarned)," pts")
+          : "No net worth change since last turn.";
         var happyReasonParts = [];
         if(groupHappyValue) happyReasonParts.push("Group choice " + fmtSignedNumber(groupHappyValue," Happy"));
         if(familyHappyValue) happyReasonParts.push("Family choice " + fmtSignedNumber(familyHappyValue," Happy"));
@@ -582,7 +690,7 @@
         };
 
         var econDetail = {
-          net_gain:Number(netWorthGain.toFixed(2)),
+          net_gain:Number(netWorthDelta.toFixed(2)),
           base_points:Number(econBasePoints.toFixed(2)),
           role_multiplier:roleMult,
           awarded:Math.round(econEarned)
@@ -612,12 +720,9 @@
         setInvAction(""); setInvName(""); setInvAmtStr("");
         goNextFamily();
 
-        if(fam.role === "King" && Object.values(nextMap).every(function(v){ return v; })){
-          advanceTurnInternal();
-        }
       }
 
-      function animateToNextTurn(){ setAnim(true); setTimeout(function(){ setAnim(false); }, 800); }
+      function animateToNextTurn(){ setAnim(true); }
 
       function doTurnAdvanceCommon(){
         if(pendingTaxDelta !== 0){
@@ -631,6 +736,7 @@
         setGroupChoiceKey(""); setFamilyChoiceKey("");
         setInvAction(""); setInvName(""); setInvAmtStr("");
         updateMarketPrices();
+        setLastTradeEntry(null);
         animateToNextTurn();
       }
 
@@ -643,7 +749,14 @@
 
       function advanceTurn(){
         if(!allSubmitted()) return;
-        advanceTurnInternal();
+        if(lastTradeEntry){
+          triggerTradeAnimation(lastTradeEntry,{duration:2000,onComplete:function(){
+            endTradeAnimation();
+            advanceTurnInternal();
+          }});
+        } else {
+          advanceTurnInternal();
+        }
       }
 
       function skipTurn(){
@@ -666,6 +779,12 @@
         setInvAction(""); setInvName(""); setInvAmtStr("");
         setShowEnd(false); setShowLedger(false); setShowScores(false); setShowAdmin(false); setShowIntro(true); setShowExpenses(false);
         setScoreFamilyId(null);
+        setScoreDetailTab("Income");
+        setPriceChangeFeed([]);
+        setPriceAnimStage(null);
+        priceAnimTimeouts.current.forEach(clearTimeout); priceAnimTimeouts.current = [];
+        endTradeAnimation();
+        setLastTradeEntry(null);
         setInvestmentPrices(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
         setPortfolioUnits(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,0];}))];})));
         setGroupEventCurrent(INSURANCE_EVENT);
@@ -773,6 +892,7 @@
                   className:"crt-btn w-full",
                   onClick:function(){
                     setScoreFamilyId(s.fid);
+                    setScoreDetailTab("Income");
                     setShowScores(true);
                   }
                 },"View score breakdown")
@@ -874,9 +994,31 @@
             React.createElement("div",{className:"grid grid-cols-3 gap-2"},
               INVESTMENTS.map(function(x){
                 var price=investmentPrices[x.name]||100;
+                var animActive = tradeAnim && tradeAnim.name === x.name && tradeAnimStage;
+                var priceBody;
+                if(animActive){
+                  var diff = tradeAnim.newPrice - tradeAnim.oldPrice;
+                  if(tradeAnimStage === "old"){
+                    priceBody = React.createElement("div",{className:"price-slot-static"}, fmt(tradeAnim.oldPrice));
+                  } else if(tradeAnimStage === "scroll"){
+                    var dirClass = diff>0 ? "up" : diff<0 ? "down" : "flat";
+                    var seq = (tradeAnim.slotValues || []).concat([tradeAnim.newPrice]);
+                    priceBody = React.createElement("div",{className:"price-slot-container"},
+                      React.createElement("div",{className:"price-slot-values "+dirClass},
+                        seq.map(function(val,idx){ return React.createElement("span",{key:idx},fmt(val)); })
+                      )
+                    );
+                  } else if(tradeAnimStage === "new"){
+                    priceBody = React.createElement("div",{className:"price-slot-static text-2xl font-bold"}, fmt(tradeAnim.newPrice));
+                  } else {
+                    priceBody = React.createElement("div",{className:"price-slot-static"}, fmt(price));
+                  }
+                } else {
+                  priceBody = React.createElement("div",{className:"price-slot-static"},fmt(price));
+                }
                 return React.createElement("div",{key:x.name,className:"crt-card p-2 text-center"},
                   React.createElement("div",{className:"muted"},x.name),
-                  React.createElement("div",{className:"text-lg accent"},fmt(price))
+                  priceBody
                 );
               })
             ),
@@ -1048,6 +1190,82 @@
             var activeFam = DEFAULT_FAMILIES.find(function(f){ return f.family_id === (scoreFamilyId || fallbackFam.family_id); }) || fallbackFam;
             var summary = perFamilyScores.find(function(s){ return s.fid === activeFam.family_id; }) || {econ:0,happy:0,total:0};
             var famRows = ledger.filter(function(row){ return row.family === activeFam.name; }).slice().sort(function(a,b){ return a.turn - b.turn; });
+            var fid = activeFam.family_id;
+            var planKeyModal = chosenInsurance[fid] || DEFAULT_PLAN_KEY;
+            var planInfoModal = INSURANCE_PLANS[planKeyModal] || INSURANCE_PLANS[DEFAULT_PLAN_KEY];
+            var incomeNowModal = activeFam.base_income * (sectorMult[activeFam.sector] || 1);
+            var expensesListModal = [
+              {label:"Housing", value:activeFam.housing},
+              {label:"Insurance", value:planInfoModal.premium || 0},
+              {label:"Food", value:activeFam.food},
+              {label:"Clothes", value:activeFam.clothes},
+              {label:"Misc", value:activeFam.misc}
+            ];
+            var expensesTotalModal = expensesListModal.reduce(function(sum,item){ return sum + (item.value||0); },0);
+            var bankValModal = bank[fid] || 0;
+            var holdingsModal = INVESTMENTS.map(function(invDef){
+              var units = ((portfolioUnits[fid]||{})[invDef.name] || 0);
+              var price = investmentPrices[invDef.name] || 100;
+              var value = units * price;
+              return {name:invDef.name, units:units, price:price, value:value};
+            });
+            var holdingsTotalModal = holdingsModal.reduce(function(sum,item){ return sum + item.value; },0);
+            var netWorthModal = bankValModal + holdingsTotalModal;
+            var scoreTabs = ["Income","Expenses","Accounts","Net Worth"];
+            var tabContent = null;
+            if(scoreDetailTab === "Income"){
+              tabContent = React.createElement("div",{className:"crt-card p-3 space-y-1"},
+                React.createElement("div",{className:"text-lg"},"Income details"),
+                React.createElement("div",null,"Base pay: "+fmt(activeFam.base_income)),
+                React.createElement("div",null,"Sector multiplier: x"+(sectorMult[activeFam.sector]||1).toFixed(2)),
+                React.createElement("div",null,"Role multiplier: x"+(ROLE_MULT[activeFam.role]||1)),
+                React.createElement("div",{className:"font-bold"},"Current income: "+fmt(incomeNowModal))
+              );
+            } else if(scoreDetailTab === "Expenses"){
+              tabContent = React.createElement("div",{className:"crt-card p-3 space-y-1"},
+                expensesListModal.map(function(item){
+                  return React.createElement("div",{key:item.label,className:"flex justify-between"},
+                    React.createElement("span",null,item.label),
+                    React.createElement("span",null,fmt(item.value||0))
+                  );
+                }),
+                React.createElement("div",{className:"flex justify-between font-bold border-t border-white/20 pt-1"},
+                  React.createElement("span",null,"Total"),
+                  React.createElement("span",null,fmt(expensesTotalModal))
+                )
+              );
+            } else if(scoreDetailTab === "Accounts"){
+              tabContent = React.createElement("div",{className:"crt-card p-3 space-y-1"},
+                React.createElement("div",{className:"flex justify-between font-bold"},
+                  React.createElement("span",null,"Bank"),
+                  React.createElement("span",null,fmt(bankValModal))
+                ),
+                holdingsModal.map(function(item){
+                  return React.createElement("div",{key:item.name,className:"flex justify-between text-sm"},
+                    React.createElement("span",null,item.name+" ("+fmtUnits(item.units)+"u @ "+fmt(item.price)+")"),
+                    React.createElement("span",null,fmt(item.value))
+                  );
+                })
+              );
+                } else if(scoreDetailTab === "Net Worth"){
+                  var nwDeltaModal = netWorthModal - activeFam.starting_bank;
+                  var nwPctModal = activeFam.starting_bank > 0 ? (nwDeltaModal / activeFam.starting_bank)*100 : 0;
+                  var sign = nwDeltaModal>0 ? "+" : (nwDeltaModal<0 ? "-" : "");
+                  tabContent = React.createElement("div",{className:"crt-card p-3 space-y-1"},
+                    React.createElement("div",{className:"flex justify-between"},
+                      React.createElement("span",null,"Current net worth"),
+                      React.createElement("span",{className:"font-bold"},fmt(netWorthModal))
+                    ),
+                    React.createElement("div",{className:"flex justify-between"},
+                      React.createElement("span",null,"Change vs start"),
+                      React.createElement("span",null, sign + fmt(Math.abs(nwDeltaModal)))
+                    ),
+                    React.createElement("div",{className:"flex justify-between"},
+                      React.createElement("span",null,"Change %"),
+                  React.createElement("span",null,nwPctModal.toFixed(1)+"%")
+                )
+              );
+            }
             return React.createElement("div",{className:"crt-card p-5 panel space-y-3"},
               React.createElement("div",{className:"flex items-center justify-between"},
                 React.createElement("h3",{className:"text-2xl"},"Score breakdown"),
@@ -1058,7 +1276,10 @@
                   return React.createElement("span",{
                     key:f.family_id,
                     className:'toggle'+(f.family_id===activeFam.family_id?' active':''),
-                    onClick:function(){ setScoreFamilyId(f.family_id); }
+                    onClick:function(){
+                      setScoreFamilyId(f.family_id);
+                      setScoreDetailTab("Income");
+                    }
                   },f.name);
                 })
               ),
@@ -1079,6 +1300,16 @@
                   )
                 )
               ),
+              React.createElement("div",{className:"toggle-group"},
+                scoreTabs.map(function(tab){
+                  return React.createElement("span",{
+                    key:tab,
+                    className:'toggle'+(scoreDetailTab===tab?' active':''),
+                    onClick:function(){ setScoreDetailTab(tab); }
+                  },tab);
+                })
+              ),
+              tabContent,
               famRows.length === 0
                 ? React.createElement("div",{className:"muted"},"No turns submitted yet.")
                 : React.createElement("div",{className:"space-y-3 max-h-[60vh] overflow-auto"},
@@ -1091,7 +1322,7 @@
                           React.createElement("div",{className:"accent font-bold"}, "+"+Math.round(row.econ_earned + row.happy_earned)+" pts")
                         ),
                         React.createElement("div",{className:"space-y-1"},
-                          React.createElement("div",{className:"muted font-bold"},"Economic +" + Math.round(row.econ_earned) + " pts"),
+                      React.createElement("div",{className:"muted font-bold"},"Economic " + fmtSignedNumber(Math.round(row.econ_earned)," pts")),
                           econDetail
                             ? React.createElement("div",{className:"text-sm"},
                                 econDetail.net_gain > 0
@@ -1103,7 +1334,7 @@
                             : React.createElement("div",{className:"text-sm"},"No economic change recorded.")
                         ),
                         React.createElement("div",{className:"space-y-1"},
-                          React.createElement("div",{className:"muted font-bold"},"Happiness +" + Math.round(row.happy_earned) + " pts"),
+                          React.createElement("div",{className:"muted font-bold"},"Happiness " + fmtSignedNumber(Math.round(row.happy_earned)," pts")),
                           happyDetail && happyDetail.components && happyDetail.components.length
                             ? React.createElement("div",{className:"text-sm space-y-1"},
                                 React.createElement("div",null,"Components:"),
@@ -1205,8 +1436,45 @@
         ) : null,
 
         /* TURN ANIMATION */
-        anim ? React.createElement("div",{className:"overlay"},
-          React.createElement("div",{className:"text-3xl pulse"},"Advancing to Turn "+turn)
+        anim ? React.createElement("div",{className:"overlay",onClick:endPriceAnimation},
+          React.createElement("div",{className:"crt-card p-5 panel space-y-3"},
+            React.createElement("div",{className:"text-3xl text-center"},"Advancing to Turn "+turn),
+            priceChangeFeed && priceChangeFeed.length>0
+              ? React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-2"},
+                  priceChangeFeed.map(function(entry){
+                    var diff = entry.newPrice - entry.oldPrice;
+                    var arrowClass = diff>0 ? "price-arrow up" : diff<0 ? "price-arrow down" : "price-arrow flat";
+                    var arrowSymbol = diff>0 ? "↑" : diff<0 ? "↓" : "→";
+                    var body;
+                    if(priceAnimStage === "old"){
+                      body = React.createElement("div",{className:"text-lg text-right"}, fmt(entry.oldPrice));
+                    } else if(priceAnimStage === "scroll"){
+                      var sequence = (entry.slotValues || []).concat([entry.newPrice]);
+                      var directionClass = diff>0 ? "up" : diff<0 ? "down" : "flat";
+                      body = React.createElement("div",{className:"price-slot-container"},
+                        React.createElement("div",{className:"price-slot-values "+directionClass},
+                          sequence.map(function(val,idx){
+                            return React.createElement("span",{key:idx},fmt(val));
+                          })
+                        )
+                      );
+                    } else if(priceAnimStage === "new"){
+                      body = React.createElement("div",{className:"text-2xl font-bold text-right"}, fmt(entry.newPrice));
+                    } else {
+                      body = React.createElement("div",{className:"text-lg text-right"}, fmt(entry.newPrice));
+                    }
+                    return React.createElement("div",{key:entry.name,className:"crt-card p-3 space-y-1"},
+                      React.createElement("div",{className:"flex items-center justify-between"},
+                        React.createElement("div",null, entry.name),
+                        React.createElement("span",{className:arrowClass}, arrowSymbol)
+                      ),
+                      body
+                    );
+                  })
+                )
+              : React.createElement("div",{className:"muted text-center"},"Updating markets..."),
+            React.createElement("div",{className:"text-center muted text-lg"},"Click anywhere to continue")
+          )
         ) : null
       );
     }
