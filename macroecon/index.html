@@ -42,7 +42,8 @@
     @keyframes pulse{ 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
     .toggle-group{ display:flex; row-gap:.28rem; column-gap:.4rem; flex-wrap:wrap; }
     .toggle-group.nowrap{ flex-wrap:nowrap; overflow:auto; }
-    .toggle{ border:2px solid var(--green); border-radius:10px; padding:.245rem .65rem; cursor:pointer; user-select:none; font-size:calc(1.0rem * var(--text-scale)); white-space:nowrap; }
+    .toggle{ border:2px solid var(--green); border-radius:10px; padding:.245rem .65rem; cursor:pointer; user-select:none; font-size:calc(1.0rem * var(--text-scale)); white-space:normal; }
+    .toggle-group.nowrap .toggle{ white-space:nowrap; }
     .toggle.active{ background:var(--green); color:#ffffff; }
     .row { display:grid; grid-template-columns: 1fr auto; gap:.175rem .6rem; align-items:baseline; }
     .row .k { color:rgba(255,255,255,.9); }
@@ -119,26 +120,26 @@
 
     /* Insurance plans */
     const INSURANCE_PLANS = {
-      UnitedHealthcare:{key:"UnitedHealthcare", name:"UnitedHealthcare", premium:300, coverage:0.5, description:"$300 each turn. Covers 50% of medical costs."},
-      KaiserPermanente:{key:"KaiserPermanente", name:"Kaiser Permanente", premium:500, coverage:0.7, description:"$500 each turn. Covers 70% of medical costs."},
-      AnthemBCBS:{key:"AnthemBCBS", name:"Anthem", premium:800, coverage:0.9, description:"$800 each turn. Covers 90% of medical costs."}
+      UnitedHealthcare:{key:"UnitedHealthcare", name:"UnitedHealthcare", premium:300, coverage:0.5, description:"Cost 300 each turn. Covers 50% of medical costs."},
+      KaiserPermanente:{key:"KaiserPermanente", name:"Kaiser Permanente", premium:500, coverage:0.7, description:"Cost 500 each turn. Covers 70% of medical costs."},
+      AnthemBCBS:{key:"AnthemBCBS", name:"Anthem", premium:800, coverage:0.9, description:"Cost 800 each turn. Covers 90% of medical costs."}
     };
     const DEFAULT_PLAN_KEY = "UnitedHealthcare";
 
     /* Group scenarios */
     const GROUP_EVENTS = [
-      { id:1, title:"Government will raise groceries tax next turn. How do you respond? (Substitute goods)", description:"", taxDelta:+0.03,
-        choices:[ {key:"A",label:"Go plant based and increase grocery spending.", cost:300,  happy:2},
-                  {key:"B",label:"Keep buying the same mix as before.", cost:150, happy:-1},
-                  {key:"C",label:"Switch entirely to generic brands to save cash.", cost:-150, happy:-2} ] },
-      { id:2, title:"Your breadwinner’s union is striking. Do they join? (Labor unions / Marx)", description:"",
-        choices:[ {key:"A",label:"Join the strike line.", cost:400, happy:1},
-                  {key:"B",label:"Abstain quietly.", cost:0, happy:-1},
-                  {key:"C",label:"Abstain and heckle the protestors.", cost:0, happy:2} ] },
-      { id:3, title:"There’s an egg shortage and prices spiked. What’s the plan?", description:"",
-        choices:[ {key:"A",label:"Buy a dozen eggs every week anyway.", cost:100, happy:1},
-                  {key:"B",label:"Substitute cereal for eggs most days.", cost:50, happy:-1},
-                  {key:"C",label:"Buy eggs only once a month.", cost:25, happy:-2} ] },
+      { id:1, title:"The government is going to increase the tax on groceries next turn, how does this affect your spending habits? (Substitute Goods)", description:"", taxDelta:+0.03,
+        choices:[ {key:"A",label:"You read an article about how going plant based can increase lifespan and want to go vegan. Your family increases spending on groceries.", cost:300,  happy:2},
+                  {key:"B",label:"You are satisfied with how you are eating currently. You continue to purchase the same items you are currently buying. Your family doesn’t change their spending habits.", cost:150, happy:-1},
+                  {key:"C",label:"You decide to switch to all generic brand products to save some cash.", cost:-150, happy:-2} ] },
+      { id:2, title:"The breadwinner of your family is part of a union that is choosing to strike. Should they join in on the strike or abstain? (Labor Unions/Marx)", description:"",
+        choices:[ {key:"A",label:"Join the Strike.", cost:400, happy:1},
+                  {key:"B",label:"Abstain from strike.", cost:0, happy:-1},
+                  {key:"C",label:"Abstain from strike and make fun of protestors as you walk into work.", cost:0, happy:2} ] },
+      { id:3, title:"There has been a shortage of eggs, making the price of a dozen eggs increase. What do you do?", description:"",
+        choices:[ {key:"A",label:"Buy a dozen eggs every week.", cost:100, happy:1},
+                  {key:"B",label:"Substitute the eggs with cereal for breakfast.", cost:50, happy:-1},
+                  {key:"C",label:"Buy the eggs only once a month.", cost:25, happy:-2} ] },
       { id:4, title:"Utility raised peak rates today", description:"Time of use pricing applies immediately.",
         choices:[ {key:"A",label:"Off peak automation kit for appliances.", cost:150, happy:2},
                   {key:"B",label:"Ignore peak prices and keep routine.", cost:120, happy:-1},
@@ -172,70 +173,70 @@
     const INSURANCE_EVENT = {
       id:"INS_T1",
       title:"Health insurance plans",
-      description:"Health insurance is an inelastic good—pick a plan for your family. You pay the premium each turn and the plan covers a share of injury medical costs.",
+      description:"Health Insurance is an inelastic good so you need to pick a plan for your family. You pay the premium every turn. The plan covers a percent of medical costs on injury events.",
       isInsurance:true,
       choices:[
-        {key:"A",planKey:"UnitedHealthcare",label:"UnitedHealthcare - $300 each turn. Covers 50% of medical costs."},
-        {key:"B",planKey:"KaiserPermanente",label:"Kaiser Permanente - $500 each turn. Covers 70% of medical costs."},
-        {key:"C",planKey:"AnthemBCBS",label:"Anthem - $800 each turn. Covers 90% of medical costs."}
+        {key:"A",planKey:"UnitedHealthcare",label:"UnitedHealthcare - Cost 300 each turn. Covers 50% of medical costs."},
+        {key:"B",planKey:"KaiserPermanente",label:"Kaiser Permanente - Cost 500 each turn. Covers 70% of medical costs."},
+        {key:"C",planKey:"AnthemBCBS",label:"Anthem - Cost 800 each turn. Covers 90% of medical costs."}
       ]
     };
 
     const FAMILY_GENERAL_EVENTS = {
       1:[
-        {id:"S-GEN-1",title:"Gas shortage response",description:"There’s a shortage of gasoline so prices are skyrocketing.",
+        {id:"S-GEN-1",title:"There’s a shortage of gasoline so prices are skyrocketing. Choose what to do.",description:"",
           choices:[
-            {key:"A",label:"Keep using the same amount of gas.",cost:220,happy:1},
-            {key:"B",label:"Have the kids walk to school to save fuel.",cost:120,happy:-1},
-            {key:"C",label:"Switch to bicycles to eliminate gas use.",cost:0,happy:-2}
+            {key:"A",label:"Use the same amount of gas.",cost:220,happy:1},
+            {key:"B",label:"Have the kids walk to school to minimize driving.",cost:120,happy:-1},
+            {key:"C",label:"Substitute your car with a bicycle to cut down on gas .",cost:0,happy:-2}
           ]},
-        {id:"S-GEN-2",title:"Johnny’s soda obsession",description:"Johnny refuses to switch from Coca-Cola even though Pepsi is cheaper.",
+        {id:"S-GEN-2",title:"Johnny prefers Coca-Cola to Pepsi and refuses to change his preference. Coca-Cola is more expensive than Pepsi. What do you do? (Product Differentiation)",description:"",
           choices:[
-            {key:"A",label:"Keep buying Coke to avoid tantrums.",cost:150,happy:-1},
-            {key:"B",label:"Buy Pepsi and hope he doesn’t notice.",cost:50,happy:2},
-            {key:"C",label:"Force the switch to Pepsi despite meltdowns.",cost:50,happy:-2}
+            {key:"A",label:"Keep buying Johnny Coca-Cola.",cost:150,happy:-1},
+            {key:"B",label:"Start buying Pepsi and hope he doesn’t notice.",cost:50,happy:2},
+            {key:"C",label:"Tell Johnny that he has to start drinking Pepsi even though he’ll throw a temper tantrum.",cost:50,happy:-2}
           ]}
       ],
       2:[
-        {id:"K-GEN-1",title:"Speaking up on the wage gap",description:"At a conference someone wrongly insists the wage gap isn’t real.",
+        {id:"K-GEN-1",title:"You go to a job conference and someone says that the wage gap doesn’t exist because it is the difference in median earnings between men and women. What do you do? (Wage Gap)",description:"",
           choices:[
-            {key:"A",label:"Stay silent even though they’re wrong.",cost:100,happy:-1},
-            {key:"B",label:"Correct them using regression analysis.",cost:50,happy:2},
-            {key:"C",label:"Agree and look foolish.",cost:200,happy:-1}
+            {key:"A",label:"Stay silent even though you know that they are wrong.",cost:100,happy:-1},
+            {key:"B",label:"Correct the person by informing them of regression analysis.",cost:50,happy:2},
+            {key:"C",label:"Agree with the person and look stupid doing it.",cost:200,happy:-1}
           ]},
-        {id:"K-GEN-2",title:"Spending a minimum wage raise",description:"Your town raised minimum wage—decide how to spend the boost.",
+        {id:"K-GEN-2",title:"Your town just raised the minimum wage. What do you do with your new income? (Minimum Wage + Normal/Inferior/Luxury goods)",description:"",
           choices:[
             {key:"A",label:"Buy a ton of normal goods.",cost:200,happy:2},
-            {key:"B",label:"Stop purchasing inferior goods altogether.",cost:150,happy:1},
-            {key:"C",label:"Splurge on one luxury good.",cost:400,happy:3}
+            {key:"B",label:"Stop buying inferior goods entirely.",cost:150,happy:1},
+            {key:"C",label:"Buy one super expensive luxury good.",cost:400,happy:3}
           ]}
       ],
       3:[
-        {id:"N-GEN-1",title:"Mary’s commune dream",description:"Mary wants to move to a hippie commune in Montana.",
+        {id:"N-GEN-1",title:"Mary has been getting really into communist theory. She wants to move to a hippie commune in Montana. What do you do? (Marx)",description:"",
           choices:[
-            {key:"A",label:"Let her go so you stop paying her expenses.",cost:0,happy:2},
-            {key:"B",label:"Keep her home for capitalism’s sake.",cost:220,happy:1},
-            {key:"C",label:"Make her work at Amazon to learn capitalism.",cost:0,happy:2}
+            {key:"A",label:"Let her go so you don’t have to pay for her stuff.",cost:0,happy:2},
+            {key:"B",label:"Don’t let her go because you’re a capitalism loving household.",cost:220,happy:1},
+            {key:"C",label:"Don’t let her go and force her to start working at Amazon so she learns the merits of capitalism.",cost:0,happy:2}
           ]},
-        {id:"N-GEN-2",title:"Timmy’s protein bulk",description:"Timmy wants more protein even though groceries are expensive.",
+        {id:"N-GEN-2",title:"Timmy has gotten super into lifting. He wants to eat a ton of protein, but that’s really expensive. What do you do? (Substitutes/Changing Preferences)",description:"",
           choices:[
-            {key:"A",label:"Buy lots of beef.",cost:200,happy:1},
-            {key:"B",label:"Switch to protein powder instead of meat.",cost:50,happy:-1},
-            {key:"C",label:"Skip protein groceries altogether.",cost:25,happy:-1}
+            {key:"A",label:"Start buying a ton of beef.",cost:200,happy:1},
+            {key:"B",label:"Substitute meat with protein powder.",cost:50,happy:-1},
+            {key:"C",label:"Don’t buy groceries with protein because they’re too expensive. Kill timmy’s gains.",cost:25,happy:-1}
           ]}
       ],
       4:[
-        {id:"KING-GEN-1",title:"Monopoly power play",description:"Your family business just secured a monopoly.",
+        {id:"KING-GEN-1",title:"Your family business secures a monopoly in its industry. What do you do?",description:"",
           choices:[
-            {key:"A",label:"Union bust so you can pay workers less.",cost:100,happy:3},
-            {key:"B",label:"Raise the company minimum wage.",cost:400,happy:-2},
-            {key:"C",label:"Cut wages even further.",cost:0,happy:3}
+            {key:"A",label:"Union bust the workers so that you can pay them less.",cost:100,happy:3},
+            {key:"B",label:"Raise the minimum wage at the company.",cost:400,happy:-2},
+            {key:"C",label:"Decrease the average wage at the company.",cost:0,happy:3}
           ]},
-        {id:"KING-GEN-2",title:"Strike-breaking tactics",description:"Workers at your company are on strike.",
+        {id:"KING-GEN-2",title:"The workers at your family business have gone on strike. What do you do? (Labor Unions/Marx)",description:"",
           choices:[
             {key:"A",label:"Acquiesce to their demands.",cost:500,happy:-2},
-            {key:"B",label:"Bring in reserve labor willing to work.",cost:0,happy:3},
-            {key:"C",label:"Cut down shade trees so protestors overheat.",cost:50,happy:2}
+            {key:"B",label:"Bring in new employees from the reserve army of labor who are willing to work.",cost:0,happy:3},
+            {key:"C",label:"Cut down the trees over the protestors so that they have no shade and get heat stroke.",cost:50,happy:2}
           ]}
       ]
     };
@@ -277,20 +278,48 @@
       return list[idx];
     }
 
-    function buildFamilyEventMap(turnNumber){
+    function makeFamilyCounters(){
+      return Object.fromEntries(DEFAULT_FAMILIES.map(function(f){ return [f.family_id,{general:0, injury:0}]; }));
+    }
+
+    function computeFamilyEventMap(turnNumber, counters){
       var map = {};
       DEFAULT_FAMILIES.forEach(function(f){
-        var pool = [];
+        var fid = f.family_id;
+        var general = FAMILY_GENERAL_EVENTS[fid] || [];
+        var injury = FAMILY_INJURY_EVENTS[fid] || [];
+        var ctr = counters[fid] || {general:0, injury:0};
+        var chosen = null;
         if(turnNumber === 1){
-          pool = FAMILY_GENERAL_EVENTS[f.family_id] || [];
+          if(general.length > 0){
+            chosen = general[ctr.general % general.length];
+            ctr.general = (ctr.general + 1) % Math.max(general.length,1);
+          }
         } else if(turnNumber === 2){
-          pool = FAMILY_INJURY_EVENTS[f.family_id] || [];
+          if(injury.length > 0){
+            chosen = injury[ctr.injury % Math.max(injury.length,1)];
+            ctr.injury = (ctr.injury + 1) % Math.max(injury.length,1);
+          }
         } else {
-          pool = (FAMILY_GENERAL_EVENTS[f.family_id] || []).concat(FAMILY_INJURY_EVENTS[f.family_id] || []);
+          var remaining = [];
+          if(general.length > ctr.general){ remaining = remaining.concat(general.slice(ctr.general)); }
+          if(injury.length > ctr.injury){ remaining = remaining.concat(injury.slice(ctr.injury)); }
+          if(remaining.length === 0){
+            remaining = general.concat(injury);
+            ctr.general = 0; ctr.injury = 0;
+          }
+          if(remaining.length > 0){
+            chosen = remaining[0];
+            var idxG = general.indexOf(chosen);
+            var idxI = injury.indexOf(chosen);
+            if(idxG >= 0){ ctr.general = idxG + 1; }
+            else if(idxI >= 0){ ctr.injury = idxI + 1; }
+          }
         }
-        map[f.family_id] = pickRandom(pool) || null;
+        map[fid] = chosen || null;
+        counters[fid] = ctr;
       });
-      return map;
+      return { map: map, counters: counters };
     }
 
     function fmt(n){ return new Intl.NumberFormat(undefined,{style:"currency",currency:"USD"}).format(n||0); }
@@ -330,7 +359,11 @@
       const currentFamily = DEFAULT_FAMILIES[currentFamilyIdx];
       const [submittedMap, setSubmittedMap] = useState(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id,false];})));
       const [groupEventCurrent, setGroupEventCurrent] = useState(INSURANCE_EVENT);
-      const [familyEventMap, setFamilyEventMap] = useState(function(){ return buildFamilyEventMap(1); });
+      const initialFamilyCounters = makeFamilyCounters();
+      const initialFamilyMapCalc = computeFamilyEventMap(1, initialFamilyCounters);
+      const [familyEventCounters, setFamilyEventCounters] = useState(initialFamilyMapCalc.counters);
+      const [familyEventMap, setFamilyEventMap] = useState(initialFamilyMapCalc.map);
+      const [groupOrderIdx, setGroupOrderIdx] = useState(0);
 
       const [groupChoiceKey, setGroupChoiceKey] = useState("");
       const [familyChoiceKey, setFamilyChoiceKey] = useState("");
@@ -479,9 +512,13 @@
         if(nextTurn === 1){
           setGroupEventCurrent(INSURANCE_EVENT);
         } else {
-          setGroupEventCurrent(pickRandom(GROUP_EVENTS) || GROUP_EVENTS[0]);
+          setGroupEventCurrent(GROUP_EVENTS[groupOrderIdx % GROUP_EVENTS.length]);
+          setGroupOrderIdx(function(p){ return p+1; });
         }
-        setFamilyEventMap(buildFamilyEventMap(nextTurn));
+        var countersCopy = JSON.parse(JSON.stringify(familyEventCounters));
+        var res = computeFamilyEventMap(nextTurn, countersCopy);
+        setFamilyEventCounters(res.counters);
+        setFamilyEventMap(res.map);
       }
 
     function fmtSignedNumber(n, suffix){
@@ -782,10 +819,14 @@
         priceAnimTimeouts.current.forEach(clearTimeout); priceAnimTimeouts.current = [];
         endTradeAnimation();
         setLastTradeEntry(null);
+        var freshCounters = makeFamilyCounters();
+        var freshMapCalc = computeFamilyEventMap(1, freshCounters);
+        setFamilyEventCounters(freshMapCalc.counters);
+        setFamilyEventMap(freshMapCalc.map);
+        setGroupOrderIdx(0);
         setInvestmentPrices(Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,100];})));
         setPortfolioUnits(Object.fromEntries(DEFAULT_FAMILIES.map(function(f){return [f.family_id, Object.fromEntries(INVESTMENTS.map(function(x){return [x.name,0];}))];})));
         setGroupEventCurrent(INSURANCE_EVENT);
-        setFamilyEventMap(buildFamilyEventMap(1));
       }
 
       const perFamilyScores = DEFAULT_FAMILIES.map(function(f){
