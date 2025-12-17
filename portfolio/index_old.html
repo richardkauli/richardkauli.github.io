@@ -1,0 +1,890 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head><link href="https://www.richardkauli.com/favicon.png" rel="icon" type="image/png"/>
+<script src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js" type="module"></script>
+<meta charset="utf-8"/>
+<title>Richard Kauli - Portfolio</title>
+<meta property="og:image" content="https://www.richardkauli.com/HELLO2.glb" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<style>
+@font-face {
+  font-family: 'ArialBlackCustom';
+  src: url('https://www.richardkauli.com/arial_black.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+
+
+
+
+
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Courier, monospace;
+      background-color: white;
+    }
+
+    .product-grid {
+      display: grid;
+      row-gap: 4vw; column-gap: 2vw;
+      padding: 2vw;
+      justify-items: center;
+    
+  padding-bottom: 50px; }
+
+    .product { margin-top: 0; margin-bottom: 0;
+      width: 100%;
+      
+    }
+
+    .model-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+    }
+
+    .model-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+      display: block;
+    }
+
+    .model-container:hover img {
+      transform: scale(1.03);
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #eee;
+      display: block;
+    }
+
+    .title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-top: 0.5em;
+      text-align: left;
+    }
+
+    .description {
+      font-size: 1em;
+      margin-top: 0.5em;
+      text-align: left;
+    }
+
+    .read-more {
+  font-size: 1em;
+  color: black;
+  text-decoration: underline;
+  margin: 0.5em 0 0 0;
+  padding: 0;
+  display: inline-block;
+  text-align: left;
+  font-family: Courier, monospace;
+}
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 1.5em 0;
+    }
+
+    .bottom-nav button {
+      font-family: Arial Black, Arial, sans-serif;
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+
+    
+
+
+}
+
+}
+
+}
+
+}
+
+}
+
+    }
+
+    @media screen and (max-width: 600px) {
+      .product { margin-top: 0; margin-bottom: 0;
+        width: 90vw;
+        margin: 0 auto;
+      }
+
+      .bottom-nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5em;
+      }
+    }
+  
+.bottom-nav button:hover,
+
+
+
+
+
+
+.bottom-menu:hover {
+  color: red !important;
+  background-color: transparent !important;
+}
+
+
+.bottom-nav button:hover {
+  color: red !important;
+  background-color: transparent !important;
+}
+
+
+.bottom-nav button {
+  padding: 0;
+  margin: 0;
+  outline: none;
+  transition: color 0.3s ease;
+}
+.bottom-nav button:hover {
+  color: red !important;
+  background: none !important;
+  padding: 0;
+  margin: 0;
+}
+
+
+
+.project-button {
+  all: unset;
+  cursor: pointer;
+  font-family: Courier, monospace;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: left;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0.5em 0 0.25em 0;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.project-button:hover {
+  color: darkgrey !important;
+  background: none !important;
+}
+
+
+
+.read-more:hover {
+  background-color: red;
+  color: white;
+}
+
+
+.bottom-nav button {
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.bottom-nav button:hover {
+  transform: scale(1.1);
+}
+
+
+.bottom-nav {
+  padding: 0 !important;
+  height: 4em !important;
+  align-items: center; /* vertically center buttons */
+}
+.bottom-nav button {
+  font-size: 1.5em !important; /* increase button text size */
+  line-height: 1; /* ensure no extra height from line spacing */
+}
+
+
+
+}
+
+}
+
+}
+
+}
+
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+}
+
+}
+
+}
+
+}
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1441px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    padding: 0.5em 0 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    height: auto !important;
+    bottom: 0 !important;
+  }
+  .bottom-nav button {
+    margin: 0.5em 0 !important;
+  }
+}
+
+
+
+.instagram-icon img {
+  width: 28px;
+  height: 28px;
+}
+
+
+.instagram-icon {
+  width: 24px;
+  height: 24px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.instagram-icon:hover {
+  transform: scale(1.1);
+  background-color: red;
+}
+
+
+@media (min-width: 769px) {
+  .bottom-nav {
+    justify-content: space-between !important;
+    padding: 1em 2vw !important;
+  }
+}
+
+
+/* Hamburger styles */
+.hamburger {
+  display: none;
+}
+.hamburger span {
+  display: block;
+  width: 30px;
+  height: 4px;
+  margin: 5px auto;
+  background-color: black;
+  transition: all 0.3s ease;
+}
+
+/* Overlay menu */
+.mobile-menu-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+.mobile-menu-overlay ul {
+  list-style: none;
+  padding: 2rem;
+  margin: 0;
+}
+.mobile-menu-overlay li {
+  margin: 1rem 0;
+  text-align: center;
+}
+.mobile-menu-overlay a {
+  text-decoration: none;
+  font-family: 'ArialBlackCustom', Arial Black, Arial, sans-serif;
+  font-size: 1.2rem;
+  color: black;
+}
+
+/* Body class when menu open */
+body.menu-open .mobile-menu-overlay {
+  transform: translateY(0);
+
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+body.menu-open .hamburger span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+body.menu-open .hamburger span:nth-child(2) {
+  opacity: 0;
+}
+body.menu-open .hamburger span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+/* Show hamburger on mobile, hide bottom-nav */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: none !important;
+  }
+  .hamburger {
+    display: block;
+    position: fixed;
+    bottom: 1em;
+    right: 1em;
+    z-index: 1001;
+    cursor: pointer;
+  }
+}
+
+
+/* Mobile overlay Instagram icon styling */
+.mobile-menu-overlay .instagram-icon {
+  width: 32px;
+  height: 32px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.mobile-menu-overlay .instagram-icon:hover { background-color: red;
+}
+
+
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay a {
+    font-size: 2rem !important;
+  }
+}
+
+
+
+}
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay ul {
+    align-items: flex-start !important;
+    padding-left: 1rem !important;
+  margin: 0 !important;
+  }
+  .mobile-menu-overlay a {
+    text-align: left !important;
+    width: auto !important;
+  }
+}
+
+
+.mobile-menu-overlay ul li {
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.mobile-menu-overlay a {
+  display: block;
+  padding-left: 1rem;
+  text-align: left;
+}
+
+.mobile-menu-link {
+  text-decoration: none;
+  color: black;
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+}
+
+.mobile-menu-link:hover {
+  color: red !important;
+  transform: none !important;
+}
+
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay a:hover {
+    color: red !important;
+    background: none !important;
+  }
+}
+
+
+
+.mobile-menu-link {
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+  font-size: 2rem;
+  text-decoration: none;
+  color: black;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+}
+.mobile-menu-link:hover {
+  color: red !important;
+}
+
+/* Increase hamburger clickable area */
+.hamburger {
+  width: 50px;
+  height: 50px;
+}
+
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+    position: fixed;
+    bottom: 1.5em !important;
+    right: 1.5em !important;
+    width: 40px !important;
+    height: 40px !important;
+    z-index: 1001;
+    cursor: pointer;
+  }
+}
+
+
+/* Mobile menu uniform styling */
+@media (max-width: 768px) {
+  .mobile-menu-overlay {
+    top: 0; left: 0; width: 100vw; height: 100vh;
+  }
+  .mobile-menu-overlay ul {
+    list-style: none;
+    padding: 2rem 1rem;
+    margin: 0;
+  }
+  .mobile-menu-overlay li {
+    margin: 0;
+    padding: 0.75rem 0;
+  }
+  .mobile-menu-overlay a {
+    text-decoration: none;
+    font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+    font-size: 2rem;
+    color: black;
+    display: block;
+    width: 100%;
+    text-align: left;
+    transition: color 0.2s ease;
+  }
+  .mobile-menu-overlay a:hover {
+    color: red !important;
+  }
+}
+
+
+.mobile-menu-overlay .instagram-icon {
+  width: 32px;
+  height: 32px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+.mobile-menu-overlay .instagram-icon:hover { background-color: red;
+}
+
+
+/* Disable scaling on mobile instagram icon hover */
+.mobile-menu-overlay .instagram-icon:hover {
+  transform: none !important;
+  background-color: red !important;
+}
+
+
+/* Highlight active Portfolio menu item in mobile overlay */
+.mobile-menu-overlay a[href*="portfolio"] {
+  color: red !important;
+}
+
+
+/* Highlight active Portfolio button in desktop nav */
+.bottom-nav button[onclick*="portfolio"] {
+  color: red !important;
+}
+
+
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
+html, body {
+  overflow: scroll;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+
+/* Hide scrollbar but keep scroll functionality */
+
+body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+</style>
+<style>
+@media (max-width: 768px) {
+  .product-grid {
+    row-gap: 8vw !important;
+  }
+}
+</style>
+<style>
+@media (max-width: 768px) {
+  .product {
+    width: 95% !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="product-grid">
+
+<div class="product">
+<a href="KidsuperTee/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="KidsuperTee/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">KDSPR Tee</button></a>
+<div class="description">Paying homage to the Superhero’s of the past, this S on your chest Tee brings that spirit to KidSuper. Inspired by Colm’s costume of Paul Wall.</div>
+<a class="read-more" href="KidsuperTee/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+
+<div class="product">
+<a href="RunningSweater/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="RunningSweater/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Running Hoodie</button></a>
+<div class="description">KidSuper is always running somewhere, whether that to Paris fashion week, the peoples runway, or on the soccer field.</div>
+<a class="read-more" href="RunningSweater/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+
+
+<div class="product">
+<a href="BirdBeanie/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="BirdBeanie/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Doves Can Fly</button></a>
+<div class="description">Inspired by dazed, wide eyed characters in cartoons, the Doves Can Fly Beanie captures the same energy, Even when we get knocked down, we keep flying.</div>
+<a class="read-more" href="BirdBeanie/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+
+<div class="product">
+<a href="RunningSweatpants/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="RunningSweatpants/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Running Pants</button></a>
+<div class="description">KidSuper is always running somewhere, whether that to Paris fashion week, the peoples runway, or on the soccer field.</div>
+<a class="read-more" href="RunningSweatpants/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+
+<div class="product">
+<a href="BirdBelt/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="BirdBelt/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Dove Belt</button></a>
+<div class="description">The Doves Belt Buckle is an homage to chaos that still finds grace, the moment right before you hit the ground but somehow start flying instead.</div>
+<a class="read-more" href="BirdBelt/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+
+<div class="product">
+<a href="TVBackpack/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="TVBackpack/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">TV Backpack (FULLY FUNCTIONAL)</button></a>
+<div class="description">A wearable TV and statement on digital overload, this backpack broadcasts while you move. Inspired by vintage CRT TVs and our nonstop scroll culture.</div>
+<a class="read-more" href="TVBackpack/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="ArsenalPants/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="ArsenalPants/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Arsenal Pants</button></a>
+<div class="description">Arsenal Pants feature printed firearms, ammunition, and explosives scattered across the fabric, paired with clear vinyl pockets that expose these images directly to the outside world.</div>
+<a class="read-more" href="ArsenalPants/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="MattressBackpack/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="MattressBackpack/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Mattress Backpack</button></a>
+<div class="description">Built for rest on the go, the Mattress Backpack unfolds into a full-size mattress complete with a built-in pillow, transforming any space into a place to lie down.</div>
+<a class="read-more" href="MattressBackpack/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="SleepySet/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="SleepySet/1.jpg" style="width:100%; height:100%; object-fit:cover;">
+</div><button class="project-button">Sleepy Set</button></a>
+<div class="description">The Sleepy Set is a heavyweight denim two-piece inspired by loungewear but built for the streets and winter cold. </div>
+<a class="read-more" href="SleepySet/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="MoneyDuffelBag/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="MoneyDuffelBag/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Million Dollar Duffel Bag</button></a>
+<div class="description">The Million Dollar Duffel Bag is a massive, sculptural carryall covered in custom “One Million Dollar” bills that ripple, and clash against each other in motion.</div>
+<a class="read-more" href="MoneyDuffelBag/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="MoneySuit/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="MoneySuit/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Million Dollar Suit</button></a>
+<div class="description">Built on a tailored white base, the suit transforms currency into armor - absurd, excessive, and unmistakably loud. </div>
+<a class="read-more" href="MoneySuit/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="OneWayHat/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="OneWayHat/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">One Way Hat</button></a>
+<div class="description">The One Way Hat fuses two NYC icons, the snapback and the street sign, into a single, oversized statement. Featuring a massive, stiffened brim shaped like a “ONE WAY” sign.</div>
+<a class="read-more" href="OneWayHat/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="TeddySet/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="TeddySet/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Teddy Set</button></a>
+<div class="description">Oversized and ultra-soft, this set hugs you like a childhood toy.</div>
+<a class="read-more" href="TeddySet/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="TeddyHat/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="TeddyHat/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Teddy Hat</button></a>
+<div class="description">Soft and oversized, the Teddy Hat wraps your head in warmth like a childhood toy.</div>
+<a class="read-more" href="TeddyHat/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="StopSignBackpack/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="StopSignBackpack/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Stop Sign Backpack</button></a>
+<div class="description">Rigid and reflective, this backpack borrows from traffic signage to halt fashion.</div>
+<a class="read-more" href="StopSignBackpack/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="StopSignMiniBag/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="StopSignMiniBag/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Stop Sign Mini Bag</button></a>
+<div class="description">The Stop Sign Mini Bag is a compact bag built to draw lines and set boundaries.</div>
+<a class="read-more" href="StopSignMiniBag/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="NudeScarf/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="NudeScarf/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Nude Scarf</button></a>
+<div class="description">The NudeScarf is a soft black cotton square printed edge to edge with hand drawn nude figures caught in motion, rest, and gesture.</div>
+<a class="read-more" href="NudeScarf/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="CensoredGlasses/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="CensoredGlasses/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Censored Glasses</button></a>
+<div class="description">Eyewear that obscures instead of reveals, exploring themes of surveillance and identity.</div>
+<a class="read-more" href="CensoredGlasses/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="GalaxyPants/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="GalaxyPants/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Galaxy Sweatpants</button></a>
+<div class="description">Star-mapped trousers merging astronomy and fashion with custom cosmic styling.</div>
+<a class="read-more" href="GalaxyPants/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="GalaxyHoodie/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="GalaxyHoodie/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Galaxy Hoodie</button></a>
+<div class="description">Coordinated with the pants, this hoodie is a wearable nebula for dreamers.</div>
+<a class="read-more" href="GalaxyHoodie/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="CensoredShirt/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="CensoredShirt/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Censored Shirt</button></a>
+<div class="description">The Censored Shirt pairs a loose black mesh silhouette with a bold “CENSORED” bar across the chest, turning exposure into a statement.</div>
+<a class="read-more" href="CensoredShirt/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="MillionDollarBackpack/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="MillionDollarBackpack/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Money Backpack</button></a>
+<div class="description">The Million Dollar Backpack is layered with custom-printed “One Million Dollar” bills featuring a devilish face at the center of every note, and "FEED THE RICH" messeging.</div>
+<a class="read-more" href="MillionDollarBackpack/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="FireFighterHat/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="FireFighterHat/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Fire Fighter Hat</button></a>
+<div class="description">Inspired by childhood dreams and real danger.</div>
+<a class="read-more" href="FireFighterHat/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="ClearPocketPants2/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="ClearPocketPants2/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Clear Pocket Pants v.2</button></a>
+<div class="description">Transparent-pocket cargo pants revealing everything and nothing all at once.</div>
+<a class="read-more" href="ClearPocketPants2/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="EyeSeeYouButtonUp/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="EyeSeeYouButtonUp/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Eye See You Buttonup</button></a>
+<div class="description">A sharp shirt scattered with screen printed eyes, watching from every angle.</div>
+<a class="read-more" href="EyeSeeYouButtonUp/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="JetpackBackPack/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="JetpackBackPack/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Jetpack Backpack</button></a>
+<div class="description">Built like an escape device, this backpack exaggerates mobility and urgency.</div>
+<a class="read-more" href="JetpackBackPack/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="BrainBucketHat/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="BrainBucketHat/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Brain Bucket Hat</button></a>
+<div class="description">Technology is so tied to its users that it's practically an extension of our brains.</div>
+<a class="read-more" href="BrainBucketHat/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="TeddySweater/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="TeddySweater/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Teddy Sweater</button></a>
+<div class="description"> Inspired by childhood comfort objects and the instinct to protect ourselves through softness, the piece exaggerates warmth to the point of absurdity.</div>
+<a class="read-more" href="TeddySweater/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="LockedUpDress/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="LockedUpDress/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Locked Up Dress</button></a>
+<div class="description">The LockedUpDress is structured for maximum privacy, featuring 18 individual pockets, each sealed with a lock, and paired with a metal key ring that carries all the keys.</div>
+<a class="read-more" href="LockedUpDress/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+</div>
+<div class="product">
+<a href="FlowerVision/" style="text-decoration: none; color: black; display: block;"><div class="model-container">
+<img src="FlowerVision/1.jpg" style="width:100%; height:100%; object-fit:cover;"/ loading="lazy">
+</div><button class="project-button">Flower Vision Glasses</button></a>
+<div class="description">FlowerVision glasses are covered in artificial flowers that completely obscure the eyes, offering a view that’s all beauty and no reality.</div>
+<a class="read-more" href="FlowerVision/#bottom" style="display:block; text-decoration:underline;">Read more...</a>
+<div style="height: 1em;"></div>
+</div>
+</div>
+<div class="bottom-nav"><button onclick="location.href='https://www.richardkauli.com'">RICHARD KAULI</button><button onclick="location.href='../portfolio/'">PORTFOLIO</button><button onclick="location.href='../archive/'">ARCHIVE</button><button onclick="location.href='../contact/'">CONTACT</button><a class="instagram-icon" href="https://www.instagram.com/richard.kauli" target="_blank"></a></div>
+<!-- Mobile Hamburger Menu -->
+<div class="hamburger" id="hamburger">
+<span></span>
+<span></span>
+<span></span>
+</div>
+<div class="mobile-menu-overlay" id="menuOverlay">
+<ul>
+<li><a href="https://www.richardkauli.com">RICHARD KAULI</a></li><li><a href="../portfolio/">PORTFOLIO</a></li>
+<li><a href="../archive/">ARCHIVE</a></li>
+<li><a href="../contact/">CONTACT</a></li>
+<li><a class="mobile-menu-link" href="https://www.instagram.com/richard.kauli" target="_blank"><div class="instagram-icon"></div></a></li>
+</ul>
+</div>
+<script>
+document.getElementById('hamburger').addEventListener('click', function() {
+  document.body.classList.toggle('menu-open');
+});
+</script><script>document.addEventListener('DOMContentLoaded', function() {
+  const container = document.querySelector('.slideshow-container');
+  if (!container) return;
+  let startX = null;
+  container.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  container.addEventListener('touchend', function(e) {
+    if (startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
+    if (Math.abs(diff) >= 50) {
+      if (diff > 0) {
+        plusSlides(-1);
+      } else {
+        plusSlides(1);
+      }
+    }
+    startX = null;
+  }, { passive: true });
+});
+</script>
+
+<script src="/assets/js/preloadImages.js" defer></script>
+</body>
+</html>
