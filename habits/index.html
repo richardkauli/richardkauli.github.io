@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Habits — Notebook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper: #FDFAF2;
+      --ink:   #1C1C2E;
+      --blue:  #1a3a8c;
+      --red:   #C0392B;
+      --dot:   rgba(130,108,72,0.28);
+      --rule:  rgba(148,188,255,0.5);
+      --margin-line: rgba(210,60,60,0.38);
+      --sticky: #FDE99A;
+      --font: 'Caveat', cursive;
+    }
+
+    html {
+      background-color: var(--paper);
+      background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.4px);
+      background-size: 24px 24px;
+      background-attachment: fixed;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background: transparent;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── SECTION LAYOUT ── */
+    .nb-section { margin-top: 22px; }
+
+    /* Tab panes have a red margin line */
+    .tab-pane {
+      display: none;
+      position: relative;
+      min-height: 100vh;
+    }
+    .tab-pane.active { display: block; }
+    .tab-pane::before {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 44px;
+      width: 1.5px;
+      background: var(--margin-line);
+      pointer-events: none;
+    }
+
+    /* Inner content indented past margin */
+    .nb-inner { padding: 0 20px 0 60px; }
+
+    /* ── SECTION HEADERS ── */
+    .section-hdr {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--red);
+      padding: 0 20px 0 60px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-hdr::after {
+      content: '';
+      flex: 1;
+      height: 1.5px;
+      background: var(--red);
+      opacity: 0.35;
+      margin-top: 2px;
+    }
+
+    /* ── PAGE HEADER (Today) ── */
+    .page-hdr {
+      padding: 24px 20px 12px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .date-col .day-name { font-size: 34px; font-weight: 700; color: var(--blue); line-height: 1.1; }
+    .date-col .date-str { font-size: 20px; color: var(--ink); opacity: 0.6; }
+    .hdr-right { display: flex; align-items: center; gap: 6px; }
+    .nav-arrow {
+      background: none;
+      border: 1.5px solid rgba(28,28,46,0.25);
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font);
+    }
+    .nav-arrow:disabled { opacity: 0.2; cursor: default; }
+    .settings-btn {
+      background: none; border: none;
+      font-size: 20px; cursor: pointer;
+      color: var(--ink); opacity: 0.4;
+      padding: 4px;
+    }
+
+    /* ── HABITS ── */
+    .habits-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .habit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 20px 8px 60px;
+      border-bottom: 1px solid var(--rule);
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    .habit-row:last-child { border-bottom: none; }
+    .habit-row:active { background: rgba(26,58,140,0.05); }
+    .habit-cbx {
+      width: 22px; height: 22px;
+      border: 2px solid rgba(28,28,46,0.35);
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      color: white;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .habit-row.done .habit-cbx {
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+    .habit-emoji { font-size: 18px; flex-shrink: 0; }
+    .habit-name-nb {
+      flex: 1;
+      font-size: 20px;
+      font-weight: 500;
+      transition: opacity 0.15s, text-decoration 0.15s;
+    }
+    .habit-row.done .habit-name-nb {
+      text-decoration: line-through;
+      opacity: 0.42;
+    }
+    .habit-tally { flex-shrink: 0; display: flex; align-items: center; }
+    .tally-svg { height: 16px; overflow: visible; }
+    .tally-none { font-size: 16px; color: rgba(28,28,46,0.25); }
+
+    /* ── STATS ── */
+    .stats-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 7px 20px 7px 60px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-lbl {
+      font-size: 18px;
+      white-space: nowrap;
+      min-width: 130px;
+    }
+    .stat-dots {
+      flex: 1;
+      border-bottom: 2px dotted rgba(28,28,46,0.18);
+      height: 0;
+      margin-bottom: 4px;
+    }
+    .stat-inp {
+      font-family: var(--font);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--blue);
+      border: none;
+      background: transparent;
+      width: 90px;
+      text-align: right;
+      outline: none;
+    }
+    .stat-inp::placeholder { color: rgba(28,28,46,0.22); font-weight: 400; }
+
+    /* ── NOTES ── */
+    .notes-inner { padding: 10px 20px 10px 60px; }
+    .note-field-nb { margin-bottom: 18px; }
+    .note-lbl {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--red);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .note-ta {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 20px;
+      color: var(--ink);
+      border: none;
+      outline: none;
+      resize: none;
+      background: transparent;
+      background-image: repeating-linear-gradient(
+        transparent 0px,
+        transparent 27px,
+        var(--rule) 27px,
+        var(--rule) 29px
+      );
+      background-attachment: local;
+      background-position: 0 4px;
+      line-height: 29px;
+      padding: 4px 0 0 0;
+      min-height: 87px;
+      overflow: hidden;
+    }
+    .note-ta::placeholder { color: rgba(28,28,46,0.22); }
+
+    /* ── DASHBOARD HEADER ── */
+    .dash-hdr {
+      padding: 24px 20px 12px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .dash-title { font-size: 34px; font-weight: 700; color: var(--blue); }
+
+    /* ── OVERVIEW ── */
+    .overview-nb {
+      padding: 14px 20px 14px 60px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .ov-ring-wrap { width: 88px; height: 88px; flex-shrink: 0; }
+    .ov-ring-wrap svg { width: 88px; height: 88px; }
+    .ov-meta-nb { flex: 1; }
+    .ov-count-nb { font-size: 32px; font-weight: 700; color: var(--blue); line-height: 1.1; }
+    .ov-sub { font-size: 17px; color: var(--ink); opacity: 0.55; }
+    .ov-dt  { font-size: 15px; color: var(--ink); opacity: 0.35; }
+
+    /* ── STREAKS ── */
+    .streaks-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .streak-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 20px 8px 60px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .streak-row:last-child { border-bottom: none; }
+    .streak-emoji-nb { font-size: 18px; flex-shrink: 0; }
+    .streak-name-nb { font-size: 19px; font-weight: 500; flex: 1; }
+    .streak-days { font-size: 20px; font-weight: 700; color: var(--blue); min-width: 48px; text-align: right; }
+    .streak-days.none { color: rgba(28,28,46,0.22); font-weight: 400; font-size: 18px; }
+
+    /* ── INSIGHT STICKY NOTE ── */
+    .sticky-outer { padding: 8px 24px 8px 60px; }
+    .sticky-note {
+      background: var(--sticky);
+      border-radius: 2px;
+      padding: 16px 18px 20px;
+      box-shadow: 2px 3px 10px rgba(0,0,0,0.13);
+      transform: rotate(-0.6deg);
+      position: relative;
+    }
+    .sticky-note::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: rgba(0,0,0,0.07);
+      border-radius: 2px 2px 0 0;
+    }
+    .sticky-txt {
+      font-family: var(--font);
+      font-size: 19px;
+      line-height: 1.6;
+      color: #3A2800;
+    }
+    .shimmer-nb {
+      height: 18px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.07) 25%, rgba(0,0,0,0.13) 50%, rgba(0,0,0,0.07) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      margin-bottom: 10px;
+    }
+
+    /* ── CHARTS ── */
+    .chart-outer { padding: 8px 20px 8px 60px; }
+    .chart-nb {
+      border: 1.5px solid rgba(28,28,46,0.14);
+      border-radius: 4px;
+      padding: 12px;
+      background: rgba(255,255,255,0.5);
+    }
+    .chart-hdr-nb {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .chart-title-nb { font-size: 18px; font-weight: 600; color: var(--ink); }
+    .chart-val-nb { font-size: 20px; font-weight: 700; color: var(--blue); }
+    .chart-wrap-nb { position: relative; height: 140px; }
+    .empty-chart-nb {
+      text-align: center;
+      padding: 30px 0;
+      font-size: 17px;
+      color: rgba(28,28,46,0.3);
+      font-family: var(--font);
+    }
+
+    /* ── TAB BAR ── */
+    #tab-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      background: rgba(253,250,242,0.92);
+      border-top: 1.5px solid rgba(28,28,46,0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none; border: none;
+      padding: 10px 0 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .t-icon { font-size: 22px; }
+    .t-label { font-size: 14px; color: rgba(28,28,46,0.4); }
+    .tab-btn.active .t-label { color: var(--blue); }
+
+    /* ── SAVE STATUS ── */
+    #save-status {
+      position: fixed;
+      bottom: 68px; right: 16px;
+      background: rgba(28,28,46,0.8);
+      color: white;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: var(--font);
+      font-size: 17px;
+      z-index: 200;
+      transition: opacity 0.3s;
+    }
+    #save-status.hidden { opacity: 0; pointer-events: none; }
+    #save-status.err { background: rgba(192,57,43,0.9); }
+
+    /* ── LOADING ── */
+    #loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(253,250,242,0.92);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+      transition: opacity 0.4s;
+    }
+    #loading-overlay.hidden { display: none; }
+    .nb-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(26,58,140,0.2);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ── SETUP SCREEN ── */
+    #setup {
+      max-width: 580px;
+      margin: 0 auto;
+      padding: 40px 24px 60px 60px;
+      position: relative;
+    }
+    #setup::before {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 44px;
+      width: 1.5px;
+      background: var(--margin-line);
+    }
+    #setup h1 { font-size: 42px; font-weight: 700; color: var(--blue); }
+    #setup .sub { font-size: 19px; opacity: 0.6; margin: 4px 0 28px; }
+    .setup-step-nb { margin-bottom: 22px; }
+    .setup-step-nb h3 { font-size: 22px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+    .setup-step-nb p { font-size: 18px; line-height: 1.55; }
+    .code-wrap-nb { position: relative; margin-top: 10px; }
+    .code-block-nb {
+      background: rgba(255,255,255,0.55);
+      border: 1.5px solid rgba(28,28,46,0.14);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11.5px;
+      white-space: pre;
+      overflow: auto;
+      max-height: 190px;
+      color: var(--ink);
+    }
+    .copy-btn-nb {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 4px;
+      padding: 4px 12px;
+      font-family: var(--font); font-size: 16px; cursor: pointer;
+    }
+    .field-group-nb { margin-bottom: 18px; }
+    .field-group-nb label { display: block; font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+    .nb-input {
+      width: 100%;
+      font-family: var(--font); font-size: 21px;
+      border: none;
+      border-bottom: 2px solid rgba(28,28,46,0.28);
+      background: transparent;
+      padding: 4px 0;
+      outline: none;
+      color: var(--ink);
+    }
+    .nb-input::placeholder { color: rgba(28,28,46,0.25); }
+    .btn-nb-primary {
+      width: 100%; padding: 14px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 6px;
+      font-family: var(--font); font-size: 23px; font-weight: 700;
+      cursor: pointer; margin-top: 6px;
+    }
+    #setup-error-nb { font-size: 17px; color: var(--red); margin-top: 10px; display: none; }
+    code { font-family: monospace; background: rgba(28,28,46,0.08); padding: 1px 5px; border-radius: 3px; font-size: 13.5px; }
+    strong { font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── SETTINGS MODAL ── */
+    #settings-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.3);
+      display: flex; align-items: flex-end;
+    }
+    #settings-overlay[hidden] { display: none; }
+    .settings-sheet-nb {
+      background: var(--paper);
+      background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.4px);
+      background-size: 24px 24px;
+      width: 100%;
+      border-radius: 16px 16px 0 0;
+      padding: 20px 24px 40px;
+    }
+    .sheet-handle-nb {
+      width: 36px; height: 4px;
+      border-radius: 2px;
+      background: rgba(28,28,46,0.18);
+      margin: 0 auto 20px;
+    }
+    .settings-sheet-nb h2 { font-size: 28px; color: var(--blue); margin-bottom: 20px; }
+    .s-row-nb { margin-bottom: 20px; }
+    .s-row-nb label { display: block; font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .hint-nb { font-size: 15px; opacity: 0.55; margin-top: 4px; }
+    .s-actions-nb { display: flex; gap: 12px; margin-top: 24px; }
+    .btn-nb-secondary {
+      flex: 1; padding: 12px;
+      background: transparent;
+      border: 2px solid rgba(28,28,46,0.22);
+      border-radius: 6px;
+      font-family: var(--font); font-size: 20px;
+      cursor: pointer; color: var(--ink);
+    }
+    .danger-btn-nb {
+      display: block; width: 100%; margin-top: 14px;
+      background: none; border: none;
+      color: var(--red);
+      font-family: var(--font); font-size: 18px;
+      cursor: pointer; padding: 8px 0;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── DESKTOP CENTERED ── */
+    @media (min-width: 600px) {
+      #app { max-width: 560px; margin: 0 auto; }
+      #setup { max-width: 560px; }
+      #tab-bar { max-width: 560px; left: 50%; transform: translateX(-50%); border-radius: 16px 16px 0 0; }
+    }
+  </style>
+</head>
+<body>
+
+<textarea id="apps-script-src" hidden>// Code.gs — Google Apps Script
+// 1. Open your Google Sheet → Extensions → Apps Script
+// 2. Delete all existing code and paste this entire file
+// 3. Go to Project Settings (gear icon) → Script Properties → Add:
+//      HABITS_TOKEN  =  habits2026   (or whatever you set in app settings)
+//      CLAUDE_API_KEY = sk-ant-...   (your Anthropic API key — optional, for AI insights)
+// 4. Deploy → New deployment → Web app
+//      Execute as: Me
+//      Who has access: Anyone
+// 5. Copy the Web App URL and paste it into the app
+
+function doGet(e) {
+  const p = e.parameter || {};
+  try {
+    const tok = PropertiesService.getScriptProperties().getProperty('HABITS_TOKEN') || 'habits2026';
+    if (p.token !== tok) return j({ error: 'Unauthorized' });
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    switch (p.action) {
+      case 'ping':    return j({ ok: true });
+      case 'getAll':  return j(getAll(ss));
+      case 'saveDay': return j(saveDay(ss, p));
+      case 'insight': return j(getInsight(p.notes));
+      default:        return j({ error: 'Unknown action: ' + p.action });
+    }
+  } catch (err) {
+    return j({ error: String(err) });
+  }
+}
+
+function j(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+const COLS = [
+  'date',
+  'clean', 'workout', 'shower', 'meditate', 'journal_am',
+  'call_replay', 'journal_pm', 'read',
+  'followers', 'revenue', 'screen_time', 'sleep',
+  'notes',
+  'learned', 'improve', 'enjoyed'
+];
+
+function getSheet(ss) {
+  let s = ss.getSheetByName('Habits');
+  if (!s) {
+    s = ss.getActiveSheet();
+    s.setName('Habits');
+    const hdr = s.getRange(1, 1, 1, COLS.length);
+    hdr.setValues([COLS]);
+    hdr.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+
+function getAll(ss) {
+  const s = getSheet(ss);
+  const v = s.getDataRange().getValues();
+  if (v.length <= 1) return { rows: [] };
+  const h = v[0].map(String);
+  const rows = [];
+  for (let i = 1; i < v.length; i++) {
+    const row = {};
+    h.forEach((k, j) => { row[k] = v[i][j] === '' ? null : v[i][j]; });
+    rows.push(row);
+  }
+  return { rows };
+}
+
+function saveDay(ss, p) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const s  = getSheet(ss);
+    const v  = s.getDataRange().getValues();
+    const h  = v[0].map(String);
+    let ri   = -1;
+    for (let i = 1; i < v.length; i++) {
+      if (String(v[i][0]) === p.date) { ri = i + 1; break; }
+    }
+    const ex  = ri > 0 ? v[ri - 1] : [];
+    const row = h.map((k, i) => {
+      if (k === 'date') return p.date;
+      if (p[k] !== undefined && p[k] !== '') return p[k];
+      return ex[i] !== undefined ? ex[i] : '';
+    });
+    if (ri > 0) s.getRange(ri, 1, 1, row.length).setValues([row]);
+    else        s.appendRow(row);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getInsight(notesJson) {
+  const key = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+  if (!key) return { insight: 'Add your CLAUDE_API_KEY to Script Properties to enable AI insights.' };
+  let entries = [];
+  try { entries = JSON.parse(notesJson || '[]'); } catch (e) {}
+  if (!entries.length) return { insight: 'Start adding daily reflections — AI insights will appear here once you have a few entries.' };
+  const txt = entries.slice(-12).map(n =>
+    '[' + n.date + '] Learned: ' + (n.learned || '—') + ' | Improve: ' + (n.improve || '—') + ' | Enjoyed: ' + (n.enjoyed || '—')
+  ).join('\n');
+  const prompt = 'You are a personal growth coach. Based on these journal entries, write a 2-3 sentence insight that is specific, honest, and actionable. Reference what they actually wrote. Be encouraging but direct.\n\n' + txt;
+  const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    muteHttpExceptions: true,
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json'
+    },
+    payload: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 260,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  try {
+    const b = JSON.parse(res.getContentText());
+    return { insight: b.content && b.content[0] ? b.content[0].text : 'Keep going — you are building something great.' };
+  } catch (e) {
+    return { insight: 'Could not load insight right now. Try again later.' };
+  }
+}</textarea>
+
+<!-- ======== SETUP ======== -->
+<div id="setup">
+  <div style="font-size:48px;margin-bottom:8px">📓</div>
+  <h1>Habits</h1>
+  <p class="sub">Connect Google Sheets so your data is permanent.</p>
+
+  <div class="setup-step-nb">
+    <h3>Step 1 — Create a Google Sheet</h3>
+    <p>Go to <strong>sheets.google.com</strong> and create a blank spreadsheet. Name it anything, e.g. <em>"Habits"</em>.</p>
+  </div>
+
+  <div class="setup-step-nb">
+    <h3>Step 2 — Open Apps Script</h3>
+    <p>In your sheet, click <strong>Extensions → Apps Script</strong>. Delete existing code and paste this:</p>
+    <div class="code-wrap-nb">
+      <div class="code-block-nb" id="script-preview"></div>
+      <button class="copy-btn-nb" onclick="copyScript(this)">Copy</button>
+    </div>
+  </div>
+
+  <div class="setup-step-nb">
+    <h3>Step 3 — Add Script Properties</h3>
+    <p>In Apps Script: <strong>gear icon → Script Properties → Add property</strong>.<br><br>
+    Required: <code>HABITS_TOKEN</code> = <code>habits2026</code><br><br>
+    Optional (AI insights): <code>CLAUDE_API_KEY</code> = your Anthropic key</p>
+  </div>
+
+  <div class="setup-step-nb">
+    <h3>Step 4 — Deploy as Web App</h3>
+    <p>Click <strong>Deploy → New deployment → Web app</strong>.<br>
+    Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.<br>
+    Copy the Web App URL and paste it below.</p>
+  </div>
+
+  <div class="field-group-nb">
+    <label>Web App URL</label>
+    <input class="nb-input" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/…" autocapitalize="none" autocorrect="off" spellcheck="false">
+  </div>
+  <div class="field-group-nb">
+    <label>Security Token</label>
+    <input class="nb-input" id="setup-token" type="text" value="habits2026" autocapitalize="none" autocorrect="off">
+  </div>
+  <button class="btn-nb-primary" onclick="finishSetup()">Open Notebook →</button>
+  <p id="setup-error-nb"></p>
+</div>
+
+<!-- ======== APP ======== -->
+<div id="app" hidden>
+
+  <!-- TODAY PANE -->
+  <div id="today-pane" class="tab-pane active">
+
+    <div class="page-hdr">
+      <div class="date-col">
+        <div class="day-name" id="day-lbl"></div>
+        <div class="date-str" id="date-lbl"></div>
+      </div>
+      <div class="hdr-right">
+        <button class="nav-arrow" id="prev-btn" onclick="shiftDate(-1)">‹</button>
+        <button class="nav-arrow" id="next-btn" onclick="shiftDate(1)" disabled>›</button>
+        <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Morning</div>
+      <div class="habits-list" id="morning-grid"></div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Evening</div>
+      <div class="habits-list" id="evening-grid"></div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Stats</div>
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-lbl">👥 Followers</span>
+          <div class="stat-dots"></div>
+          <input class="stat-inp" id="s-followers" type="number" placeholder="—" inputmode="numeric" onchange="queueSave('followers',this.value)">
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">💰 Revenue</span>
+          <div class="stat-dots"></div>
+          <input class="stat-inp" id="s-revenue" type="number" placeholder="—" inputmode="decimal" onchange="queueSave('revenue',this.value)">
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">📱 Screen Time</span>
+          <div class="stat-dots"></div>
+          <input class="stat-inp" id="s-screen" type="number" placeholder="—" inputmode="decimal" step="0.5" onchange="queueSave('screen_time',this.value)">
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">💤 Sleep</span>
+          <div class="stat-dots"></div>
+          <input class="stat-inp" id="s-sleep" type="number" placeholder="—" inputmode="decimal" step="0.5" onchange="queueSave('sleep',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Notes</div>
+      <div class="notes-inner">
+        <div class="note-field-nb">
+          <textarea class="note-ta" id="n-notes" placeholder="Anything on your mind today…" oninput="autoResize(this)" onchange="queueSave('notes',this.value)" style="min-height:116px"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section" style="margin-bottom:20px">
+      <div class="section-hdr">Reflections</div>
+      <div class="notes-inner">
+        <div class="note-field-nb">
+          <label class="note-lbl">📖 Learned</label>
+          <textarea class="note-ta" id="n-learned" placeholder="Something you learned today…" oninput="autoResize(this)" onchange="queueSave('learned',this.value)"></textarea>
+        </div>
+        <div class="note-field-nb">
+          <label class="note-lbl">🎯 Improve</label>
+          <textarea class="note-ta" id="n-improve" placeholder="What would you do differently?" oninput="autoResize(this)" onchange="queueSave('improve',this.value)"></textarea>
+        </div>
+        <div class="note-field-nb">
+          <label class="note-lbl">✨ Enjoyed</label>
+          <textarea class="note-ta" id="n-enjoyed" placeholder="What brought you joy today?" oninput="autoResize(this)" onchange="queueSave('enjoyed',this.value)"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PANE -->
+  <div id="dashboard-pane" class="tab-pane">
+
+    <div class="dash-hdr">
+      <div class="dash-title">Dashboard</div>
+      <button class="settings-btn" onclick="openSettings()">⚙</button>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Overview</div>
+      <div class="overview-nb">
+        <div class="ov-ring-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(26,58,140,0.15)" stroke-width="9"/>
+            <circle id="ov-arc" cx="50" cy="50" r="42" fill="none" stroke="#1a3a8c" stroke-width="9"
+              stroke-dasharray="263.9" stroke-dashoffset="263.9"
+              stroke-linecap="round" transform="rotate(-90 50 50)"
+              style="transition:stroke-dashoffset 0.7s ease"/>
+            <text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
+              fill="#1a3a8c" font-size="19" font-weight="700" font-family="Caveat,cursive" id="ov-pct">0%</text>
+          </svg>
+        </div>
+        <div class="ov-meta-nb">
+          <div class="ov-count-nb" id="ov-done">0/8</div>
+          <div class="ov-sub">habits today</div>
+          <div class="ov-dt" id="ov-date"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Streaks</div>
+      <div class="streaks-list" id="streak-list"></div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Insight</div>
+      <div class="sticky-outer">
+        <div class="sticky-note">
+          <div id="insight-body">
+            <div class="shimmer-nb" style="width:90%"></div>
+            <div class="shimmer-nb" style="width:74%"></div>
+            <div class="shimmer-nb" style="width:58%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Followers</div>
+      <div class="chart-outer">
+        <div class="chart-nb">
+          <div class="chart-hdr-nb">
+            <span class="chart-title-nb">👥 Instagram</span>
+            <span class="chart-val-nb" id="cv-followers"></span>
+          </div>
+          <div class="chart-wrap-nb"><canvas id="ch-followers"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Revenue</div>
+      <div class="chart-outer">
+        <div class="chart-nb">
+          <div class="chart-hdr-nb">
+            <span class="chart-title-nb">💰 Revenue</span>
+            <span class="chart-val-nb" id="cv-revenue"></span>
+          </div>
+          <div class="chart-wrap-nb"><canvas id="ch-revenue"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section" style="margin-bottom:20px">
+      <div class="section-hdr">Sleep &amp; Screen</div>
+      <div class="chart-outer">
+        <div class="chart-nb">
+          <div class="chart-wrap-nb"><canvas id="ch-sleep"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="tab-bar">
+    <button class="tab-btn active" id="tb-today" onclick="switchTab('today')">
+      <span class="t-icon">📖</span>
+      <span class="t-label">Today</span>
+    </button>
+    <button class="tab-btn" id="tb-dashboard" onclick="switchTab('dashboard')">
+      <span class="t-icon">📊</span>
+      <span class="t-label">Dashboard</span>
+    </button>
+  </div>
+</div>
+
+<!-- SAVE STATUS -->
+<div id="save-status" class="hidden"></div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="nb-spinner"></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-overlay" hidden onclick="if(event.target===this)closeSettings()">
+  <div class="settings-sheet-nb">
+    <div class="sheet-handle-nb"></div>
+    <h2>Settings</h2>
+    <div class="s-row-nb">
+      <label>Apps Script URL</label>
+      <input class="nb-input" id="cfg-url" type="url" autocapitalize="none" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="s-row-nb">
+      <label>Security Token</label>
+      <input class="nb-input" id="cfg-token" type="text" autocapitalize="none" autocorrect="off">
+      <div class="hint-nb">Must match HABITS_TOKEN in Script Properties.</div>
+    </div>
+    <div class="s-row-nb">
+      <label>Claude AI Insights</label>
+      <div class="hint-nb">Store your key in Apps Script as <strong>CLAUDE_API_KEY</strong> — it stays secure server-side. Find it at console.anthropic.com → API Keys.</div>
+    </div>
+    <div class="s-actions-nb">
+      <button class="btn-nb-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn-nb-primary" style="flex:1;padding:12px;font-size:20px" onclick="saveSettings()">Save</button>
+    </div>
+    <button class="danger-btn-nb" onclick="resetApp()">Reset app (data stays in Sheet)</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── APPS SCRIPT PREVIEW ──
+const scriptSrc = document.getElementById('apps-script-src').value;
+document.getElementById('script-preview').textContent = scriptSrc;
+
+function copyScript(btn) {
+  navigator.clipboard.writeText(scriptSrc).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2200);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = scriptSrc;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2200);
+  });
+}
+
+// ── CONFIG ──
+let CFG = {
+  url:   localStorage.getItem('h_url')   || '',
+  token: localStorage.getItem('h_token') || 'habits2026'
+};
+
+// ── HABITS ──
+const HABITS = {
+  morning: [
+    { id: 'clean',       label: 'Clean',       emoji: '🧹' },
+    { id: 'workout',     label: 'Workout',     emoji: '💪' },
+    { id: 'shower',      label: 'Shower',      emoji: '🚿' },
+    { id: 'meditate',    label: 'Meditate',    emoji: '🧘' },
+    { id: 'journal_am',  label: 'Journal',     emoji: '📓' },
+  ],
+  evening: [
+    { id: 'call_replay', label: 'Call Replay', emoji: '🎧' },
+    { id: 'journal_pm',  label: 'Journal',     emoji: '✍️' },
+    { id: 'read',        label: 'Read',        emoji: '📚' },
+  ]
+};
+const ALL_HABITS = [...HABITS.morning, ...HABITS.evening];
+
+// ── STATE ──
+let S = {
+  date:        todayStr(),
+  data:        {},
+  charts:      {},
+  saveTimers:  {},
+  insightDone: false
+};
+
+// ── DATE UTILS ──
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function addDays(s, n) {
+  const d = new Date(s + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function fmtShort(s) {
+  return new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function dayName(s) {
+  return new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+}
+function fmtFull(s) {
+  return new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
+// ── SHEETS API ──
+async function sheetsGet(params) {
+  const u = new URL(CFG.url);
+  params.token = CFG.token;
+  Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
+  const res = await fetch(u.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json && json.error) throw new Error(json.error);
+  return json;
+}
+
+function parseBool(v) { return v === true || v === 'TRUE' || v === 'true'; }
+
+async function loadAll() {
+  const result = await sheetsGet({ action: 'getAll' });
+  S.data = {};
+  (result.rows || []).forEach(row => {
+    const d = String(row.date || '').slice(0, 10);
+    if (!d || d.length < 10) return;
+    S.data[d] = {
+      clean:       parseBool(row.clean),
+      workout:     parseBool(row.workout),
+      shower:      parseBool(row.shower),
+      meditate:    parseBool(row.meditate),
+      journal_am:  parseBool(row.journal_am),
+      call_replay: parseBool(row.call_replay),
+      journal_pm:  parseBool(row.journal_pm),
+      read:        parseBool(row.read),
+      followers:   row.followers   != null ? String(row.followers)   : '',
+      revenue:     row.revenue     != null ? String(row.revenue)     : '',
+      screen_time: row.screen_time != null ? String(row.screen_time) : '',
+      sleep:       row.sleep       != null ? String(row.sleep)       : '',
+      notes:       row.notes    || '',
+      learned:     row.learned  || '',
+      improve:     row.improve  || '',
+      enjoyed:     row.enjoyed  || '',
+    };
+  });
+}
+
+// ── SAVE ──
+let statusTimer;
+function showStatus(state) {
+  const el = document.getElementById('save-status');
+  clearTimeout(statusTimer);
+  el.className = state;
+  el.textContent = state === 'saving' ? 'Saving…' : state === 'saved' ? 'Saved ✓' : 'Save failed';
+  if (state !== 'saving') statusTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+}
+
+async function saveDayComplete(date) {
+  const day = S.data[date] || {};
+  showStatus('saving');
+  try {
+    const params = { action: 'saveDay', date };
+    ALL_HABITS.forEach(h => { params[h.id] = String(!!day[h.id]); });
+    ['followers', 'revenue', 'screen_time', 'sleep'].forEach(k => {
+      params[k] = day[k] !== undefined ? day[k] : '';
+    });
+    ['notes', 'learned', 'improve', 'enjoyed'].forEach(k => {
+      params[k] = day[k] !== undefined ? day[k] : '';
+    });
+    await sheetsGet(params);
+    showStatus('saved');
+  } catch (e) {
+    showStatus('err');
+    console.error('Save failed:', e.message);
+  }
+}
+
+function queueSave(key, value) {
+  if (!S.data[S.date]) S.data[S.date] = {};
+  S.data[S.date][key] = value;
+  const capturedDate = S.date;
+  clearTimeout(S.saveTimers[capturedDate]);
+  S.saveTimers[capturedDate] = setTimeout(() => {
+    delete S.saveTimers[capturedDate];
+    saveDayComplete(capturedDate);
+  }, 900);
+}
+
+// ── TALLY MARKS (SVG) ──
+function tallyHtml(n) {
+  if (!n) return '<span class="tally-none">—</span>';
+  const INK = '#1a3a8c';
+  const groups = Math.floor(n / 5);
+  const rem = n % 5;
+  const w = groups * 26 + rem * 6 + 2;
+  let svg = '<svg class="tally-svg" viewBox="0 0 ' + w + ' 20" xmlns="http://www.w3.org/2000/svg">';
+  let x = 2;
+  for (let g = 0; g < groups; g++) {
+    for (let i = 0; i < 4; i++) {
+      const lx = x + i * 5;
+      svg += '<line x1="' + lx + '" y1="1" x2="' + lx + '" y2="19" stroke="' + INK + '" stroke-width="1.6"/>';
+    }
+    svg += '<line x1="' + (x - 2) + '" y1="18" x2="' + (x + 22) + '" y2="2" stroke="' + INK + '" stroke-width="1.6"/>';
+    x += 26;
+  }
+  for (let i = 0; i < rem; i++) {
+    svg += '<line x1="' + x + '" y1="1" x2="' + x + '" y2="19" stroke="' + INK + '" stroke-width="1.6"/>';
+    x += 6;
+  }
+  svg += '</svg>';
+  return svg;
+}
+
+// ── STREAKS ──
+function getStreak(habitId) {
+  let streak = 0;
+  let d = todayStr();
+  if (!S.data[d]?.[habitId]) d = addDays(d, -1);
+  while (S.data[d]?.[habitId] === true) {
+    streak++;
+    d = addDays(d, -1);
+    if (streak > 3650) break;
+  }
+  return streak;
+}
+
+// ── TODAY RENDER ──
+function renderToday() {
+  const isToday = S.date === todayStr();
+  const d = S.data[S.date] || {};
+
+  document.getElementById('day-lbl').textContent  = dayName(S.date);
+  document.getElementById('date-lbl').textContent = fmtFull(S.date);
+  document.getElementById('next-btn').disabled = isToday;
+
+  renderHabitList('morning-grid', HABITS.morning, d);
+  renderHabitList('evening-grid', HABITS.evening, d);
+
+  document.getElementById('s-followers').value = d.followers || '';
+  document.getElementById('s-revenue').value   = d.revenue   || '';
+  document.getElementById('s-screen').value    = d.screen_time || '';
+  document.getElementById('s-sleep').value     = d.sleep     || '';
+
+  document.getElementById('n-notes').value   = d.notes   || '';
+  document.getElementById('n-learned').value = d.learned || '';
+  document.getElementById('n-improve').value = d.improve || '';
+  document.getElementById('n-enjoyed').value = d.enjoyed || '';
+
+  ['n-notes', 'n-learned', 'n-improve', 'n-enjoyed'].forEach(id => autoResize(document.getElementById(id)));
+}
+
+function renderHabitList(gridId, habits, dayData) {
+  const list = document.getElementById(gridId);
+  list.innerHTML = '';
+  habits.forEach(h => {
+    const done   = dayData[h.id] === true;
+    const streak = getStreak(h.id);
+    const row    = document.createElement('div');
+    row.className = 'habit-row' + (done ? ' done' : '');
+    row.setAttribute('onclick', 'toggleHabit("' + h.id + '")');
+    row.innerHTML =
+      '<div class="habit-cbx" id="cbx-' + h.id + '">' + (done ? '✓' : '') + '</div>' +
+      '<span class="habit-emoji">' + h.emoji + '</span>' +
+      '<span class="habit-name-nb">' + h.label + '</span>' +
+      '<div class="habit-tally" id="tal-' + h.id + '">' + tallyHtml(streak) + '</div>';
+    list.appendChild(row);
+  });
+}
+
+async function toggleHabit(habitId) {
+  if (!S.data[S.date]) S.data[S.date] = {};
+  const newVal = !S.data[S.date][habitId];
+  S.data[S.date][habitId] = newVal;
+
+  const cbx = document.getElementById('cbx-' + habitId);
+  const row = cbx?.closest('.habit-row');
+  if (cbx) {
+    cbx.textContent = newVal ? '✓' : '';
+    row?.classList.toggle('done', newVal);
+  }
+  const streak = getStreak(habitId);
+  const talEl  = document.getElementById('tal-' + habitId);
+  if (talEl) talEl.innerHTML = tallyHtml(streak);
+
+  await saveDayComplete(S.date);
+}
+
+function shiftDate(n) {
+  const next = addDays(S.date, n);
+  if (next > todayStr()) return;
+  S.date = next;
+  renderToday();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  renderOverview();
+  renderStreaks();
+  renderCharts();
+  if (!S.insightDone) { S.insightDone = true; loadInsight(); }
+}
+
+function renderOverview() {
+  const today = todayStr();
+  const d    = S.data[today] || {};
+  const done = ALL_HABITS.filter(h => d[h.id] === true).length;
+  const pct  = Math.round((done / ALL_HABITS.length) * 100);
+  const circ = 263.9;
+
+  document.getElementById('ov-arc').style.strokeDashoffset = circ * (1 - pct / 100);
+  document.getElementById('ov-pct').textContent  = pct + '%';
+  document.getElementById('ov-done').textContent = done + '/' + ALL_HABITS.length;
+  document.getElementById('ov-date').textContent = fmtFull(today);
+}
+
+function renderStreaks() {
+  const list = document.getElementById('streak-list');
+  if (!list) return;
+  list.innerHTML = '';
+  ALL_HABITS.forEach(h => {
+    const streak = getStreak(h.id);
+    const row    = document.createElement('div');
+    row.className = 'streak-row';
+    row.innerHTML =
+      '<span class="streak-emoji-nb">' + h.emoji + '</span>' +
+      '<span class="streak-name-nb">' + h.label + '</span>' +
+      '<span class="streak-days' + (streak === 0 ? ' none' : '') + '">' +
+        (streak > 0 ? streak + ' day' + (streak === 1 ? '' : 's') : '—') +
+      '</span>';
+    list.appendChild(row);
+  });
+}
+
+// ── CHARTS ──
+function getDataPoints(field) {
+  return Object.entries(S.data)
+    .filter(([, v]) => v[field] !== '' && v[field] != null)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({ x: fmtShort(date), y: parseFloat(v[field]) || 0 }));
+}
+
+function mkLine(id, label, color, pts) {
+  if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+
+  if (!pts.length) {
+    wrap.innerHTML = '<div class="empty-chart-nb">No data yet — start logging!</div>';
+    return;
+  }
+
+  Chart.defaults.font.family = "'Caveat', cursive";
+  Chart.defaults.font.size   = 14;
+  Chart.defaults.color       = 'rgba(28,28,46,0.5)';
+  Chart.defaults.borderColor = 'rgba(148,188,255,0.45)';
+
+  S.charts[id] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: pts.map(p => p.x),
+      datasets: [{
+        label, data: pts.map(p => p.y),
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: color,
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: 'rgba(148,188,255,0.4)' },
+          ticks: { maxTicksLimit: 7, font: { family: "'Caveat',cursive", size: 13 } }
+        },
+        y: {
+          grid: { color: 'rgba(148,188,255,0.4)' },
+          ticks: { font: { family: "'Caveat',cursive", size: 13 } }
+        }
+      }
+    }
+  });
+}
+
+function renderCharts() {
+  const followers = getDataPoints('followers');
+  const revenue   = getDataPoints('revenue');
+  const sleepPts  = getDataPoints('sleep');
+  const screenPts = getDataPoints('screen_time');
+
+  if (followers.length) document.getElementById('cv-followers').textContent = Number(followers[followers.length-1].y).toLocaleString();
+  if (revenue.length)   document.getElementById('cv-revenue').textContent   = '$' + Number(revenue[revenue.length-1].y).toLocaleString();
+
+  mkLine('ch-followers', 'Followers', '#1a3a8c', followers);
+  mkLine('ch-revenue',   'Revenue',   '#2d7a4f', revenue);
+
+  if (S.charts['ch-sleep']) { S.charts['ch-sleep'].destroy(); delete S.charts['ch-sleep']; }
+  const canvas = document.getElementById('ch-sleep');
+  if (!canvas) return;
+
+  const allDates = [...new Set([...sleepPts.map(p => p.x), ...screenPts.map(p => p.x)])].sort();
+  if (!allDates.length) {
+    canvas.parentElement.innerHTML = '<div class="empty-chart-nb">No sleep or screen data yet</div>';
+    return;
+  }
+
+  const sleepMap  = Object.fromEntries(sleepPts.map(p => [p.x, p.y]));
+  const screenMap = Object.fromEntries(screenPts.map(p => [p.x, p.y]));
+
+  Chart.defaults.font.family = "'Caveat', cursive";
+  Chart.defaults.font.size   = 14;
+  Chart.defaults.color       = 'rgba(28,28,46,0.5)';
+  Chart.defaults.borderColor = 'rgba(148,188,255,0.45)';
+
+  S.charts['ch-sleep'] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: allDates,
+      datasets: [
+        {
+          label: 'Sleep (hrs)', data: allDates.map(d => sleepMap[d] ?? null),
+          borderColor: '#1a3a8c', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, tension: 0.35, spanGaps: true
+        },
+        {
+          label: 'Screen (hrs)', data: allDates.map(d => screenMap[d] ?? null),
+          borderColor: '#c0392b', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, tension: 0.35, spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12, font: { family: "'Caveat',cursive", size: 14 } } } },
+      scales: {
+        x: { grid: { color: 'rgba(148,188,255,0.4)' }, ticks: { maxTicksLimit: 7, font: { family: "'Caveat',cursive", size: 13 } } },
+        y: { grid: { color: 'rgba(148,188,255,0.4)' }, ticks: { font: { family: "'Caveat',cursive", size: 13 }, callback: v => v + 'h' } }
+      }
+    }
+  });
+}
+
+// ── AI INSIGHT ──
+async function loadInsight() {
+  const body  = document.getElementById('insight-body');
+  const notes = Object.entries(S.data)
+    .filter(([, v]) => v.learned || v.improve || v.enjoyed)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({ date, learned: v.learned, improve: v.improve, enjoyed: v.enjoyed }));
+
+  try {
+    const result = await sheetsGet({ action: 'insight', notes: JSON.stringify(notes) });
+    body.innerHTML = '<p class="sticky-txt">' + escHtml(result.insight || 'Keep pushing — you\'re building something great.') + '</p>';
+  } catch (e) {
+    body.innerHTML = '<p class="sticky-txt" style="opacity:0.6">Could not load insight. Check your connection.</p>';
+  }
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tb-' + tab).classList.add('active');
+
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.getElementById(tab + '-pane').classList.add('active');
+
+  if (tab === 'dashboard') {
+    S.insightDone = false;
+    renderDashboard();
+  } else {
+    renderToday();
+  }
+}
+
+// ── SETTINGS ──
+function openSettings() {
+  document.getElementById('cfg-url').value   = CFG.url;
+  document.getElementById('cfg-token').value = CFG.token;
+  document.getElementById('settings-overlay').removeAttribute('hidden');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').setAttribute('hidden', '');
+}
+function saveSettings() {
+  CFG.url   = document.getElementById('cfg-url').value.trim();
+  CFG.token = document.getElementById('cfg-token').value.trim() || 'habits2026';
+  localStorage.setItem('h_url',   CFG.url);
+  localStorage.setItem('h_token', CFG.token);
+  closeSettings();
+  startApp();
+}
+function resetApp() {
+  if (!confirm('This clears your app config. Your data in Google Sheets is safe. Continue?')) return;
+  localStorage.removeItem('h_url');
+  localStorage.removeItem('h_token');
+  location.reload();
+}
+
+// ── SETUP ──
+async function finishSetup() {
+  const url   = document.getElementById('setup-url').value.trim();
+  const token = document.getElementById('setup-token').value.trim() || 'habits2026';
+  const errEl = document.getElementById('setup-error-nb');
+  errEl.style.display = 'none';
+
+  if (!url.startsWith('https://script.google.com')) {
+    errEl.textContent = 'Please paste a valid Apps Script Web App URL.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.querySelector('#setup .btn-nb-primary');
+  btn.textContent = 'Connecting…'; btn.disabled = true;
+
+  try {
+    const u = new URL(url);
+    u.searchParams.set('action', 'ping');
+    u.searchParams.set('token', token);
+    const res  = await fetch(u.toString());
+    const json = await res.json();
+
+    if (json.error === 'Unauthorized') throw new Error('Token mismatch — make sure HABITS_TOKEN matches "' + token + '".');
+    if (json.error) throw new Error(json.error);
+
+    localStorage.setItem('h_url',   url);
+    localStorage.setItem('h_token', token);
+    CFG.url   = url;
+    CFG.token = token;
+    document.getElementById('setup').style.display = 'none';
+    startApp();
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.style.display = 'block';
+    btn.textContent = 'Open Notebook →'; btn.disabled = false;
+  }
+}
+
+// ── APP BOOT ──
+async function startApp() {
+  document.getElementById('app').removeAttribute('hidden');
+  document.getElementById('setup').style.display = 'none';
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.remove('hidden');
+  overlay.style.opacity = '1';
+
+  try {
+    await loadAll();
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.classList.add('hidden'), 400);
+    renderToday();
+  } catch (e) {
+    overlay.classList.add('hidden');
+    document.getElementById('today-pane').innerHTML =
+      '<div style="padding:60px 24px 60px 60px;font-family:var(--font)">' +
+        '<div style="font-size:48px;margin-bottom:16px">⚠️</div>' +
+        '<p style="font-size:24px;font-weight:700;margin-bottom:8px">Could not connect</p>' +
+        '<p style="font-size:18px;opacity:0.6;margin-bottom:24px">' + escHtml(e.message) + '</p>' +
+        '<button class="btn-nb-primary" style="max-width:200px" onclick="startApp()">Retry</button>' +
+      '</div>';
+  }
+}
+
+// ── UTILS ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  if (CFG.url) {
+    startApp();
+  } else {
+    document.getElementById('loading-overlay').classList.add('hidden');
+    document.getElementById('setup').style.display = '';
+  }
+});
+</script>
+</body>
+</html>
