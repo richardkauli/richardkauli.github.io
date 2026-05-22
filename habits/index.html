@@ -30,9 +30,6 @@
 
     html {
       background-color: var(--paper);
-      background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.4px);
-      background-size: 24px 24px;
-      background-attachment: fixed;
       min-height: 100%;
     }
 
@@ -463,8 +460,6 @@
     #settings-overlay[hidden] { display: none; }
     .settings-sheet-nb {
       background: var(--paper);
-      background-image: radial-gradient(circle, var(--dot) 1.4px, transparent 1.4px);
-      background-size: 24px 24px;
       width: 100%;
       border-radius: 16px 16px 0 0;
       padding: 20px 24px 40px;
@@ -571,6 +566,16 @@ function getSheet(ss) {
     hdr.setValues([COLS]);
     hdr.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
     s.setFrozenRows(1);
+  } else {
+    // Add any columns that are in COLS but missing from the sheet
+    const lastCol = s.getLastColumn();
+    const existing = s.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+    const missing = COLS.filter(c => !existing.includes(c));
+    if (missing.length > 0) {
+      const r = s.getRange(1, lastCol + 1, 1, missing.length);
+      r.setValues([missing]);
+      r.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
+    }
   }
   return s;
 }
