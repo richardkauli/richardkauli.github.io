@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Habits — Notebook</title>
+  <title>Habits</title>
+  <link rel="manifest" href="/habits/manifest.json">
+  <link rel="apple-touch-icon" href="/habits/icon-180.png">
+  <link rel="icon" type="image/png" href="/habits/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Habits">
+  <meta name="theme-color" content="#FDFAF2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -521,11 +528,12 @@ function doGet(e) {
     if (p.token !== tok) return j({ error: 'Unauthorized' });
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     switch (p.action) {
-      case 'ping':    return j({ ok: true });
-      case 'getAll':  return j(getAll(ss));
-      case 'saveDay': return j(saveDay(ss, p));
-      case 'insight': return j(getInsight(p.notes));
-      default:        return j({ error: 'Unknown action: ' + p.action });
+      case 'ping':       return j({ ok: true });
+      case 'getAll':     return j(getAll(ss));
+      case 'saveDay':    return j(saveDay(ss, p));
+      case 'cleanSheet': return j(cleanSheet(ss));
+      case 'insight':    return j(getInsight(p.notes));
+      default:           return j({ error: 'Unknown action: ' + p.action });
     }
   } catch (err) {
     return j({ error: String(err) });
@@ -545,6 +553,14 @@ const COLS = [
   'notes',
   'learned', 'improve', 'enjoyed'
 ];
+
+function fmtDateStr(v) {
+  if (!v) return '';
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(v).trim().slice(0, 10);
+}
 
 function getSheet(ss) {
   let s = ss.getSheetByName('Habits');
@@ -567,7 +583,7 @@ function getAll(ss) {
   const rows = [];
   for (let i = 1; i < v.length; i++) {
     const row = {};
-    h.forEach((k, j) => { row[k] = v[i][j] === '' ? null : v[i][j]; });
+    h.forEach((k, j) => { row[k] = k === 'date' ? fmtDateStr(v[i][j]) : (v[i][j] === '' ? null : v[i][j]); });
     rows.push(row);
   }
   return { rows };
@@ -582,7 +598,7 @@ function saveDay(ss, p) {
     const h  = v[0].map(String);
     let ri   = -1;
     for (let i = 1; i < v.length; i++) {
-      if (String(v[i][0]) === p.date) { ri = i + 1; break; }
+      if (fmtDateStr(v[i][0]) === p.date) { ri = i + 1; break; }
     }
     const ex  = ri > 0 ? v[ri - 1] : [];
     const row = h.map((k, i) => {
@@ -593,6 +609,35 @@ function saveDay(ss, p) {
     if (ri > 0) s.getRange(ri, 1, 1, row.length).setValues([row]);
     else        s.appendRow(row);
     return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cleanSheet(ss) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const s = getSheet(ss);
+    const v = s.getDataRange().getValues();
+    if (v.length <= 1) return { ok: true, removed: 0 };
+    const h = v[0].map(String);
+    const merged = {};
+    for (let i = 1; i < v.length; i++) {
+      const dateStr = fmtDateStr(v[i][0]);
+      if (!dateStr || dateStr.length < 10) continue;
+      if (!merged[dateStr]) merged[dateStr] = h.map(k => k === 'date' ? dateStr : '');
+      h.forEach((k, j) => {
+        if (k === 'date') return;
+        const cell = v[i][j];
+        if (cell !== '' && cell !== null && cell !== undefined) merged[dateStr][j] = cell;
+      });
+    }
+    const before = v.length - 1;
+    const dates  = Object.keys(merged).sort();
+    if (before > 0) s.getRange(2, 1, before, h.length).clearContent();
+    dates.forEach((d, i) => s.getRange(i + 2, 1, 1, h.length).setValues([merged[d]]));
+    return { ok: true, removed: before - dates.length };
   } finally {
     lock.releaseLock();
   }
@@ -1139,7 +1184,9 @@ async function toggleHabit(habitId) {
   const talEl  = document.getElementById('tal-' + habitId);
   if (talEl) talEl.innerHTML = tallyHtml(streak);
 
-  await saveDayComplete(S.date);
+  const _d = S.date;
+  clearTimeout(S.saveTimers[_d]);
+  S.saveTimers[_d] = setTimeout(() => { delete S.saveTimers[_d]; saveDayComplete(_d); }, 700);
 }
 
 function shiftDate(n) {
@@ -1351,6 +1398,22 @@ function saveSettings() {
   closeSettings();
   startApp();
 }
+async function runCleanSheet() {
+  if (!confirm('This will merge all duplicate rows in your sheet, keeping one row per date. Cannot be undone. Continue?')) return;
+  closeSettings();
+  showStatus('saving');
+  try {
+    const result = await sheetsGet({ action: 'cleanSheet' });
+    showStatus('saved');
+    alert('Done! Removed ' + result.removed + ' duplicate rows. Reloading data…');
+    await loadAll();
+    renderToday();
+  } catch (e) {
+    showStatus('err');
+    alert('Error: ' + e.message);
+  }
+}
+
 function resetApp() {
   if (!confirm('This clears your app config. Your data in Google Sheets is safe. Continue?')) return;
   localStorage.removeItem('h_url');
