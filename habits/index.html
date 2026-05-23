@@ -1667,6 +1667,7 @@ function openSettings() {
   document.getElementById('settings-overlay').removeAttribute('hidden');
 }
 function closeSettings() {
+  _onDragEnd(); // clean up any in-progress drag before closing
   document.getElementById('settings-overlay').setAttribute('hidden', '');
 }
 
@@ -1715,47 +1716,50 @@ function attachDragHandle(handle) {
     const container = item.parentElement;
     const rect      = item.getBoundingClientRect();
 
-    // Ghost element that follows the pointer
     const ghost = document.createElement('div');
     ghost.className = 'cust-drag-ghost';
-    ghost.style.width  = rect.width + 'px';
-    ghost.style.top    = rect.top  + 'px';
-    ghost.style.left   = rect.left + 'px';
-    ghost.style.padding = '5px 10px';
-    ghost.textContent  = item.querySelector('.cust-emoji').value + '  ' + item.querySelector('.cust-name').value;
+    ghost.style.width      = rect.width + 'px';
+    ghost.style.top        = rect.top   + 'px';
+    ghost.style.left       = rect.left  + 'px';
+    ghost.style.padding    = '5px 10px';
     ghost.style.fontFamily = 'var(--font)';
     ghost.style.fontSize   = '18px';
+    ghost.textContent = (item.querySelector('.cust-emoji').value || '') + '  ' + (item.querySelector('.cust-name').value || '');
     document.body.appendChild(ghost);
 
     item.classList.add('dragging');
-    handle.setPointerCapture(e.pointerId);
     _drag = { item, container, ghost, offsetY: e.clientY - rect.top };
+
+    // Attach to document so pointerup always fires regardless of where cursor lands
+    document.addEventListener('pointermove',   _onDragMove);
+    document.addEventListener('pointerup',     _onDragEnd);
+    document.addEventListener('pointercancel', _onDragEnd);
   });
+}
 
-  handle.addEventListener('pointermove', e => {
-    if (!_drag) return;
-    const { ghost, item, container, offsetY } = _drag;
-    ghost.style.top = (e.clientY - offsetY) + 'px';
+function _onDragMove(e) {
+  if (!_drag) return;
+  const { ghost, item, container, offsetY } = _drag;
+  ghost.style.top = (e.clientY - offsetY) + 'px';
 
-    // Reinsert in DOM at the right position
-    const siblings = [...container.querySelectorAll('.cust-item:not(.dragging)')];
-    let before = null;
-    for (const s of siblings) {
-      const sr = s.getBoundingClientRect();
-      if (e.clientY < sr.top + sr.height / 2) { before = s; break; }
-    }
-    if (before) container.insertBefore(item, before);
-    else        container.appendChild(item);
-  });
+  const siblings = [...container.querySelectorAll('.cust-item:not(.dragging)')];
+  let before = null;
+  for (const s of siblings) {
+    const sr = s.getBoundingClientRect();
+    if (e.clientY < sr.top + sr.height / 2) { before = s; break; }
+  }
+  if (before) container.insertBefore(item, before);
+  else        container.appendChild(item);
+}
 
-  const stopDrag = () => {
-    if (!_drag) return;
-    _drag.ghost.remove();
-    _drag.item.classList.remove('dragging');
-    _drag = null;
-  };
-  handle.addEventListener('pointerup',     stopDrag);
-  handle.addEventListener('pointercancel', stopDrag);
+function _onDragEnd() {
+  if (!_drag) return;
+  _drag.ghost.remove();
+  _drag.item.classList.remove('dragging');
+  _drag = null;
+  document.removeEventListener('pointermove',   _onDragMove);
+  document.removeEventListener('pointerup',     _onDragEnd);
+  document.removeEventListener('pointercancel', _onDragEnd);
 }
 
 function addCustHabit() {
