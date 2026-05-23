@@ -495,6 +495,108 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
+    /* ── CHAT ── */
+    .chat-wrap {
+      margin: 0 24px 0 60px;
+      border: 1.5px solid rgba(28,28,46,0.12);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.5);
+    }
+    .chat-msgs {
+      min-height: 60px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding: 12px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-msg { max-width: 88%; }
+    .chat-msg p {
+      font-family: var(--font);
+      font-size: 18px;
+      line-height: 1.5;
+      padding: 9px 13px;
+      border-radius: 12px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .chat-msg-assistant { align-self: flex-start; }
+    .chat-msg-assistant p { background: var(--sticky); color: #3A2800; border-radius: 4px 12px 12px 12px; }
+    .chat-msg-user { align-self: flex-end; }
+    .chat-msg-user p { background: var(--blue); color: white; border-radius: 12px 12px 4px 12px; }
+    .chat-msg-loading p { background: rgba(28,28,46,0.06); color: rgba(28,28,46,0.35); font-style: italic; }
+    .chat-input-row {
+      display: flex;
+      align-items: flex-end;
+      border-top: 1.5px solid rgba(28,28,46,0.08);
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .chat-input {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 18px;
+      border: none;
+      outline: none;
+      background: transparent;
+      resize: none;
+      line-height: 1.4;
+      max-height: 100px;
+      overflow-y: auto;
+      color: var(--ink);
+    }
+    .chat-input::placeholder { color: rgba(28,28,46,0.28); }
+    .chat-send {
+      width: 32px; height: 32px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 50%;
+      font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chat-send:disabled { opacity: 0.35; cursor: default; }
+
+    /* ── CUSTOMIZE ── */
+    .cust-divider { border: none; border-top: 1.5px solid rgba(28,28,46,0.1); margin: 20px 0 16px; }
+    .cust-group-label {
+      font-size: 13px; font-weight: 700;
+      color: rgba(28,28,46,0.4);
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin: 12px 0 4px;
+    }
+    .cust-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(28,28,46,0.06);
+    }
+    .cust-item:last-child { border-bottom: none; }
+    .cust-emoji {
+      width: 34px; font-size: 20px; text-align: center;
+      border: none; background: transparent;
+      font-family: var(--font); outline: none; cursor: text;
+    }
+    .cust-name {
+      flex: 1; font-family: var(--font); font-size: 18px;
+      border: none; border-bottom: 1.5px solid rgba(28,28,46,0.15);
+      background: transparent; outline: none; color: var(--ink); padding: 2px 4px;
+    }
+    .cust-del {
+      background: none; border: none; color: var(--red);
+      font-size: 17px; cursor: pointer; padding: 4px 6px; opacity: 0.5;
+    }
+    .cust-del:hover { opacity: 1; }
+    .cust-add-btn {
+      background: none; border: 1.5px solid rgba(28,28,46,0.25);
+      color: rgba(28,28,46,0.55); border-radius: 20px;
+      padding: 3px 14px; font-family: var(--font); font-size: 15px; cursor: pointer;
+      margin-top: 6px; display: inline-block;
+    }
+    .cust-add-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .settings-sheet-nb { max-height: 88vh; overflow-y: auto; }
+
     /* ── DESKTOP CENTERED ── */
     @media (min-width: 600px) {
       #app { max-width: 560px; margin: 0 auto; }
@@ -516,6 +618,7 @@
 //      Who has access: Anyone
 // 5. Copy the Web App URL and paste it into the app
 
+// ── GET (read-only) ──
 function doGet(e) {
   const p = e.parameter || {};
   try {
@@ -524,15 +627,30 @@ function doGet(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     switch (p.action) {
       case 'ping':       return j({ ok: true });
+      case 'init':       return j(init(ss));
       case 'getAll':     return j(getAll(ss));
-      case 'saveDay':    return j(saveDay(ss, p));
+      case 'getConfig':  return j(getConfig(ss));
       case 'cleanSheet': return j(cleanSheet(ss));
-      case 'insight':    return j(getInsight(p.notes));
       default:           return j({ error: 'Unknown action: ' + p.action });
     }
-  } catch (err) {
-    return j({ error: String(err) });
-  }
+  } catch (err) { return j({ error: String(err) }); }
+}
+
+// ── POST (writes + AI — no URL length limit) ──
+function doPost(e) {
+  let p = {};
+  try { p = JSON.parse(e.postData.contents || '{}'); } catch(_) { p = e.parameter || {}; }
+  try {
+    const tok = PropertiesService.getScriptProperties().getProperty('HABITS_TOKEN') || 'habits2026';
+    if (p.token !== tok) return j({ error: 'Unauthorized' });
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    switch (p.action) {
+      case 'saveDay':    return j(saveDay(ss, p));
+      case 'saveConfig': return j(saveConfig(ss, p));
+      case 'chat':       return j(handleChat(p));
+      default:           return j({ error: 'Unknown action: ' + p.action });
+    }
+  } catch (err) { return j({ error: String(err) }); }
 }
 
 function j(data) {
@@ -540,46 +658,50 @@ function j(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-const COLS = [
-  'date',
-  'clean', 'workout', 'shower', 'meditate', 'journal_am',
-  'call_replay', 'journal_pm', 'read',
-  'followers', 'revenue', 'screen_time', 'sleep',
-  'notes',
-  'learned', 'improve', 'enjoyed'
-];
-
+// ── DATE HELPER ──
 function fmtDateStr(v) {
   if (!v) return '';
-  if (v instanceof Date) {
-    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  }
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   return String(v).trim().slice(0, 10);
 }
 
+// ── SHEET ──
 function getSheet(ss) {
   let s = ss.getSheetByName('Habits');
   if (!s) {
-    s = ss.getActiveSheet();
-    s.setName('Habits');
-    const hdr = s.getRange(1, 1, 1, COLS.length);
-    hdr.setValues([COLS]);
+    s = ss.insertSheet('Habits');
+    const hdr = s.getRange(1, 1, 1, 1);
+    hdr.setValues([['date']]);
     hdr.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
     s.setFrozenRows(1);
-  } else {
-    // Add any columns that are in COLS but missing from the sheet
-    const lastCol = s.getLastColumn();
-    const existing = s.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
-    const missing = COLS.filter(c => !existing.includes(c));
-    if (missing.length > 0) {
-      const r = s.getRange(1, lastCol + 1, 1, missing.length);
-      r.setValues([missing]);
-      r.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
-    }
   }
   return s;
 }
 
+// ── CONFIG ──
+function getConfig(ss) {
+  const s = ss.getSheetByName('Config');
+  if (!s) return { config: null };
+  const val = s.getRange('A1').getValue();
+  if (!val) return { config: null };
+  try { return { config: JSON.parse(String(val)) }; } catch(_) { return { config: null }; }
+}
+
+function saveConfig(ss, p) {
+  let s = ss.getSheetByName('Config');
+  if (!s) s = ss.insertSheet('Config');
+  s.getRange('A1').setValue(p.configJson);
+  return { ok: true };
+}
+
+// ── INIT (config + rows in one request) ──
+function init(ss) {
+  const cfg  = getConfig(ss);
+  const data = getAll(ss);
+  return { config: cfg.config, rows: data.rows };
+}
+
+// ── GET ALL ──
 function getAll(ss) {
   const s = getSheet(ss);
   const v = s.getDataRange().getValues();
@@ -594,11 +716,24 @@ function getAll(ss) {
   return { rows };
 }
 
+// ── SAVE DAY ──
 function saveDay(ss, p) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const s  = getSheet(ss);
+    const s    = getSheet(ss);
+    const skip = new Set(['action', 'token', 'date']);
+
+    // Auto-add any new columns from this save
+    let lastCol = s.getLastColumn();
+    let headers = s.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+    const toAdd = Object.keys(p).filter(k => !skip.has(k) && !headers.includes(k));
+    if (toAdd.length > 0) {
+      const r = s.getRange(1, lastCol + 1, 1, toAdd.length);
+      r.setValues([toAdd]);
+      r.setFontWeight('bold').setBackground('#111').setFontColor('#fff');
+    }
+
     const v  = s.getDataRange().getValues();
     const h  = v[0].map(String);
     let ri   = -1;
@@ -614,11 +749,10 @@ function saveDay(ss, p) {
     if (ri > 0) s.getRange(ri, 1, 1, row.length).setValues([row]);
     else        s.appendRow(row);
     return { ok: true };
-  } finally {
-    lock.releaseLock();
-  }
+  } finally { lock.releaseLock(); }
 }
 
+// ── CLEAN SHEET ──
 function cleanSheet(ss) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -643,41 +777,29 @@ function cleanSheet(ss) {
     if (before > 0) s.getRange(2, 1, before, h.length).clearContent();
     dates.forEach((d, i) => s.getRange(i + 2, 1, 1, h.length).setValues([merged[d]]));
     return { ok: true, removed: before - dates.length };
-  } finally {
-    lock.releaseLock();
-  }
+  } finally { lock.releaseLock(); }
 }
 
-function getInsight(notesJson) {
+// ── AI CHAT ──
+function handleChat(p) {
   const key = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
-  if (!key) return { insight: 'Add your CLAUDE_API_KEY to Script Properties to enable AI insights.' };
-  let entries = [];
-  try { entries = JSON.parse(notesJson || '[]'); } catch (e) {}
-  if (!entries.length) return { insight: 'Start adding daily reflections — AI insights will appear here once you have a few entries.' };
-  const txt = entries.slice(-12).map(n =>
-    '[' + n.date + '] Learned: ' + (n.learned || '—') + ' | Improve: ' + (n.improve || '—') + ' | Enjoyed: ' + (n.enjoyed || '—')
-  ).join('\n');
-  const prompt = 'You are a personal growth coach. Based on these journal entries, write a 2-3 sentence insight that is specific, honest, and actionable. Reference what they actually wrote. Be encouraging but direct.\n\n' + txt;
-  const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post',
-    muteHttpExceptions: true,
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    payload: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 260,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
+  if (!key) return { reply: 'Add CLAUDE_API_KEY to Script Properties to enable AI insights.' };
+  const history  = p.history  ? JSON.parse(p.history) : [];
+  const context  = p.context  || '';
+  const question = p.question || '';
+  const system = 'You are a warm personal growth coach reviewing someone\'s daily habits journal. Be specific, reference what they actually wrote, keep replies to 2-4 sentences unless asked for more.\n\nToday\'s data:\n' + context;
+  const msgs = [...history];
+  msgs.push({ role: 'user', content: question || 'Give me a brief honest insight about my day. Reference what I actually did and didn\'t do.' });
   try {
+    const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post', muteHttpExceptions: true,
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      payload: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, system: system, messages: msgs })
+    });
     const b = JSON.parse(res.getContentText());
-    return { insight: b.content && b.content[0] ? b.content[0].text : 'Keep going — you are building something great.' };
-  } catch (e) {
-    return { insight: 'Could not load insight right now. Try again later.' };
-  }
+    const reply = b.content?.[0]?.text || 'Keep going — you\'re building something great.';
+    return { reply, messages: [...msgs, { role: 'assistant', content: reply }] };
+  } catch(e) { return { reply: 'Could not load insight right now. Try again later.' }; }
 }</textarea>
 
 <!-- ======== SETUP ======== -->
@@ -756,28 +878,7 @@ function getInsight(notesJson) {
 
     <div class="nb-section">
       <div class="section-hdr">Stats</div>
-      <div class="stats-list">
-        <div class="stat-row">
-          <span class="stat-lbl">👥 Followers</span>
-          <div class="stat-dots"></div>
-          <input class="stat-inp" id="s-followers" type="number" placeholder="—" inputmode="numeric" onchange="queueSave('followers',this.value)">
-        </div>
-        <div class="stat-row">
-          <span class="stat-lbl">💰 Revenue</span>
-          <div class="stat-dots"></div>
-          <input class="stat-inp" id="s-revenue" type="number" placeholder="—" inputmode="decimal" onchange="queueSave('revenue',this.value)">
-        </div>
-        <div class="stat-row">
-          <span class="stat-lbl">📱 Screen Time</span>
-          <div class="stat-dots"></div>
-          <input class="stat-inp" id="s-screen" type="number" placeholder="—" inputmode="decimal" step="0.5" onchange="queueSave('screen_time',this.value)">
-        </div>
-        <div class="stat-row">
-          <span class="stat-lbl">💤 Sleep</span>
-          <div class="stat-dots"></div>
-          <input class="stat-inp" id="s-sleep" type="number" placeholder="—" inputmode="decimal" step="0.5" onchange="queueSave('sleep',this.value)">
-        </div>
-      </div>
+      <div class="stats-list" id="stats-list"></div>
     </div>
 
     <div class="nb-section">
@@ -791,20 +892,7 @@ function getInsight(notesJson) {
 
     <div class="nb-section" style="margin-bottom:20px">
       <div class="section-hdr">Reflections</div>
-      <div class="notes-inner">
-        <div class="note-field-nb">
-          <label class="note-lbl">📖 Learned</label>
-          <textarea class="note-ta" id="n-learned" placeholder="Something you learned today…" oninput="autoResize(this)" onchange="queueSave('learned',this.value)"></textarea>
-        </div>
-        <div class="note-field-nb">
-          <label class="note-lbl">🎯 Improve</label>
-          <textarea class="note-ta" id="n-improve" placeholder="What would you do differently?" oninput="autoResize(this)" onchange="queueSave('improve',this.value)"></textarea>
-        </div>
-        <div class="note-field-nb">
-          <label class="note-lbl">✨ Enjoyed</label>
-          <textarea class="note-ta" id="n-enjoyed" placeholder="What brought you joy today?" oninput="autoResize(this)" onchange="queueSave('enjoyed',this.value)"></textarea>
-        </div>
-      </div>
+      <div class="notes-inner" id="reflections-list"></div>
     </div>
   </div>
 
@@ -845,13 +933,12 @@ function getInsight(notesJson) {
 
     <div class="nb-section">
       <div class="section-hdr">Insight</div>
-      <div class="sticky-outer">
-        <div class="sticky-note">
-          <div id="insight-body">
-            <div class="shimmer-nb" style="width:90%"></div>
-            <div class="shimmer-nb" style="width:74%"></div>
-            <div class="shimmer-nb" style="width:58%"></div>
-          </div>
+      <div class="chat-wrap">
+        <div class="chat-msgs" id="chat-msgs"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your day…" rows="1"
+            oninput="autoResize(this)" onkeydown="chatKeyDown(event)"></textarea>
+          <button class="chat-send" id="chat-send" onclick="sendChat()">↑</button>
         </div>
       </div>
     </div>
@@ -932,6 +1019,30 @@ function getInsight(notesJson) {
       <label>Claude AI Insights</label>
       <div class="hint-nb">Store your key in Apps Script as <strong>CLAUDE_API_KEY</strong> — it stays secure server-side. Find it at console.anthropic.com → API Keys.</div>
     </div>
+
+    <hr class="cust-divider">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:18px;font-weight:600">Customize Tracking</span>
+      <button class="cust-add-btn" onclick="toggleCustomize(this)">Show ▾</button>
+    </div>
+    <div id="customize-section" hidden>
+      <div class="cust-group-label">Morning Habits</div>
+      <div id="cust-morning"></div>
+      <button class="cust-add-btn" onclick="addCustHabit('morning')">+ Add</button>
+
+      <div class="cust-group-label">Evening Habits</div>
+      <div id="cust-evening"></div>
+      <button class="cust-add-btn" onclick="addCustHabit('evening')">+ Add</button>
+
+      <div class="cust-group-label">Stats</div>
+      <div id="cust-stats"></div>
+      <button class="cust-add-btn" onclick="addCustStat()">+ Add</button>
+
+      <div class="cust-group-label">Reflections</div>
+      <div id="cust-reflections"></div>
+      <button class="cust-add-btn" onclick="addCustReflection()">+ Add</button>
+    </div>
+
     <div class="s-actions-nb">
       <button class="btn-nb-secondary" onclick="closeSettings()">Cancel</button>
       <button class="btn-nb-primary" style="flex:1;padding:12px;font-size:20px" onclick="saveSettings()">Save</button>
@@ -962,28 +1073,43 @@ function copyScript(btn) {
   });
 }
 
-// ── CONFIG ──
+// ── DEFAULT CONFIG ──
+const DEFAULT_CONFIG = {
+  habits: [
+    { id: 'clean',       label: 'Clean',       emoji: '🧹', group: 'morning' },
+    { id: 'workout',     label: 'Workout',     emoji: '💪', group: 'morning' },
+    { id: 'shower',      label: 'Shower',      emoji: '🚿', group: 'morning' },
+    { id: 'meditate',    label: 'Meditate',    emoji: '🧘', group: 'morning' },
+    { id: 'journal_am',  label: 'Journal',     emoji: '📓', group: 'morning' },
+    { id: 'call_replay', label: 'Call Replay', emoji: '🎧', group: 'evening' },
+    { id: 'journal_pm',  label: 'Journal PM',  emoji: '✍️', group: 'evening' },
+    { id: 'read',        label: 'Read',        emoji: '📚', group: 'evening' },
+  ],
+  stats: [
+    { id: 'followers',   label: 'Followers',   emoji: '👥', type: 'integer' },
+    { id: 'revenue',     label: 'Revenue',     emoji: '💰', type: 'decimal' },
+    { id: 'screen_time', label: 'Screen Time', emoji: '📱', type: 'decimal' },
+    { id: 'sleep',       label: 'Sleep',       emoji: '💤', type: 'decimal' },
+  ],
+  reflections: [
+    { id: 'learned', label: 'Learned', emoji: '📖', placeholder: 'Something you learned today…' },
+    { id: 'improve', label: 'Improve', emoji: '🎯', placeholder: 'What would you do differently?' },
+    { id: 'enjoyed', label: 'Enjoyed', emoji: '✨', placeholder: 'What brought you joy today?' },
+  ]
+};
+
+// ── CONNECTION CONFIG ──
 let CFG = {
   url:   localStorage.getItem('h_url')   || '',
   token: localStorage.getItem('h_token') || 'habits2026'
 };
+let CONFIG = null; // loaded from sheet on boot
 
-// ── HABITS ──
-const HABITS = {
-  morning: [
-    { id: 'clean',       label: 'Clean',       emoji: '🧹' },
-    { id: 'workout',     label: 'Workout',     emoji: '💪' },
-    { id: 'shower',      label: 'Shower',      emoji: '🚿' },
-    { id: 'meditate',    label: 'Meditate',    emoji: '🧘' },
-    { id: 'journal_am',  label: 'Journal',     emoji: '📓' },
-  ],
-  evening: [
-    { id: 'call_replay', label: 'Call Replay', emoji: '🎧' },
-    { id: 'journal_pm',  label: 'Journal',     emoji: '✍️' },
-    { id: 'read',        label: 'Read',        emoji: '📚' },
-  ]
-};
-const ALL_HABITS = [...HABITS.morning, ...HABITS.evening];
+function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits; }
+function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats; }
+function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections; }
+function getMorningHabits()  { return getCfgHabits().filter(h => h.group === 'morning'); }
+function getEveningHabits()  { return getCfgHabits().filter(h => h.group !== 'morning'); }
 
 // ── STATE ──
 let S = {
@@ -991,7 +1117,8 @@ let S = {
   data:        {},
   charts:      {},
   saveTimers:  {},
-  insightDone: false
+  chatHistory: {},
+  chatBusy:    false
 };
 
 // ── DATE UTILS ──
@@ -1023,32 +1150,30 @@ async function sheetsGet(params) {
   return json;
 }
 
+async function sheetsPost(params) {
+  params.token = CFG.token;
+  const res = await fetch(CFG.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(params)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json && json.error) throw new Error(json.error);
+  return json;
+}
+
 function parseBool(v) { return v === true || v === 'TRUE' || v === 'true'; }
 
-async function loadAll() {
-  const result = await sheetsGet({ action: 'getAll' });
+function parseRows(rows) {
   S.data = {};
-  (result.rows || []).forEach(row => {
+  (rows || []).forEach(row => {
     const d = String(row.date || '').slice(0, 10);
     if (!d || d.length < 10) return;
-    S.data[d] = {
-      clean:       parseBool(row.clean),
-      workout:     parseBool(row.workout),
-      shower:      parseBool(row.shower),
-      meditate:    parseBool(row.meditate),
-      journal_am:  parseBool(row.journal_am),
-      call_replay: parseBool(row.call_replay),
-      journal_pm:  parseBool(row.journal_pm),
-      read:        parseBool(row.read),
-      followers:   row.followers   != null ? String(row.followers)   : '',
-      revenue:     row.revenue     != null ? String(row.revenue)     : '',
-      screen_time: row.screen_time != null ? String(row.screen_time) : '',
-      sleep:       row.sleep       != null ? String(row.sleep)       : '',
-      notes:       row.notes    || '',
-      learned:     row.learned  || '',
-      improve:     row.improve  || '',
-      enjoyed:     row.enjoyed  || '',
-    };
+    const entry = {};
+    Object.keys(row).forEach(k => { if (k !== 'date') entry[k] = row[k]; });
+    getCfgHabits().forEach(h => { entry[h.id] = parseBool(row[h.id]); });
+    S.data[d] = entry;
   });
 }
 
@@ -1067,14 +1192,11 @@ async function saveDayComplete(date) {
   showStatus('saving');
   try {
     const params = { action: 'saveDay', date };
-    ALL_HABITS.forEach(h => { params[h.id] = String(!!day[h.id]); });
-    ['followers', 'revenue', 'screen_time', 'sleep'].forEach(k => {
-      params[k] = day[k] !== undefined ? day[k] : '';
-    });
-    ['notes', 'learned', 'improve', 'enjoyed'].forEach(k => {
-      params[k] = day[k] !== undefined ? day[k] : '';
-    });
-    await sheetsGet(params);
+    getCfgHabits().forEach(h => { params[h.id] = String(!!day[h.id]); });
+    getCfgStats().forEach(s => { params[s.id] = day[s.id] != null ? day[s.id] : ''; });
+    params.notes = day.notes != null ? day.notes : '';
+    getCfgReflections().forEach(r => { params[r.id] = day[r.id] != null ? day[r.id] : ''; });
+    await sheetsPost(params);
     showStatus('saved');
   } catch (e) {
     showStatus('err');
@@ -1140,20 +1262,14 @@ function renderToday() {
   document.getElementById('date-lbl').textContent = fmtFull(S.date);
   document.getElementById('next-btn').disabled = isToday;
 
-  renderHabitList('morning-grid', HABITS.morning, d);
-  renderHabitList('evening-grid', HABITS.evening, d);
+  renderHabitList('morning-grid', getMorningHabits(), d);
+  renderHabitList('evening-grid', getEveningHabits(), d);
+  renderStatsList(d);
 
-  document.getElementById('s-followers').value = d.followers || '';
-  document.getElementById('s-revenue').value   = d.revenue   || '';
-  document.getElementById('s-screen').value    = d.screen_time || '';
-  document.getElementById('s-sleep').value     = d.sleep     || '';
+  const notesEl = document.getElementById('n-notes');
+  if (notesEl) { notesEl.value = d.notes || ''; autoResize(notesEl); }
 
-  document.getElementById('n-notes').value   = d.notes   || '';
-  document.getElementById('n-learned').value = d.learned || '';
-  document.getElementById('n-improve').value = d.improve || '';
-  document.getElementById('n-enjoyed').value = d.enjoyed || '';
-
-  ['n-notes', 'n-learned', 'n-improve', 'n-enjoyed'].forEach(id => autoResize(document.getElementById(id)));
+  renderReflectionsList(d);
 }
 
 function renderHabitList(gridId, habits, dayData) {
@@ -1171,6 +1287,49 @@ function renderHabitList(gridId, habits, dayData) {
       '<span class="habit-name-nb">' + h.label + '</span>' +
       '<div class="habit-tally" id="tal-' + h.id + '">' + tallyHtml(streak) + '</div>';
     list.appendChild(row);
+  });
+}
+
+function renderStatsList(d) {
+  const list = document.getElementById('stats-list');
+  if (!list) return;
+  list.innerHTML = '';
+  getCfgStats().forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    const isInt = s.type === 'integer';
+    row.innerHTML =
+      '<span class="stat-lbl">' + s.emoji + ' ' + s.label + '</span>' +
+      '<div class="stat-dots"></div>' +
+      '<input class="stat-inp" type="number" placeholder="—"' +
+      ' inputmode="' + (isInt ? 'numeric' : 'decimal') + '"' +
+      (isInt ? '' : ' step="0.5"') +
+      ' value="' + escHtml(String(d[s.id] != null ? d[s.id] : '')) + '"' +
+      ' onchange="queueSave(\'' + s.id + '\',this.value)">';
+    list.appendChild(row);
+  });
+}
+
+function renderReflectionsList(d) {
+  const list = document.getElementById('reflections-list');
+  if (!list) return;
+  list.innerHTML = '';
+  getCfgReflections().forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'note-field-nb';
+    const lbl = document.createElement('label');
+    lbl.className = 'note-lbl';
+    lbl.textContent = r.emoji + ' ' + r.label;
+    const ta = document.createElement('textarea');
+    ta.className = 'note-ta';
+    ta.placeholder = r.placeholder || '';
+    ta.value = d[r.id] || '';
+    ta.addEventListener('input',  () => autoResize(ta));
+    ta.addEventListener('change', () => queueSave(r.id, ta.value));
+    div.appendChild(lbl);
+    div.appendChild(ta);
+    list.appendChild(div);
+    autoResize(ta);
   });
 }
 
@@ -1206,19 +1365,20 @@ function renderDashboard() {
   renderOverview();
   renderStreaks();
   renderCharts();
-  if (!S.insightDone) { S.insightDone = true; loadInsight(); }
+  initInsightChat();
 }
 
 function renderOverview() {
   const today = todayStr();
-  const d    = S.data[today] || {};
-  const done = ALL_HABITS.filter(h => d[h.id] === true).length;
-  const pct  = Math.round((done / ALL_HABITS.length) * 100);
-  const circ = 263.9;
+  const d     = S.data[today] || {};
+  const all   = getCfgHabits();
+  const done  = all.filter(h => d[h.id] === true).length;
+  const pct   = Math.round((done / (all.length || 1)) * 100);
+  const circ  = 263.9;
 
   document.getElementById('ov-arc').style.strokeDashoffset = circ * (1 - pct / 100);
   document.getElementById('ov-pct').textContent  = pct + '%';
-  document.getElementById('ov-done').textContent = done + '/' + ALL_HABITS.length;
+  document.getElementById('ov-done').textContent = done + '/' + all.length;
   document.getElementById('ov-date').textContent = fmtFull(today);
 }
 
@@ -1226,7 +1386,7 @@ function renderStreaks() {
   const list = document.getElementById('streak-list');
   if (!list) return;
   list.innerHTML = '';
-  ALL_HABITS.forEach(h => {
+  getCfgHabits().forEach(h => {
     const streak = getStreak(h.id);
     const row    = document.createElement('div');
     row.className = 'streak-row';
@@ -1354,65 +1514,252 @@ function renderCharts() {
   });
 }
 
-// ── AI INSIGHT ──
-async function loadInsight() {
-  const body  = document.getElementById('insight-body');
-  const notes = Object.entries(S.data)
-    .filter(([, v]) => v.learned || v.improve || v.enjoyed)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, v]) => ({ date, learned: v.learned, improve: v.improve, enjoyed: v.enjoyed }));
+// ── CHAT ──
+function buildDayContext() {
+  const date = todayStr();
+  const d    = S.data[date] || {};
+  const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? 'done' : 'not done')).join(', ');
+  const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : 'not logged')).join(', ');
+  const notes  = d.notes ? 'Notes: ' + d.notes : '';
+  const refs   = getCfgReflections().map(r => d[r.id] ? r.label + ': ' + d[r.id] : null).filter(Boolean).join('\n');
+  return ['Date: ' + date, 'Habits — ' + habits, 'Stats — ' + stats, notes, refs].filter(Boolean).join('\n');
+}
+
+async function initInsightChat() {
+  const date = todayStr();
+  if (S.chatHistory[date] && S.chatHistory[date].length) {
+    renderChatMessages();
+    return;
+  }
+  await sendChatMessage('');
+}
+
+async function sendChat() {
+  const input    = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question || S.chatBusy) return;
+  input.value = '';
+  autoResize(input);
+  await sendChatMessage(question);
+}
+
+function chatKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChatMessage(question) {
+  if (S.chatBusy) return;
+  S.chatBusy = true;
+  const btn = document.getElementById('chat-send');
+  if (btn) btn.disabled = true;
+
+  const date = todayStr();
+  if (!S.chatHistory[date]) S.chatHistory[date] = [];
+
+  if (question) {
+    S.chatHistory[date].push({ role: 'user', content: question });
+    renderChatMessages();
+  }
+
+  const loadId = 'ld-' + Date.now();
+  appendChatLoading(loadId);
 
   try {
-    const result = await sheetsGet({ action: 'insight', notes: JSON.stringify(notes) });
-    body.innerHTML = '<p class="sticky-txt">' + escHtml(result.insight || 'Keep pushing — you\'re building something great.') + '</p>';
-  } catch (e) {
-    body.innerHTML = '<p class="sticky-txt" style="opacity:0.6">Could not load insight. Check your connection.</p>';
+    const historyToSend = question
+      ? S.chatHistory[date].slice(0, -1)   // exclude the user msg we just pushed (server adds it)
+      : S.chatHistory[date];
+
+    const result = await sheetsPost({
+      action:   'chat',
+      context:  buildDayContext(),
+      history:  JSON.stringify(historyToSend),
+      question: question
+    });
+
+    removeChatLoading(loadId);
+    if (result.messages) {
+      S.chatHistory[date] = result.messages;
+    } else if (result.reply) {
+      if (!question) S.chatHistory[date] = [];
+      S.chatHistory[date].push({ role: 'assistant', content: result.reply });
+    }
+    renderChatMessages();
+  } catch(e) {
+    removeChatLoading(loadId);
+    S.chatHistory[date].push({ role: 'assistant', content: 'Could not connect. Check your Apps Script URL.' });
+    renderChatMessages();
+  } finally {
+    S.chatBusy = false;
+    if (btn) btn.disabled = false;
   }
+}
+
+function appendChatLoading(id) {
+  const msgs = document.getElementById('chat-msgs');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg chat-msg-loading';
+  div.id = id;
+  div.innerHTML = '<p>…</p>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeChatLoading(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function renderChatMessages() {
+  const container = document.getElementById('chat-msgs');
+  if (!container) return;
+  const history = S.chatHistory[todayStr()] || [];
+  container.innerHTML = '';
+  history.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'chat-msg chat-msg-' + msg.role;
+    div.innerHTML = '<p>' + escHtml(msg.content) + '</p>';
+    container.appendChild(div);
+  });
+  container.scrollTop = container.scrollHeight;
 }
 
 // ── TABS ──
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tb-' + tab).classList.add('active');
-
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
   document.getElementById(tab + '-pane').classList.add('active');
-
-  if (tab === 'dashboard') {
-    S.insightDone = false;
-    renderDashboard();
-  } else {
-    renderToday();
-  }
+  if (tab === 'dashboard') renderDashboard();
+  else renderToday();
 }
 
 // ── SETTINGS ──
 function openSettings() {
   document.getElementById('cfg-url').value   = CFG.url;
   document.getElementById('cfg-token').value = CFG.token;
+  renderCustomize();
   document.getElementById('settings-overlay').removeAttribute('hidden');
 }
 function closeSettings() {
   document.getElementById('settings-overlay').setAttribute('hidden', '');
 }
-function saveSettings() {
-  CFG.url   = document.getElementById('cfg-url').value.trim();
-  CFG.token = document.getElementById('cfg-token').value.trim() || 'habits2026';
-  localStorage.setItem('h_url',   CFG.url);
-  localStorage.setItem('h_token', CFG.token);
+
+function toggleCustomize(btn) {
+  const sec = document.getElementById('customize-section');
+  const hidden = sec.hasAttribute('hidden');
+  if (hidden) { sec.removeAttribute('hidden'); if (btn) btn.textContent = 'Hide ▴'; }
+  else        { sec.setAttribute('hidden', ''); if (btn) btn.textContent = 'Show ▾'; }
+}
+
+// ── CUSTOMIZE UI ──
+function renderCustomize() {
+  renderCustGroup('cust-morning', getMorningHabits(), 'habits');
+  renderCustGroup('cust-evening', getEveningHabits(), 'habits');
+  renderCustGroup('cust-stats',   getCfgStats(),   'stats');
+  renderCustGroup('cust-reflections', getCfgReflections(), 'reflections');
+}
+
+function renderCustGroup(id, items, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  items.forEach(item => el.appendChild(makeCustItem(item, type)));
+}
+
+function makeCustItem(item, type) {
+  const div = document.createElement('div');
+  div.className = 'cust-item';
+  div.dataset.id   = item.id;
+  div.dataset.type = type;
+  div.innerHTML =
+    '<input class="cust-emoji" value="' + escHtml(item.emoji || '') + '" maxlength="4">' +
+    '<input class="cust-name"  value="' + escHtml(item.label || '') + '" placeholder="Name">' +
+    '<button class="cust-del" onclick="this.closest(\'.cust-item\').remove()">✕</button>';
+  return div;
+}
+
+function addCustHabit(group) {
+  const id = 'habit_' + Date.now();
+  const el = document.getElementById(group === 'morning' ? 'cust-morning' : 'cust-evening');
+  if (!el) return;
+  const item = makeCustItem({ id, label: '', emoji: '⭐', group }, 'habits');
+  el.appendChild(item);
+  item.querySelector('.cust-name').focus();
+}
+function addCustStat() {
+  const el = document.getElementById('cust-stats');
+  if (!el) return;
+  const item = makeCustItem({ id: 'stat_' + Date.now(), label: '', emoji: '📊', type: 'decimal' }, 'stats');
+  el.appendChild(item);
+  item.querySelector('.cust-name').focus();
+}
+function addCustReflection() {
+  const el = document.getElementById('cust-reflections');
+  if (!el) return;
+  const item = makeCustItem({ id: 'ref_' + Date.now(), label: '', emoji: '💭', placeholder: '' }, 'reflections');
+  el.appendChild(item);
+  item.querySelector('.cust-name').focus();
+}
+
+function readCustomizeFromDOM() {
+  const habits = [];
+  document.querySelectorAll('#cust-morning .cust-item').forEach(el => {
+    const label = el.querySelector('.cust-name').value.trim();
+    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐', group: 'morning' });
+  });
+  document.querySelectorAll('#cust-evening .cust-item').forEach(el => {
+    const label = el.querySelector('.cust-name').value.trim();
+    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐', group: 'evening' });
+  });
+  const stats = [];
+  document.querySelectorAll('#cust-stats .cust-item').forEach(el => {
+    const label = el.querySelector('.cust-name').value.trim();
+    if (label) {
+      const existing = getCfgStats().find(s => s.id === el.dataset.id);
+      stats.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '📊', type: existing?.type || 'decimal' });
+    }
+  });
+  const reflections = [];
+  document.querySelectorAll('#cust-reflections .cust-item').forEach(el => {
+    const label = el.querySelector('.cust-name').value.trim();
+    if (label) {
+      const existing = getCfgReflections().find(r => r.id === el.dataset.id);
+      reflections.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '💭', placeholder: existing?.placeholder || '' });
+    }
+  });
+  return { habits, stats, reflections };
+}
+
+async function saveSettings() {
+  const newUrl   = document.getElementById('cfg-url').value.trim();
+  const newToken = document.getElementById('cfg-token').value.trim() || 'habits2026';
+  const newConfig = readCustomizeFromDOM();
+
+  CFG.url   = newUrl;
+  CFG.token = newToken;
+  localStorage.setItem('h_url',   newUrl);
+  localStorage.setItem('h_token', newToken);
   closeSettings();
+
+  try {
+    await sheetsPost({ action: 'saveConfig', configJson: JSON.stringify(newConfig) });
+    CONFIG = newConfig;
+  } catch(e) {
+    console.error('Config save failed:', e.message);
+  }
   startApp();
 }
+
 async function runCleanSheet() {
-  if (!confirm('This will merge all duplicate rows in your sheet, keeping one row per date. Cannot be undone. Continue?')) return;
+  if (!confirm('Merge all duplicate rows, one row per date. Cannot be undone. Continue?')) return;
   closeSettings();
   showStatus('saving');
   try {
     const result = await sheetsGet({ action: 'cleanSheet' });
     showStatus('saved');
-    alert('Done! Removed ' + result.removed + ' duplicate rows. Reloading data…');
-    await loadAll();
-    renderToday();
+    alert('Done! Removed ' + result.removed + ' duplicate rows.');
+    startApp();
   } catch (e) {
     showStatus('err');
     alert('Error: ' + e.message);
@@ -1474,7 +1821,9 @@ async function startApp() {
   overlay.style.opacity = '1';
 
   try {
-    await loadAll();
+    const result = await sheetsGet({ action: 'init' });
+    CONFIG = result.config || DEFAULT_CONFIG;
+    parseRows(result.rows);
     overlay.style.opacity = '0';
     setTimeout(() => overlay.classList.add('hidden'), 400);
     renderToday();
