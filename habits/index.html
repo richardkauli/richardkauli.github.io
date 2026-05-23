@@ -636,10 +636,9 @@ function doGet(e) {
   } catch (err) { return j({ error: String(err) }); }
 }
 
-// ── POST (writes + AI — no URL length limit) ──
+// ── POST (writes + AI — body goes into e.parameter, no URL length limit) ──
 function doPost(e) {
-  let p = {};
-  try { p = JSON.parse(e.postData.contents || '{}'); } catch(_) { p = e.parameter || {}; }
+  const p = e.parameter || {};
   try {
     const tok = PropertiesService.getScriptProperties().getProperty('HABITS_TOKEN') || 'habits2026';
     if (p.token !== tok) return j({ error: 'Unauthorized' });
@@ -787,9 +786,18 @@ function handleChat(p) {
   const history  = p.history  ? JSON.parse(p.history) : [];
   const context  = p.context  || '';
   const question = p.question || '';
-  const system = 'You are a warm personal growth coach reviewing someone\'s daily habits journal. Be specific, reference what they actually wrote, keep replies to 2-4 sentences unless asked for more.\n\nToday\'s data:\n' + context;
+  const system =
+    'You are a warm, perceptive personal growth coach. The user shares their daily habit data with you.\n\n' +
+    'Your role:\n' +
+    '- Reference specific things they actually did or wrote — be concrete, not generic\n' +
+    '- Notice patterns across recent days and mention them\n' +
+    '- Be encouraging about their future and what they\'re building toward\n' +
+    '- Keep replies concise (2-4 sentences) unless asked for more\n' +
+    '- Speak directly to them, warmly but honestly\n\n' +
+    'Data:\n' + context;
+  const initialPrompt = 'Based on my habits today and recent days, give me a brief insight. Notice any patterns, remind me of my progress, and say something encouraging about what\'s ahead.';
   const msgs = [...history];
-  msgs.push({ role: 'user', content: question || 'Give me a brief honest insight about my day. Reference what I actually did and didn\'t do.' });
+  msgs.push({ role: 'user', content: question || initialPrompt });
   try {
     const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
       method: 'post', muteHttpExceptions: true,
@@ -867,13 +875,8 @@ function handleChat(p) {
     </div>
 
     <div class="nb-section">
-      <div class="section-hdr">Morning</div>
-      <div class="habits-list" id="morning-grid"></div>
-    </div>
-
-    <div class="nb-section">
-      <div class="section-hdr">Evening</div>
-      <div class="habits-list" id="evening-grid"></div>
+      <div class="section-hdr">Habits</div>
+      <div class="habits-list" id="habits-grid"></div>
     </div>
 
     <div class="nb-section">
@@ -1026,13 +1029,9 @@ function handleChat(p) {
       <button class="cust-add-btn" onclick="toggleCustomize(this)">Show ▾</button>
     </div>
     <div id="customize-section" hidden>
-      <div class="cust-group-label">Morning Habits</div>
-      <div id="cust-morning"></div>
-      <button class="cust-add-btn" onclick="addCustHabit('morning')">+ Add</button>
-
-      <div class="cust-group-label">Evening Habits</div>
-      <div id="cust-evening"></div>
-      <button class="cust-add-btn" onclick="addCustHabit('evening')">+ Add</button>
+      <div class="cust-group-label">Habits</div>
+      <div id="cust-habits"></div>
+      <button class="cust-add-btn" onclick="addCustHabit()">+ Add</button>
 
       <div class="cust-group-label">Stats</div>
       <div id="cust-stats"></div>
@@ -1076,14 +1075,14 @@ function copyScript(btn) {
 // ── DEFAULT CONFIG ──
 const DEFAULT_CONFIG = {
   habits: [
-    { id: 'clean',       label: 'Clean',       emoji: '🧹', group: 'morning' },
-    { id: 'workout',     label: 'Workout',     emoji: '💪', group: 'morning' },
-    { id: 'shower',      label: 'Shower',      emoji: '🚿', group: 'morning' },
-    { id: 'meditate',    label: 'Meditate',    emoji: '🧘', group: 'morning' },
-    { id: 'journal_am',  label: 'Journal',     emoji: '📓', group: 'morning' },
-    { id: 'call_replay', label: 'Call Replay', emoji: '🎧', group: 'evening' },
-    { id: 'journal_pm',  label: 'Journal PM',  emoji: '✍️', group: 'evening' },
-    { id: 'read',        label: 'Read',        emoji: '📚', group: 'evening' },
+    { id: 'clean',       label: 'Clean',       emoji: '🧹' },
+    { id: 'workout',     label: 'Workout',     emoji: '💪' },
+    { id: 'shower',      label: 'Shower',      emoji: '🚿' },
+    { id: 'meditate',    label: 'Meditate',    emoji: '🧘' },
+    { id: 'journal_am',  label: 'Journal',     emoji: '📓' },
+    { id: 'call_replay', label: 'Call Replay', emoji: '🎧' },
+    { id: 'journal_pm',  label: 'Journal PM',  emoji: '✍️' },
+    { id: 'read',        label: 'Read',        emoji: '📚' },
   ],
   stats: [
     { id: 'followers',   label: 'Followers',   emoji: '👥', type: 'integer' },
@@ -1108,8 +1107,6 @@ let CONFIG = null; // loaded from sheet on boot
 function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits; }
 function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats; }
 function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections; }
-function getMorningHabits()  { return getCfgHabits().filter(h => h.group === 'morning'); }
-function getEveningHabits()  { return getCfgHabits().filter(h => h.group !== 'morning'); }
 
 // ── STATE ──
 let S = {
@@ -1152,11 +1149,9 @@ async function sheetsGet(params) {
 
 async function sheetsPost(params) {
   params.token = CFG.token;
-  const res = await fetch(CFG.url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(params)
-  });
+  // URLSearchParams puts data in e.parameter (same as GET) — no URL length limit on POST body
+  const body = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
+  const res = await fetch(CFG.url, { method: 'POST', body });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const json = await res.json();
   if (json && json.error) throw new Error(json.error);
@@ -1262,8 +1257,7 @@ function renderToday() {
   document.getElementById('date-lbl').textContent = fmtFull(S.date);
   document.getElementById('next-btn').disabled = isToday;
 
-  renderHabitList('morning-grid', getMorningHabits(), d);
-  renderHabitList('evening-grid', getEveningHabits(), d);
+  renderHabitList('habits-grid', getCfgHabits(), d);
   renderStatsList(d);
 
   const notesEl = document.getElementById('n-notes');
@@ -1516,13 +1510,28 @@ function renderCharts() {
 
 // ── CHAT ──
 function buildDayContext() {
-  const date = todayStr();
-  const d    = S.data[date] || {};
-  const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? 'done' : 'not done')).join(', ');
-  const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : 'not logged')).join(', ');
+  const today = todayStr();
+  const d     = S.data[today] || {};
+
+  const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
+  const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
   const refs   = getCfgReflections().map(r => d[r.id] ? r.label + ': ' + d[r.id] : null).filter(Boolean).join('\n');
-  return ['Date: ' + date, 'Habits — ' + habits, 'Stats — ' + stats, notes, refs].filter(Boolean).join('\n');
+  const todayBlock = ['TODAY (' + today + ')', 'Habits: ' + habits, 'Stats: ' + stats, notes, refs].filter(Boolean).join('\n');
+
+  // Last 7 days
+  const pastLines = [];
+  for (let i = 1; i <= 7; i++) {
+    const date = addDays(today, -i);
+    const pd = S.data[date];
+    if (!pd) continue;
+    const done = getCfgHabits().filter(h => pd[h.id]).map(h => h.label).join(', ') || 'none';
+    const pRef = getCfgReflections().map(r => pd[r.id] ? r.label + ': ' + pd[r.id] : null).filter(Boolean).join(' | ');
+    pastLines.push(date + ' — habits: ' + done + (pRef ? ' | ' + pRef : ''));
+  }
+  const pastBlock = pastLines.length ? 'RECENT DAYS\n' + pastLines.join('\n') : '';
+
+  return [todayBlock, pastBlock].filter(Boolean).join('\n\n');
 }
 
 async function initInsightChat() {
@@ -1577,10 +1586,12 @@ async function sendChatMessage(question) {
     });
 
     removeChatLoading(loadId);
-    if (result.messages) {
+    if (!question) {
+      // Initial auto-insight: only show the assistant reply, hide the system prompt
+      S.chatHistory[date] = [{ role: 'assistant', content: result.reply || '' }];
+    } else if (result.messages) {
       S.chatHistory[date] = result.messages;
     } else if (result.reply) {
-      if (!question) S.chatHistory[date] = [];
       S.chatHistory[date].push({ role: 'assistant', content: result.reply });
     }
     renderChatMessages();
@@ -1654,9 +1665,8 @@ function toggleCustomize(btn) {
 
 // ── CUSTOMIZE UI ──
 function renderCustomize() {
-  renderCustGroup('cust-morning', getMorningHabits(), 'habits');
-  renderCustGroup('cust-evening', getEveningHabits(), 'habits');
-  renderCustGroup('cust-stats',   getCfgStats(),   'stats');
+  renderCustGroup('cust-habits',      getCfgHabits(),      'habits');
+  renderCustGroup('cust-stats',       getCfgStats(),       'stats');
   renderCustGroup('cust-reflections', getCfgReflections(), 'reflections');
 }
 
@@ -1679,11 +1689,10 @@ function makeCustItem(item, type) {
   return div;
 }
 
-function addCustHabit(group) {
-  const id = 'habit_' + Date.now();
-  const el = document.getElementById(group === 'morning' ? 'cust-morning' : 'cust-evening');
+function addCustHabit() {
+  const el = document.getElementById('cust-habits');
   if (!el) return;
-  const item = makeCustItem({ id, label: '', emoji: '⭐', group }, 'habits');
+  const item = makeCustItem({ id: 'habit_' + Date.now(), label: '', emoji: '⭐' }, 'habits');
   el.appendChild(item);
   item.querySelector('.cust-name').focus();
 }
@@ -1704,13 +1713,9 @@ function addCustReflection() {
 
 function readCustomizeFromDOM() {
   const habits = [];
-  document.querySelectorAll('#cust-morning .cust-item').forEach(el => {
+  document.querySelectorAll('#cust-habits .cust-item').forEach(el => {
     const label = el.querySelector('.cust-name').value.trim();
-    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐', group: 'morning' });
-  });
-  document.querySelectorAll('#cust-evening .cust-item').forEach(el => {
-    const label = el.querySelector('.cust-name').value.trim();
-    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐', group: 'evening' });
+    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐' });
   });
   const stats = [];
   document.querySelectorAll('#cust-stats .cust-item').forEach(el => {
