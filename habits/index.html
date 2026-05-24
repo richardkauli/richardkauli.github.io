@@ -1006,9 +1006,18 @@ function handleChat(p) {
 <!-- SAVE STATUS -->
 <div id="save-status" class="hidden"></div>
 
-<!-- LOADING OVERLAY -->
+<!-- LOADING / ERROR OVERLAY -->
 <div id="loading-overlay">
-  <div class="nb-spinner"></div>
+  <div id="loading-spinner" class="nb-spinner"></div>
+  <div id="loading-error" style="display:none;padding:40px 32px;text-align:center;font-family:var(--font);max-width:340px">
+    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+    <p style="font-size:22px;font-weight:700;margin-bottom:8px;color:var(--ink)">Could not connect</p>
+    <p style="font-size:17px;opacity:0.65;margin-bottom:24px;line-height:1.45">Check your Apps Script URL in Settings, then retry.<br>The URL may have changed or expired.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-nb-primary" style="max-width:160px" onclick="startApp()">Retry</button>
+      <button class="btn-nb-secondary" onclick="document.getElementById('loading-overlay').classList.add('hidden');openSettings()">Settings ⚙</button>
+    </div>
+  </div>
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -1871,7 +1880,11 @@ async function finishSetup() {
 async function startApp() {
   document.getElementById('app').removeAttribute('hidden');
   document.getElementById('setup').style.display = 'none';
-  const overlay = document.getElementById('loading-overlay');
+  const overlay  = document.getElementById('loading-overlay');
+  const spinner  = document.getElementById('loading-spinner');
+  const errPanel = document.getElementById('loading-error');
+  spinner.style.display  = '';
+  errPanel.style.display = 'none';
   overlay.classList.remove('hidden');
   overlay.style.opacity = '1';
 
@@ -1883,14 +1896,10 @@ async function startApp() {
     setTimeout(() => overlay.classList.add('hidden'), 400);
     renderToday();
   } catch (e) {
-    overlay.classList.add('hidden');
-    document.getElementById('today-pane').innerHTML =
-      '<div style="padding:60px 24px 60px 60px;font-family:var(--font)">' +
-        '<div style="font-size:48px;margin-bottom:16px">⚠️</div>' +
-        '<p style="font-size:24px;font-weight:700;margin-bottom:8px">Could not connect</p>' +
-        '<p style="font-size:18px;opacity:0.6;margin-bottom:24px">' + escHtml(e.message) + '</p>' +
-        '<button class="btn-nb-primary" style="max-width:200px" onclick="startApp()">Retry</button>' +
-      '</div>';
+    spinner.style.display  = 'none';
+    errPanel.style.display = '';
+    overlay.style.opacity  = '1';
+    console.error('startApp error:', e);
   }
 }
 
