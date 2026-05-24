@@ -155,6 +155,7 @@
       text-decoration: line-through;
       opacity: 0.42;
     }
+    .habit-time { font-size: 13px; color: rgba(28,28,46,0.28); flex-shrink: 0; margin-right: 6px; }
     .habit-tally { flex-shrink: 0; display: flex; align-items: center; }
     .tally-svg { height: 16px; overflow: visible; }
     .tally-none { font-size: 16px; color: rgba(28,28,46,0.25); }
@@ -801,15 +802,17 @@ function handleChat(p) {
   const context  = p.context  || '';
   const question = p.question || '';
   const system =
-    'You are a warm, perceptive personal growth coach. The user shares their daily habit data with you.\n\n' +
+    'You are a warm, encouraging personal growth coach reviewing someone\'s daily habits journal.\n\n' +
+    'IMPORTANT — time awareness:\n' +
+    '- The data includes the current time of day. If it is morning or midday, habits not yet checked are simply not done YET — the day is still in progress. Never treat unchecked morning habits as failures.\n' +
+    '- Calibrate your tone to the time: mornings = energise and motivate for the day ahead. Evenings = reflect on what was accomplished.\n\n' +
     'Your role:\n' +
-    '- Reference specific things they actually did or wrote — be concrete, not generic\n' +
-    '- Notice patterns across recent days and mention them\n' +
-    '- Be encouraging about their future and what they\'re building toward\n' +
-    '- Keep replies concise (2-4 sentences) unless asked for more\n' +
-    '- Speak directly to them, warmly but honestly\n\n' +
+    '- Lead with encouragement — this person is showing up by checking in\n' +
+    '- Reference specific things they actually did or wrote, not generic advice\n' +
+    '- Notice positive patterns across recent days and name them\n' +
+    '- Keep replies warm, honest, and concise (2-4 sentences) unless asked for more\n\n' +
     'Data:\n' + context;
-  const initialPrompt = 'Based on my habits today and recent days, give me a brief insight. Notice any patterns, remind me of my progress, and say something encouraging about what\'s ahead.';
+  const initialPrompt = 'Given the time of day and my recent habit data, give me a brief personalised insight. If it\'s morning or early, focus on setting me up well for today. If it\'s evening, reflect on what I accomplished.';
   const msgs = [...history];
   msgs.push({ role: 'user', content: question || initialPrompt });
   try {
@@ -1181,7 +1184,10 @@ function parseRows(rows) {
     if (!d || d.length < 10) return;
     const entry = {};
     Object.keys(row).forEach(k => { if (k !== 'date') entry[k] = row[k]; });
-    getCfgHabits().forEach(h => { entry[h.id] = parseBool(row[h.id]); });
+    getCfgHabits().forEach(h => {
+      entry[h.id] = parseBool(row[h.id]);
+      if (row[h.id + '_time']) entry[h.id + '_time'] = row[h.id + '_time'];
+    });
     S.data[d] = entry;
   });
 }
@@ -1201,7 +1207,10 @@ async function saveDayComplete(date) {
   showStatus('saving');
   try {
     const params = { action: 'saveDay', date };
-    getCfgHabits().forEach(h => { params[h.id] = String(!!day[h.id]); });
+    getCfgHabits().forEach(h => {
+      params[h.id] = String(!!day[h.id]);
+      params[h.id + '_time'] = day[h.id + '_time'] || '';
+    });
     getCfgStats().forEach(s => { params[s.id] = day[s.id] != null ? day[s.id] : ''; });
     params.notes = day.notes != null ? day.notes : '';
     getCfgReflections().forEach(r => { params[r.id] = day[r.id] != null ? day[r.id] : ''; });
@@ -1289,10 +1298,12 @@ function renderHabitList(gridId, habits, dayData) {
     const row    = document.createElement('div');
     row.className = 'habit-row' + (done ? ' done' : '');
     row.setAttribute('onclick', 'toggleHabit("' + h.id + '")');
+    const t = done && dayData[h.id + '_time'] ? dayData[h.id + '_time'] : '';
     row.innerHTML =
       '<div class="habit-cbx" id="cbx-' + h.id + '">' + (done ? '✓' : '') + '</div>' +
       '<span class="habit-emoji">' + h.emoji + '</span>' +
       '<span class="habit-name-nb">' + h.label + '</span>' +
+      (t ? '<span class="habit-time">' + t + '</span>' : '') +
       '<div class="habit-tally" id="tal-' + h.id + '">' + tallyHtml(streak) + '</div>';
     list.appendChild(row);
   });
@@ -1345,6 +1356,11 @@ async function toggleHabit(habitId) {
   if (!S.data[S.date]) S.data[S.date] = {};
   const newVal = !S.data[S.date][habitId];
   S.data[S.date][habitId] = newVal;
+  if (newVal) {
+    S.data[S.date][habitId + '_time'] = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } else {
+    delete S.data[S.date][habitId + '_time'];
+  }
 
   const cbx = document.getElementById('cbx-' + habitId);
   const row = cbx?.closest('.habit-row');
@@ -1527,7 +1543,10 @@ function buildDayContext() {
   const today = todayStr();
   const d     = S.data[today] || {};
 
-  const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
+  const habits = getCfgHabits().map(h => {
+    const t = d[h.id] && d[h.id + '_time'] ? ' (' + d[h.id + '_time'] + ')' : '';
+    return h.label + ': ' + (d[h.id] ? '✓' + t : '✗');
+  }).join(', ');
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
   const refs   = getCfgReflections().map(r => d[r.id] ? r.label + ': ' + d[r.id] : null).filter(Boolean).join('\n');
