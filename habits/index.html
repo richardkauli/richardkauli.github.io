@@ -177,21 +177,21 @@
       white-space: nowrap;
       flex: 1;
     }
-    .stat-inp {
+    .stat-val {
       font-family: var(--font);
       font-size: 20px;
       font-weight: 700;
       color: var(--blue);
-      border: none;
-      background: transparent;
-      width: 90px;
-      min-width: 0;
-      text-align: right;
       outline: none;
-      padding: 0 6px 0 0;
-      flex-shrink: 0;
+      white-space: nowrap;
+      min-width: 20px;
+      cursor: text;
     }
-    .stat-inp::placeholder { color: rgba(28,28,46,0.22); font-weight: 400; }
+    .stat-val:empty::before {
+      content: '—';
+      color: rgba(28,28,46,0.22);
+      font-weight: 400;
+    }
 
     /* ── NOTES ── */
     .notes-inner { padding: 10px 20px 10px 60px; }
@@ -1331,12 +1331,29 @@ function renderStatsList(d) {
     const row = document.createElement('div');
     row.className = 'stat-row';
     const isInt = s.type === 'integer';
-    row.innerHTML =
-      '<span class="stat-lbl">' + s.emoji + ' ' + s.label + '</span>' +
-      '<input class="stat-inp" type="text" placeholder="—"' +
-      ' inputmode="' + (isInt ? 'numeric' : 'decimal') + '"' +
-      ' value="' + escHtml(String(d[s.id] != null ? d[s.id] : '')) + '"' +
-      ' onchange="queueSave(\'' + s.id + '\',this.value)">';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'stat-lbl';
+    lbl.textContent = s.emoji + ' ' + s.label;
+
+    const val = document.createElement('div');
+    val.className = 'stat-val';
+    val.contentEditable = 'true';
+    val.setAttribute('inputmode', isInt ? 'numeric' : 'decimal');
+    val.textContent = d[s.id] != null && d[s.id] !== '' ? String(d[s.id]) : '';
+
+    val.addEventListener('input', () => queueSave(s.id, val.textContent.trim()));
+    val.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); val.blur(); }
+    });
+    val.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/[^\d.\-]/g, '');
+      document.execCommand('insertText', false, text);
+    });
+
+    row.appendChild(lbl);
+    row.appendChild(val);
     list.appendChild(row);
   });
 }
