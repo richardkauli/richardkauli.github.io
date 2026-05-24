@@ -1531,7 +1531,8 @@ function buildDayContext() {
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
   const refs   = getCfgReflections().map(r => d[r.id] ? r.label + ': ' + d[r.id] : null).filter(Boolean).join('\n');
-  const todayBlock = ['TODAY (' + today + ')', 'Habits: ' + habits, 'Stats: ' + stats, notes, refs].filter(Boolean).join('\n');
+  const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const todayBlock = ['TODAY (' + today + ', ' + now + ')', 'Habits: ' + habits, 'Stats: ' + stats, notes, refs].filter(Boolean).join('\n');
 
   // Last 7 days
   const pastLines = [];
