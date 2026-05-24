@@ -155,7 +155,6 @@
       text-decoration: line-through;
       opacity: 0.42;
     }
-    .habit-time { font-size: 13px; color: rgba(28,28,46,0.28); flex-shrink: 0; margin-right: 6px; }
     .habit-tally { flex-shrink: 0; display: flex; align-items: center; }
     .tally-svg { height: 16px; overflow: visible; }
     .tally-none { font-size: 16px; color: rgba(28,28,46,0.25); }
@@ -176,13 +175,7 @@
     .stat-lbl {
       font-size: 18px;
       white-space: nowrap;
-      min-width: 130px;
-    }
-    .stat-dots {
       flex: 1;
-      border-bottom: 2px dotted rgba(28,28,46,0.18);
-      height: 0;
-      margin-bottom: 4px;
     }
     .stat-inp {
       font-family: var(--font);
@@ -192,9 +185,16 @@
       border: none;
       background: transparent;
       width: 90px;
+      min-width: 0;
       text-align: right;
       outline: none;
+      padding-right: 0;
+      flex-shrink: 0;
     }
+    /* hide native number spinners so they don't clip the text */
+    .stat-inp::-webkit-inner-spin-button,
+    .stat-inp::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .stat-inp[type=number] { -moz-appearance: textfield; }
     .stat-inp::placeholder { color: rgba(28,28,46,0.22); font-weight: 400; }
 
     /* ── NOTES ── */
@@ -624,10 +624,9 @@
 
 <textarea id="apps-script-src" hidden>// Code.gs — Google Apps Script
 // 1. Open your Google Sheet → Extensions → Apps Script
-// 2. Delete all existing code and paste this entire file
-// 3. Go to Project Settings (gear icon) → Script Properties → Add:
-//      HABITS_TOKEN  =  habits2026   (or whatever you set in app settings)
-//      CLAUDE_API_KEY = sk-ant-...   (your Anthropic API key — optional, for AI insights)
+// 2. Delete all existing code, paste this file, and save (Ctrl+S / Cmd+S)
+// 3. (Optional) For AI insights: gear icon → Script Properties → Add:
+//      CLAUDE_API_KEY = sk-ant-...   (your Anthropic API key)
 // 4. Deploy → New deployment → Web app
 //      Execute as: Me
 //      Who has access: Anyone
@@ -637,8 +636,6 @@
 function doGet(e) {
   const p = e.parameter || {};
   try {
-    const tok = PropertiesService.getScriptProperties().getProperty('HABITS_TOKEN') || 'habits2026';
-    if (p.token !== tok) return j({ error: 'Unauthorized' });
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     switch (p.action) {
       case 'ping':       return j({ ok: true });
@@ -655,8 +652,6 @@ function doGet(e) {
 function doPost(e) {
   const p = e.parameter || {};
   try {
-    const tok = PropertiesService.getScriptProperties().getProperty('HABITS_TOKEN') || 'habits2026';
-    if (p.token !== tok) return j({ error: 'Unauthorized' });
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     switch (p.action) {
       case 'saveDay':    return j(saveDay(ss, p));
@@ -840,7 +835,7 @@ function handleChat(p) {
 
   <div class="setup-step-nb">
     <h3>Step 2 — Open Apps Script</h3>
-    <p>In your sheet, click <strong>Extensions → Apps Script</strong>. Delete existing code and paste this:</p>
+    <p>In your sheet, click <strong>Extensions → Apps Script</strong>. Delete the existing code, paste the code below, then click <strong>Save</strong> (Ctrl+S / Cmd+S).</p>
     <div class="code-wrap-nb">
       <div class="code-block-nb" id="script-preview"></div>
       <button class="copy-btn-nb" onclick="copyScript(this)">Copy</button>
@@ -848,28 +843,23 @@ function handleChat(p) {
   </div>
 
   <div class="setup-step-nb">
-    <h3>Step 3 — Add Script Properties</h3>
-    <p>In Apps Script: <strong>gear icon → Script Properties → Add property</strong>.<br><br>
-    Required: <code>HABITS_TOKEN</code> = <code>habits2026</code><br><br>
-    Optional (AI insights): <code>CLAUDE_API_KEY</code> = your Anthropic key</p>
-  </div>
-
-  <div class="setup-step-nb">
-    <h3>Step 4 — Deploy as Web App</h3>
+    <h3>Step 3 — Deploy as Web App</h3>
     <p>Click <strong>Deploy → New deployment → Web app</strong>.<br>
     Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.<br>
     Copy the Web App URL and paste it below.</p>
+  </div>
+
+  <div class="setup-step-nb">
+    <h3>Step 4 — (Optional) Enable AI Insights</h3>
+    <p>In Apps Script: <strong>gear icon → Script Properties → Add property</strong>.<br>
+    Add <code>CLAUDE_API_KEY</code> = your Anthropic key (from console.anthropic.com → API Keys). Your key stays secure server-side.</p>
   </div>
 
   <div class="field-group-nb">
     <label>Web App URL</label>
     <input class="nb-input" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/…" autocapitalize="none" autocorrect="off" spellcheck="false">
   </div>
-  <div class="field-group-nb">
-    <label>Security Token</label>
-    <input class="nb-input" id="setup-token" type="text" value="habits2026" autocapitalize="none" autocorrect="off">
-  </div>
-  <button class="btn-nb-primary" onclick="finishSetup()">Open Notebook →</button>
+  <button class="btn-nb-primary" onclick="finishSetup()">Open Habits →</button>
   <p id="setup-error-nb"></p>
 </div>
 
@@ -1031,11 +1021,6 @@ function handleChat(p) {
       <input class="nb-input" id="cfg-url" type="url" autocapitalize="none" autocorrect="off" spellcheck="false">
     </div>
     <div class="s-row-nb">
-      <label>Security Token</label>
-      <input class="nb-input" id="cfg-token" type="text" autocapitalize="none" autocorrect="off">
-      <div class="hint-nb">Must match HABITS_TOKEN in Script Properties.</div>
-    </div>
-    <div class="s-row-nb">
       <label>Claude AI Insights</label>
       <div class="hint-nb">Store your key in Apps Script as <strong>CLAUDE_API_KEY</strong> — it stays secure server-side. Find it at console.anthropic.com → API Keys.</div>
     </div>
@@ -1116,8 +1101,7 @@ const DEFAULT_CONFIG = {
 
 // ── CONNECTION CONFIG ──
 let CFG = {
-  url:   localStorage.getItem('h_url')   || '',
-  token: localStorage.getItem('h_token') || 'habits2026'
+  url: localStorage.getItem('h_url') || ''
 };
 let CONFIG = null; // loaded from sheet on boot
 
@@ -1155,7 +1139,6 @@ function fmtFull(s) {
 // ── SHEETS API ──
 async function sheetsGet(params) {
   const u = new URL(CFG.url);
-  params.token = CFG.token;
   Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
   const res = await fetch(u.toString());
   if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1165,7 +1148,6 @@ async function sheetsGet(params) {
 }
 
 async function sheetsPost(params) {
-  params.token = CFG.token;
   // URLSearchParams puts data in e.parameter (same as GET) — no URL length limit on POST body
   const body = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
   const res = await fetch(CFG.url, { method: 'POST', body });
@@ -1184,10 +1166,7 @@ function parseRows(rows) {
     if (!d || d.length < 10) return;
     const entry = {};
     Object.keys(row).forEach(k => { if (k !== 'date') entry[k] = row[k]; });
-    getCfgHabits().forEach(h => {
-      entry[h.id] = parseBool(row[h.id]);
-      if (row[h.id + '_time']) entry[h.id + '_time'] = row[h.id + '_time'];
-    });
+    getCfgHabits().forEach(h => { entry[h.id] = parseBool(row[h.id]); });
     S.data[d] = entry;
   });
 }
@@ -1207,10 +1186,7 @@ async function saveDayComplete(date) {
   showStatus('saving');
   try {
     const params = { action: 'saveDay', date };
-    getCfgHabits().forEach(h => {
-      params[h.id] = String(!!day[h.id]);
-      params[h.id + '_time'] = day[h.id + '_time'] || '';
-    });
+    getCfgHabits().forEach(h => { params[h.id] = String(!!day[h.id]); });
     getCfgStats().forEach(s => { params[s.id] = day[s.id] != null ? day[s.id] : ''; });
     params.notes = day.notes != null ? day.notes : '';
     getCfgReflections().forEach(r => { params[r.id] = day[r.id] != null ? day[r.id] : ''; });
@@ -1319,7 +1295,6 @@ function renderStatsList(d) {
     const isInt = s.type === 'integer';
     row.innerHTML =
       '<span class="stat-lbl">' + s.emoji + ' ' + s.label + '</span>' +
-      '<div class="stat-dots"></div>' +
       '<input class="stat-inp" type="number" placeholder="—"' +
       ' inputmode="' + (isInt ? 'numeric' : 'decimal') + '"' +
       (isInt ? '' : ' step="0.5"') +
@@ -1356,11 +1331,6 @@ async function toggleHabit(habitId) {
   if (!S.data[S.date]) S.data[S.date] = {};
   const newVal = !S.data[S.date][habitId];
   S.data[S.date][habitId] = newVal;
-  if (newVal) {
-    S.data[S.date][habitId + '_time'] = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  } else {
-    delete S.data[S.date][habitId + '_time'];
-  }
 
   const cbx = document.getElementById('cbx-' + habitId);
   const row = cbx?.closest('.habit-row');
@@ -1543,10 +1513,7 @@ function buildDayContext() {
   const today = todayStr();
   const d     = S.data[today] || {};
 
-  const habits = getCfgHabits().map(h => {
-    const t = d[h.id] && d[h.id + '_time'] ? ' (' + d[h.id + '_time'] + ')' : '';
-    return h.label + ': ' + (d[h.id] ? '✓' + t : '✗');
-  }).join(', ');
+  const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
   const refs   = getCfgReflections().map(r => d[r.id] ? r.label + ': ' + d[r.id] : null).filter(Boolean).join('\n');
@@ -1681,8 +1648,7 @@ function switchTab(tab) {
 
 // ── SETTINGS ──
 function openSettings() {
-  document.getElementById('cfg-url').value   = CFG.url;
-  document.getElementById('cfg-token').value = CFG.token;
+  document.getElementById('cfg-url').value = CFG.url;
   renderCustomize();
   document.getElementById('settings-overlay').removeAttribute('hidden');
 }
@@ -1830,14 +1796,11 @@ function readCustomizeFromDOM() {
 }
 
 async function saveSettings() {
-  const newUrl   = document.getElementById('cfg-url').value.trim();
-  const newToken = document.getElementById('cfg-token').value.trim() || 'habits2026';
+  const newUrl    = document.getElementById('cfg-url').value.trim();
   const newConfig = readCustomizeFromDOM();
 
-  CFG.url   = newUrl;
-  CFG.token = newToken;
-  localStorage.setItem('h_url',   newUrl);
-  localStorage.setItem('h_token', newToken);
+  CFG.url = newUrl;
+  localStorage.setItem('h_url', newUrl);
   closeSettings();
 
   try {
@@ -1867,14 +1830,12 @@ async function runCleanSheet() {
 function resetApp() {
   if (!confirm('This clears your app config. Your data in Google Sheets is safe. Continue?')) return;
   localStorage.removeItem('h_url');
-  localStorage.removeItem('h_token');
   location.reload();
 }
 
 // ── SETUP ──
 async function finishSetup() {
   const url   = document.getElementById('setup-url').value.trim();
-  const token = document.getElementById('setup-token').value.trim() || 'habits2026';
   const errEl = document.getElementById('setup-error-nb');
   errEl.style.display = 'none';
 
@@ -1890,23 +1851,19 @@ async function finishSetup() {
   try {
     const u = new URL(url);
     u.searchParams.set('action', 'ping');
-    u.searchParams.set('token', token);
     const res  = await fetch(u.toString());
     const json = await res.json();
 
-    if (json.error === 'Unauthorized') throw new Error('Token mismatch — make sure HABITS_TOKEN matches "' + token + '".');
     if (json.error) throw new Error(json.error);
 
-    localStorage.setItem('h_url',   url);
-    localStorage.setItem('h_token', token);
-    CFG.url   = url;
-    CFG.token = token;
+    localStorage.setItem('h_url', url);
+    CFG.url = url;
     document.getElementById('setup').style.display = 'none';
     startApp();
   } catch (e) {
     errEl.textContent = 'Error: ' + e.message;
     errEl.style.display = 'block';
-    btn.textContent = 'Open Notebook →'; btn.disabled = false;
+    btn.textContent = 'Open Habits →'; btn.disabled = false;
   }
 }
 
