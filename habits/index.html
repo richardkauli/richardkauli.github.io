@@ -629,16 +629,15 @@ function _load() {
     cache.put('src', src, 21600); // cache 6 hours
   }
   eval(src);
+  return { get: handleGet, post: handlePost };
 }
 
 function doGet(e) {
-  _load();
-  return handleGet(e, SpreadsheetApp.getActiveSpreadsheet());
+  return _load().get(e, SpreadsheetApp.getActiveSpreadsheet());
 }
 
 function doPost(e) {
-  _load();
-  return handlePost(e, SpreadsheetApp.getActiveSpreadsheet());
+  return _load().post(e, SpreadsheetApp.getActiveSpreadsheet());
 }</textarea>
 
 <!-- ======== SETUP ======== -->
