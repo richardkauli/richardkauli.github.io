@@ -1309,12 +1309,10 @@ function renderHabitList(gridId, habits, dayData) {
     const row    = document.createElement('div');
     row.className = 'habit-row' + (done ? ' done' : '');
     row.setAttribute('onclick', 'toggleHabit("' + h.id + '")');
-    const t = done && dayData[h.id + '_time'] ? dayData[h.id + '_time'] : '';
     row.innerHTML =
       '<div class="habit-cbx" id="cbx-' + h.id + '">' + (done ? '✓' : '') + '</div>' +
       '<span class="habit-emoji">' + h.emoji + '</span>' +
       '<span class="habit-name-nb">' + h.label + '</span>' +
-      (t ? '<span class="habit-time">' + t + '</span>' : '') +
       '<div class="habit-tally" id="tal-' + h.id + '">' + tallyHtml(streak) + '</div>';
     list.appendChild(row);
   });
