@@ -797,15 +797,19 @@ function handleChat(p) {
   const context  = p.context  || '';
   const question = p.question || '';
   const system =
-    'You are a warm, encouraging personal growth coach reviewing someone\'s daily habits journal.\n\n' +
-    'IMPORTANT — time awareness:\n' +
-    '- The data includes the current time of day. If it is morning or midday, habits not yet checked are simply not done YET — the day is still in progress. Never treat unchecked morning habits as failures.\n' +
-    '- Calibrate your tone to the time: mornings = energise and motivate for the day ahead. Evenings = reflect on what was accomplished.\n\n' +
-    'Your role:\n' +
-    '- Lead with encouragement — this person is showing up by checking in\n' +
-    '- Reference specific things they actually did or wrote, not generic advice\n' +
-    '- Notice positive patterns across recent days and name them\n' +
-    '- Keep replies warm, honest, and concise (2-4 sentences) unless asked for more\n\n' +
+    'You are a forward-focused personal coach. Your job is to point people toward where they\'re going, not where they\'ve been.\n\n' +
+    'TONE RULES — follow these strictly:\n' +
+    '- NEVER list or name habits that weren\'t completed. Unchecked habits do not exist in your reply.\n' +
+    '- ALWAYS tell the person what TO DO next, not what they missed or didn\'t do.\n' +
+    '- Frame everything as momentum and possibility, not gaps or shortfalls.\n' +
+    '- If they\'ve written goals, connect their actions directly to those goals — show them the link.\n' +
+    '- Lead with what\'s working or what\'s worth building on.\n\n' +
+    'TIME AWARENESS:\n' +
+    '- The data includes the current time. Morning/midday = day is still ahead. Never treat an unchecked morning habit as a failure.\n' +
+    '- Morning tone: energise and set direction. Evening tone: acknowledge what was done and look ahead to tomorrow.\n\n' +
+    'STYLE:\n' +
+    '- Warm, direct, and specific. Reference things they actually did or wrote.\n' +
+    '- 2–4 sentences unless asked for more. No bullet lists unless asked.\n\n' +
     'Data:\n' + context;
   const initialPrompt = 'Given the time of day and my recent habit data, give me a brief personalised insight. If it\'s morning or early, focus on setting me up well for today. If it\'s evening, reflect on what I accomplished.';
   const msgs = [...history];
@@ -878,6 +882,13 @@ function handleChat(p) {
         <button class="nav-arrow" id="prev-btn" onclick="shiftDate(-1)">‹</button>
         <button class="nav-arrow" id="next-btn" onclick="shiftDate(1)" disabled>›</button>
         <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
+      </div>
+    </div>
+
+    <div class="nb-section">
+      <div class="section-hdr">Goals</div>
+      <div class="notes-inner">
+        <textarea class="note-ta" id="n-goals" placeholder="What are you building? What matters most right now…" oninput="autoResize(this)" onchange="queueGoalsSave(this.value)" style="min-height:64px"></textarea>
       </div>
     </div>
 
@@ -1085,6 +1096,7 @@ function copyScript(btn) {
 
 // ── DEFAULT CONFIG ──
 const DEFAULT_CONFIG = {
+  goals: '',
   habits: [
     { id: 'clean',       label: 'Clean',       emoji: '🧹' },
     { id: 'workout',     label: 'Workout',     emoji: '💪' },
@@ -1117,6 +1129,7 @@ let CONFIG = null; // loaded from sheet on boot
 function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits; }
 function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats; }
 function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections; }
+function getCfgGoals()       { return (CONFIG || DEFAULT_CONFIG).goals || ''; }
 
 // ── STATE ──
 let S = {
@@ -1218,6 +1231,23 @@ function queueSave(key, value) {
   }, 900);
 }
 
+let _goalsSaveTimer = null;
+function queueGoalsSave(value) {
+  if (!CONFIG) CONFIG = { ...DEFAULT_CONFIG };
+  CONFIG.goals = value;
+  clearTimeout(_goalsSaveTimer);
+  _goalsSaveTimer = setTimeout(async () => {
+    showStatus('saving');
+    try {
+      await sheetsPost({ action: 'saveConfig', configJson: JSON.stringify(CONFIG) });
+      showStatus('saved');
+    } catch(e) {
+      showStatus('err');
+      console.error('Goals save failed:', e.message);
+    }
+  }, 900);
+}
+
 // ── TALLY MARKS (SVG) ──
 function tallyHtml(n) {
   if (!n) return '<span class="tally-none">—</span>';
@@ -1264,6 +1294,9 @@ function renderToday() {
   document.getElementById('day-lbl').textContent  = dayName(S.date);
   document.getElementById('date-lbl').textContent = fmtFull(S.date);
   document.getElementById('next-btn').disabled = isToday;
+
+  const goalsEl = document.getElementById('n-goals');
+  if (goalsEl) { goalsEl.value = getCfgGoals(); autoResize(goalsEl); }
 
   renderHabitList('habits-grid', getCfgHabits(), d);
   renderStatsList(d);
@@ -1522,6 +1555,8 @@ function buildDayContext() {
   const today = todayStr();
   const d     = S.data[today] || {};
 
+  const goalsBlock = getCfgGoals() ? 'MY GOALS\n' + getCfgGoals() : '';
+
   const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
@@ -1541,7 +1576,7 @@ function buildDayContext() {
   }
   const pastBlock = pastLines.length ? 'RECENT DAYS\n' + pastLines.join('\n') : '';
 
-  return [todayBlock, pastBlock].filter(Boolean).join('\n\n');
+  return [goalsBlock, todayBlock, pastBlock].filter(Boolean).join('\n\n');
 }
 
 async function initInsightChat() {
@@ -1801,7 +1836,7 @@ function readCustomizeFromDOM() {
       reflections.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '💭', placeholder: existing?.placeholder || '' });
     }
   });
-  return { habits, stats, reflections };
+  return { goals: getCfgGoals(), habits, stats, reflections };
 }
 
 async function saveSettings() {
