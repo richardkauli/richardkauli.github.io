@@ -1092,7 +1092,6 @@ function copyScript(btn) {
 
 // ── DEFAULT CONFIG ──
 const DEFAULT_CONFIG = {
-  goals: '',
   habits: [
     { id: 'clean',       label: 'Clean',       emoji: '🧹' },
     { id: 'workout',     label: 'Workout',     emoji: '💪' },
@@ -1125,7 +1124,17 @@ let CONFIG = null; // loaded from sheet on boot
 function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits; }
 function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats; }
 function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections; }
-function getCfgGoals()       { return (CONFIG || DEFAULT_CONFIG).goals || ''; }
+
+// Goals are stored per-day and carry forward from the most recent entry
+function getGoalsForDate(date) {
+  if (S.data[date]?.goals) return S.data[date].goals;
+  // Walk backwards up to a year to find the last written goal
+  for (let i = 1; i <= 365; i++) {
+    const prev = addDays(date, -i);
+    if (S.data[prev]?.goals) return S.data[prev].goals;
+  }
+  return '';
+}
 
 // ── STATE ──
 let S = {
@@ -1206,7 +1215,8 @@ async function saveDayComplete(date) {
     const params = { action: 'saveDay', date };
     getCfgHabits().forEach(h => { params[h.id] = String(!!day[h.id]); });
     getCfgStats().forEach(s => { params[s.id] = day[s.id] != null ? day[s.id] : ''; });
-    params.notes = day.notes != null ? day.notes : '';
+    params.notes  = day.notes  != null ? day.notes  : '';
+    params.goals  = day.goals  != null ? day.goals  : '';
     getCfgReflections().forEach(r => { params[r.id] = day[r.id] != null ? day[r.id] : ''; });
     await sheetsPost(params);
     showStatus('saved');
@@ -1227,21 +1237,8 @@ function queueSave(key, value) {
   }, 900);
 }
 
-let _goalsSaveTimer = null;
 function queueGoalsSave(value) {
-  if (!CONFIG) CONFIG = { ...DEFAULT_CONFIG };
-  CONFIG.goals = value;
-  clearTimeout(_goalsSaveTimer);
-  _goalsSaveTimer = setTimeout(async () => {
-    showStatus('saving');
-    try {
-      await sheetsPost({ action: 'saveConfig', configJson: JSON.stringify(CONFIG) });
-      showStatus('saved');
-    } catch(e) {
-      showStatus('err');
-      console.error('Goals save failed:', e.message);
-    }
-  }, 900);
+  queueSave('goals', value);
 }
 
 // ── TALLY MARKS (SVG) ──
@@ -1292,7 +1289,7 @@ function renderToday() {
   document.getElementById('next-btn').disabled = isToday;
 
   const goalsEl = document.getElementById('n-goals');
-  if (goalsEl) { goalsEl.value = getCfgGoals(); autoResize(goalsEl); }
+  if (goalsEl) { goalsEl.value = getGoalsForDate(S.date); autoResize(goalsEl); }
 
   renderHabitList('habits-grid', getCfgHabits(), d);
   renderStatsList(d);
@@ -1567,7 +1564,8 @@ function buildDayContext() {
   const today = todayStr();
   const d     = S.data[today] || {};
 
-  const goalsBlock = getCfgGoals() ? 'MY GOALS\n' + getCfgGoals() : '';
+  const goalsText  = getGoalsForDate(today);
+  const goalsBlock = goalsText ? 'MY GOALS\n' + goalsText : '';
 
   const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
@@ -1848,7 +1846,7 @@ function readCustomizeFromDOM() {
       reflections.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '💭', placeholder: existing?.placeholder || '' });
     }
   });
-  return { goals: getCfgGoals(), habits, stats, reflections };
+  return { habits, stats, reflections };
 }
 
 async function saveSettings() {
