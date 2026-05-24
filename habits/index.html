@@ -884,7 +884,7 @@ function handleChat(p) {
     <div class="nb-section">
       <div class="section-hdr">Goals</div>
       <div class="notes-inner">
-        <textarea class="note-ta" id="n-goals" placeholder="What are your goals? What are you working toward…" oninput="autoResize(this)" onchange="queueGoalsSave(this.value)" style="min-height:64px"></textarea>
+        <textarea class="note-ta" id="n-goals" placeholder="What are your goals? What are you working toward…" oninput="autoResize(this);queueGoalsSave(this.value)" style="min-height:64px"></textarea>
       </div>
     </div>
 
@@ -902,7 +902,7 @@ function handleChat(p) {
       <div class="section-hdr">Notes</div>
       <div class="notes-inner">
         <div class="note-field-nb">
-          <textarea class="note-ta" id="n-notes" placeholder="Anything on your mind today…" oninput="autoResize(this)" onchange="queueSave('notes',this.value)" style="min-height:116px"></textarea>
+          <textarea class="note-ta" id="n-notes" placeholder="Anything on your mind today…" oninput="autoResize(this);queueSave('notes',this.value)" style="min-height:116px"></textarea>
         </div>
       </div>
     </div>
@@ -1234,7 +1234,7 @@ function queueSave(key, value) {
   S.saveTimers[capturedDate] = setTimeout(() => {
     delete S.saveTimers[capturedDate];
     saveDayComplete(capturedDate);
-  }, 900);
+  }, 300);
 }
 
 function queueGoalsSave(value) {
@@ -1367,8 +1367,7 @@ function renderReflectionsList(d) {
     ta.className = 'note-ta';
     ta.placeholder = r.placeholder || '';
     ta.value = d[r.id] || '';
-    ta.addEventListener('input',  () => autoResize(ta));
-    ta.addEventListener('change', () => queueSave(r.id, ta.value));
+    ta.addEventListener('input', () => { autoResize(ta); queueSave(r.id, ta.value); });
     div.appendChild(lbl);
     div.appendChild(ta);
     list.appendChild(div);
