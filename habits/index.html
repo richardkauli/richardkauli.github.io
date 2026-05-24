@@ -805,7 +805,9 @@ function handleChat(p) {
     '- Morning tone: energise and set direction. Evening tone: acknowledge what was done and look ahead to tomorrow.\n\n' +
     'STYLE:\n' +
     '- Warm, direct, and specific. Reference things they actually did or wrote.\n' +
-    '- 2–4 sentences unless asked for more. No bullet lists unless asked.\n\n' +
+    '- 2–4 sentences unless asked for more. No bullet lists unless asked.\n' +
+    '- NEVER end with a question. Not rhetorical, not literal. End with a statement or a clear directive.\n' +
+    '- Do not invite further conversation. The insight should stand alone and feel complete.\n\n' +
     'Data:\n' + context;
   const initialPrompt = 'Given the time of day and my recent habit data, give me a brief personalised insight. If it\'s morning or early, focus on setting me up well for today. If it\'s evening, reflect on what I accomplished.';
   const msgs = [...history];
