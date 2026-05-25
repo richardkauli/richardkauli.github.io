@@ -326,6 +326,68 @@
       font-family: var(--font);
     }
 
+    /* ── CALENDAR ── */
+    .cal-habit-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 20px 10px 60px;
+      gap: 8px;
+    }
+    .cal-habit-name {
+      flex: 1;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .cal-grid-wrap { padding: 0 16px 20px 56px; }
+    .cal-dow-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 2px;
+    }
+    .cal-dow-row span {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(28,28,46,0.35);
+      padding: 2px 0;
+    }
+    #cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .cal-day {
+      min-height: 54px;
+      border-bottom: 1px solid var(--rule);
+      border-right: 1px solid rgba(148,188,255,0.25);
+      padding: 3px 4px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cal-day:nth-child(7n) { border-right: none; }
+    .cal-day-num {
+      font-size: 12px;
+      color: rgba(28,28,46,0.4);
+      align-self: flex-start;
+      line-height: 1.2;
+      font-family: var(--font);
+    }
+    .cal-day.is-today .cal-day-num {
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .cal-day.other-month { opacity: 0.25; }
+    .cal-x {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--red);
+      line-height: 1.1;
+      font-family: var(--font);
+    }
+
     /* ── TAB BAR ── */
     #tab-bar {
       position: fixed;
@@ -832,6 +894,32 @@ function doPost(e) {
 
   </div>
 
+  <!-- CALENDAR PANE -->
+  <div id="calendar-pane" class="tab-pane">
+    <div class="page-hdr">
+      <div class="date-col">
+        <div class="day-name" id="cal-month-lbl"></div>
+      </div>
+      <div class="hdr-right">
+        <button class="nav-arrow" id="cal-prev-btn" onclick="calShiftMonth(-1)">‹</button>
+        <button class="nav-arrow" id="cal-next-btn" onclick="calShiftMonth(1)">›</button>
+      </div>
+    </div>
+
+    <div class="cal-habit-row">
+      <button class="nav-arrow" onclick="calShiftHabit(-1)">‹</button>
+      <span class="cal-habit-name" id="cal-habit-lbl"></span>
+      <button class="nav-arrow" onclick="calShiftHabit(1)">›</button>
+    </div>
+
+    <div class="cal-grid-wrap">
+      <div class="cal-dow-row">
+        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+      </div>
+      <div id="cal-grid"></div>
+    </div>
+  </div>
+
   <!-- TAB BAR -->
   <div id="tab-bar">
     <button class="tab-btn active" id="tb-today" onclick="switchTab('today')">
@@ -841,6 +929,10 @@ function doPost(e) {
     <button class="tab-btn" id="tb-dashboard" onclick="switchTab('dashboard')">
       <span class="t-icon">📊</span>
       <span class="t-label">Dashboard</span>
+    </button>
+    <button class="tab-btn" id="tb-calendar" onclick="switchTab('calendar')">
+      <span class="t-icon">📅</span>
+      <span class="t-label">Calendar</span>
     </button>
   </div>
 </div>
@@ -1488,7 +1580,92 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
   document.getElementById(tab + '-pane').classList.add('active');
   if (tab === 'dashboard') renderDashboard();
+  else if (tab === 'calendar') renderCalendar();
   else renderToday();
+}
+
+// ── CALENDAR ──
+const C = { year: new Date().getFullYear(), month: new Date().getMonth(), habitIdx: 0 };
+
+function calDateKey(year, month, day) {
+  return new Date(year, month, day).toISOString().slice(0, 10);
+}
+
+function renderCalendar() {
+  const habits = getCfgHabits();
+  if (!habits.length) return;
+  C.habitIdx = Math.max(0, Math.min(C.habitIdx, habits.length - 1));
+  const habit = habits[C.habitIdx];
+
+  // Header labels
+  const monthLabel = new Date(C.year, C.month, 1)
+    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-month-lbl').textContent = monthLabel;
+  document.getElementById('cal-habit-lbl').textContent = habit.emoji + ' ' + habit.label;
+
+  // Disable next arrow at current month
+  const now = new Date();
+  document.getElementById('cal-next-btn').disabled =
+    C.year === now.getFullYear() && C.month === now.getMonth();
+
+  const today      = todayStr();
+  const firstDow   = new Date(C.year, C.month, 1).getDay();     // 0=Sun
+  const daysInMon  = new Date(C.year, C.month + 1, 0).getDate();
+  const prevMonLen = new Date(C.year, C.month, 0).getDate();
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  function makeCell(dayNum, dateStr, otherMonth) {
+    const done    = S.data[dateStr]?.[habit.id] === true;
+    const isToday = dateStr === today;
+    const cell    = document.createElement('div');
+    cell.className = 'cal-day' +
+      (otherMonth ? ' other-month' : '') +
+      (isToday    ? ' is-today'    : '');
+
+    const num = document.createElement('span');
+    num.className   = 'cal-day-num';
+    num.textContent = dayNum;
+    cell.appendChild(num);
+
+    if (done) {
+      const x = document.createElement('span');
+      x.className   = 'cal-x';
+      x.textContent = '✕';
+      cell.appendChild(x);
+    }
+    return cell;
+  }
+
+  // Leading cells from previous month
+  for (let i = firstDow - 1; i >= 0; i--) {
+    const d = prevMonLen - i;
+    grid.appendChild(makeCell(d, calDateKey(C.year, C.month - 1, d), true));
+  }
+  // Current month
+  for (let d = 1; d <= daysInMon; d++) {
+    grid.appendChild(makeCell(d, calDateKey(C.year, C.month, d), false));
+  }
+  // Trailing cells to complete the last row
+  const total = firstDow + daysInMon;
+  const trail = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let d = 1; d <= trail; d++) {
+    grid.appendChild(makeCell(d, calDateKey(C.year, C.month + 1, d), true));
+  }
+}
+
+function calShiftMonth(dir) {
+  C.month += dir;
+  if (C.month < 0)  { C.month = 11; C.year--; }
+  if (C.month > 11) { C.month = 0;  C.year++; }
+  renderCalendar();
+}
+
+function calShiftHabit(dir) {
+  const len = getCfgHabits().length;
+  C.habitIdx = (C.habitIdx + dir + len) % len;
+  renderCalendar();
 }
 
 // ── SETTINGS ──
