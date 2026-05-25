@@ -327,23 +327,49 @@
     }
 
     /* ── CALENDAR ── */
-    .cal-habit-row {
-      padding: 4px 20px 10px 60px;
-    }
-    #cal-habit-sel {
-      font-family: var(--font);
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--ink);
-      background: transparent;
-      border: none;
-      border-bottom: 1.5px solid rgba(28,28,46,0.2);
-      outline: none;
-      width: 100%;
+    .cal-habit-pick-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--rule);
       cursor: pointer;
-      padding: 2px 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
     }
-    .cal-grid-wrap { padding: 0 16px 20px 56px; }
+    .cal-habit-pick-row:last-child { border-bottom: none; }
+    .cal-habit-pick-row:active { background: rgba(26,58,140,0.05); }
+    .cal-pick-emoji { font-size: 20px; flex-shrink: 0; }
+    .cal-pick-name  { flex: 1; font-size: 20px; font-weight: 500; }
+    .cal-pick-arrow { color: rgba(28,28,46,0.3); font-size: 22px; line-height: 1; }
+    /* Cal-view: inline pane, no margin line */
+    #cal-view { display: flex; flex-direction: column; min-height: calc(100vh - 80px); }
+    #cal-view[hidden] { display: none !important; }
+    #cal-view .page-hdr { padding-left: 60px; }
+    .cal-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    /* Hint text below streak list */
+    .cal-hint {
+      padding: 6px 20px 12px 60px;
+      font-size: 15px;
+      color: rgba(28,28,46,0.3);
+      font-family: var(--font);
+    }
+    /* Streak rows are tappable */
+    .streak-row { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.1s; }
+    .streak-row:active { background: rgba(26,58,140,0.05); }
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 4px 16px 12px;
+      font-family: var(--font);
+      font-size: 22px;
+      font-weight: 600;
+      color: rgba(28,28,46,0.7);
+    }
+    /* Grid starts past the margin line (44px), no right padding */
+    .cal-grid-wrap { padding: 0 0 24px 52px; }
     .cal-dow-row {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -351,27 +377,27 @@
     }
     .cal-dow-row span {
       text-align: center;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
       color: rgba(28,28,46,0.35);
-      padding: 2px 0;
+      padding: 4px 0;
     }
     #cal-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
     }
     .cal-day {
-      min-height: 54px;
+      min-height: 70px;
       border-bottom: 1px solid var(--rule);
       border-right: 1px solid rgba(148,188,255,0.25);
-      padding: 3px 4px 0;
+      padding: 4px 2px 0;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .cal-day:nth-child(7n) { border-right: none; }
     .cal-day-num {
-      font-size: 12px;
+      font-size: 13px;
       color: rgba(28,28,46,0.4);
       align-self: flex-start;
       line-height: 1.2;
@@ -380,14 +406,14 @@
     .cal-day.is-today .cal-day-num {
       color: var(--blue);
       font-weight: 700;
-      font-size: 14px;
+      font-size: 15px;
     }
     .cal-day.other-month { opacity: 0.25; }
     .cal-x {
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 700;
       color: var(--red);
-      line-height: 1.1;
+      line-height: 1.15;
       font-family: var(--font);
     }
 
@@ -660,6 +686,8 @@
     .cust-item.cust-archived { opacity: 0.4; }
     .cust-item.cust-archived .drag-handle { visibility: hidden; }
     .cust-restore { background: none; border: none; color: var(--blue); font-size: 14px; font-family: var(--font); cursor: pointer; padding: 4px 6px; white-space: nowrap; }
+    .cust-del-perm { background: none; border: none; color: var(--red); font-size: 14px; font-family: var(--font); cursor: pointer; padding: 4px 4px; opacity: 0.45; white-space: nowrap; }
+    .cust-del-perm:hover { opacity: 1; }
     .cust-drag-ghost {
       position: fixed; pointer-events: none; z-index: 9000;
       background: var(--paper); border: 1.5px solid rgba(28,28,46,0.18);
@@ -832,6 +860,7 @@ function doPost(e) {
     <div class="nb-section">
       <div class="section-hdr">Streaks</div>
       <div class="streaks-list" id="streak-list"></div>
+      <p class="cal-hint">Tap a habit to view its calendar</p>
     </div>
 
     <div class="nb-section">
@@ -850,27 +879,26 @@ function doPost(e) {
 
   </div>
 
-  <!-- CALENDAR PANE -->
-  <div id="calendar-pane" class="tab-pane">
+  <!-- CALENDAR VIEW (shown when a habit is tapped in Streaks) -->
+  <div id="cal-view" hidden>
     <div class="page-hdr">
-      <div class="date-col">
-        <div class="day-name" id="cal-month-lbl"></div>
+      <button class="nav-arrow" onclick="calBack()" style="flex-shrink:0">‹</button>
+      <div class="date-col" style="flex:1;padding-left:10px">
+        <div class="day-name" id="cal-habit-title"></div>
       </div>
-      <div class="hdr-right">
+    </div>
+    <div class="cal-body">
+      <div class="cal-month-nav">
         <button class="nav-arrow" id="cal-prev-btn" onclick="calShiftMonth(-1)">‹</button>
+        <span id="cal-month-lbl"></span>
         <button class="nav-arrow" id="cal-next-btn" onclick="calShiftMonth(1)">›</button>
       </div>
-    </div>
-
-    <div class="cal-habit-row">
-      <select id="cal-habit-sel" onchange="C.habitIdx=this.selectedIndex;renderCalendar()"></select>
-    </div>
-
-    <div class="cal-grid-wrap">
-      <div class="cal-dow-row">
-        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+      <div class="cal-grid-wrap">
+        <div class="cal-dow-row">
+          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+        </div>
+        <div id="cal-grid"></div>
       </div>
-      <div id="cal-grid"></div>
     </div>
   </div>
 
@@ -883,10 +911,6 @@ function doPost(e) {
     <button class="tab-btn" id="tb-dashboard" onclick="switchTab('dashboard')">
       <span class="t-icon">📊</span>
       <span class="t-label">Dashboard</span>
-    </button>
-    <button class="tab-btn" id="tb-calendar" onclick="switchTab('calendar')">
-      <span class="t-icon">📅</span>
-      <span class="t-label">Calendar</span>
     </button>
   </div>
 </div>
@@ -923,11 +947,10 @@ function doPost(e) {
     </div>
 
     <hr class="cust-divider">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div style="margin-bottom:10px">
       <span style="font-size:18px;font-weight:600">Customize Tracking</span>
-      <button class="cust-add-btn" onclick="toggleCustomize(this)">Show ▾</button>
     </div>
-    <div id="customize-section" hidden>
+    <div id="customize-section">
       <div class="cust-group-label">Habits</div>
       <div id="cust-habits"></div>
       <button class="cust-add-btn" onclick="addCustHabit()">+ Add</button>
@@ -1325,8 +1348,19 @@ function renderStreaks() {
       '<span class="streak-days' + (streak === 0 ? ' none' : '') + '">' +
         (streak > 0 ? streak + ' day' + (streak === 1 ? '' : 's') : '—') +
       '</span>';
+    row.addEventListener('click', () => openHabitCalendar(h.id));
     list.appendChild(row);
   });
+}
+
+function openHabitCalendar(habitId) {
+  C.selectedHabit = habitId;
+  const now = new Date();
+  C.year  = now.getFullYear();
+  C.month = now.getMonth();
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.getElementById('cal-view').removeAttribute('hidden');
+  renderCalView();
 }
 
 // ── CHARTS ──
@@ -1563,38 +1597,29 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
   document.getElementById(tab + '-pane').classList.add('active');
   if (tab === 'dashboard') renderDashboard();
-  else if (tab === 'calendar') renderCalendar();
   else renderToday();
 }
 
 // ── CALENDAR ──
-const C = { year: new Date().getFullYear(), month: new Date().getMonth(), habitIdx: 0 };
+const C = { year: new Date().getFullYear(), month: new Date().getMonth(), selectedHabit: null };
 
 function calDateKey(year, month, day) {
-  return new Date(year, month, day).toISOString().slice(0, 10);
+  const d = new Date(year, month, day);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-function renderCalendar() {
+function renderCalView() {
+  document.getElementById('cal-view').removeAttribute('hidden');
+
   const habits = getCfgHabits();
-  if (!habits.length) return;
-  C.habitIdx = Math.max(0, Math.min(C.habitIdx, habits.length - 1));
-  const habit = habits[C.habitIdx];
+  const habit  = habits.find(h => h.id === C.selectedHabit);
+  if (!habit) { calBack(); return; }
+
+  document.getElementById('cal-habit-title').textContent = habit.emoji + ' ' + habit.label;
 
   // Month label
   document.getElementById('cal-month-lbl').textContent = new Date(C.year, C.month, 1)
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-  // Populate dropdown (only rebuild if options don't match)
-  const sel = document.getElementById('cal-habit-sel');
-  if (sel.options.length !== habits.length) {
-    sel.innerHTML = '';
-    habits.forEach(h => {
-      const opt = document.createElement('option');
-      opt.textContent = h.emoji + ' ' + h.label;
-      sel.appendChild(opt);
-    });
-  }
-  sel.selectedIndex = C.habitIdx;
 
   // Disable next arrow at current month
   const now = new Date();
@@ -1602,7 +1627,7 @@ function renderCalendar() {
     C.year === now.getFullYear() && C.month === now.getMonth();
 
   const today      = todayStr();
-  const firstDow   = new Date(C.year, C.month, 1).getDay();     // 0=Sun
+  const firstDow   = new Date(C.year, C.month, 1).getDay();
   const daysInMon  = new Date(C.year, C.month + 1, 0).getDate();
   const prevMonLen = new Date(C.year, C.month, 0).getDate();
 
@@ -1648,11 +1673,17 @@ function renderCalendar() {
   }
 }
 
+function calBack() {
+  C.selectedHabit = null;
+  document.getElementById('cal-view').setAttribute('hidden', '');
+  switchTab('dashboard');
+}
+
 function calShiftMonth(dir) {
   C.month += dir;
   if (C.month < 0)  { C.month = 11; C.year--; }
   if (C.month > 11) { C.month = 0;  C.year++; }
-  renderCalendar();
+  renderCalView();
 }
 
 
@@ -1699,22 +1730,28 @@ function makeCustItem(item, type) {
     '<input class="cust-emoji" value="' + escHtml(item.emoji || '') + '" maxlength="4"' + (item.hidden ? ' disabled' : '') + '>' +
     '<input class="cust-name"  value="' + escHtml(item.label || '') + '" placeholder="Name"' + (item.hidden ? ' disabled' : '') + '>' +
     (item.hidden
-      ? '<button class="cust-restore">Restore</button>'
+      ? '<button class="cust-restore">Restore</button><button class="cust-del-perm">Delete</button>'
       : '<button class="cust-del">✕</button>');
 
   if (item.hidden) {
-    div.querySelector('.cust-restore').addEventListener('click', () => {
+    const restoreBtn = div.querySelector('.cust-restore');
+    const permDelBtn = div.querySelector('.cust-del-perm');
+    restoreBtn.addEventListener('click', () => {
       div.dataset.hidden = 'false';
       div.classList.remove('cust-archived');
       div.querySelector('.cust-emoji').disabled = false;
       div.querySelector('.cust-name').disabled  = false;
-      div.querySelector('.cust-restore').replaceWith((() => {
+      permDelBtn.remove();
+      restoreBtn.replaceWith((() => {
         const b = document.createElement('button');
         b.className = 'cust-del';
         b.textContent = '✕';
         b.addEventListener('click', () => archiveCustItem(div));
         return b;
       })());
+    });
+    permDelBtn.addEventListener('click', () => {
+      if (confirm('Permanently delete "' + escHtml(item.label || 'this item') + '"? This cannot be undone.')) div.remove();
     });
   } else {
     div.querySelector('.cust-del').addEventListener('click', () => archiveCustItem(div));
@@ -1730,18 +1767,31 @@ function archiveCustItem(div) {
   div.querySelector('.cust-emoji').disabled = true;
   div.querySelector('.cust-name').disabled  = true;
   const delBtn = div.querySelector('.cust-del');
+
   const restore = document.createElement('button');
   restore.className   = 'cust-restore';
   restore.textContent = 'Restore';
+
+  const permDel = document.createElement('button');
+  permDel.className   = 'cust-del-perm';
+  permDel.textContent = 'Delete';
+  permDel.addEventListener('click', () => {
+    const name = div.querySelector('.cust-name').value || 'this item';
+    if (confirm('Permanently delete "' + name + '"? This cannot be undone.')) div.remove();
+  });
+
   restore.addEventListener('click', () => {
     div.dataset.hidden = 'false';
     div.classList.remove('cust-archived');
     div.querySelector('.cust-emoji').disabled = false;
     div.querySelector('.cust-name').disabled  = false;
+    permDel.remove();
     restore.replaceWith(delBtn);
     delBtn.addEventListener('click', () => archiveCustItem(div));
   });
+
   delBtn.replaceWith(restore);
+  restore.after(permDel);
 }
 
 // ── DRAG TO REORDER ──
@@ -1853,9 +1903,11 @@ function readCustomizeFromDOM() {
 async function saveSettings() {
   const newUrl    = document.getElementById('cfg-url').value.trim();
   const newConfig = readCustomizeFromDOM();
+  newConfig._savedAt = Date.now(); // timestamp so devices can resolve conflicts
 
   CFG.url = newUrl;
   localStorage.setItem('h_url', newUrl);
+  localStorage.setItem('h_config', JSON.stringify(newConfig)); // local backup
   closeSettings();
 
   try {
@@ -1885,6 +1937,7 @@ async function runCleanSheet() {
 function resetApp() {
   if (!confirm('This clears your app config. Your data in Google Sheets is safe. Continue?')) return;
   localStorage.removeItem('h_url');
+  localStorage.removeItem('h_config');
   location.reload();
 }
 
@@ -1936,7 +1989,18 @@ async function startApp() {
 
   try {
     const result = await sheetsGet({ action: 'init' });
-    CONFIG = result.config || DEFAULT_CONFIG;
+    // Prefer Sheet config; fall back to last locally-cached config; then defaults
+    let localCfg = null;
+    try { localCfg = JSON.parse(localStorage.getItem('h_config')); } catch(_) {}
+    if (result.config) {
+      // Sheet has config — use it and keep local cache in sync
+      const sheetTs = result.config._savedAt || 0;
+      const localTs = localCfg?._savedAt    || 0;
+      CONFIG = (localTs > sheetTs) ? localCfg : result.config;
+      localStorage.setItem('h_config', JSON.stringify(CONFIG));
+    } else {
+      CONFIG = localCfg || DEFAULT_CONFIG;
+    }
     parseRows(result.rows);
     overlay.style.opacity = '0';
     setTimeout(() => overlay.classList.add('hidden'), 400);
