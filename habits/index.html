@@ -804,11 +804,28 @@ function doPost(e) {
       </div>
     </div>
 
-    <div class="nb-section" style="margin-bottom:20px">
-      <div class="section-hdr">Sleep &amp; Screen</div>
+    <div class="nb-section">
+      <div class="section-hdr">Sleep</div>
       <div class="chart-outer">
         <div class="chart-nb">
+          <div class="chart-hdr-nb">
+            <span class="chart-title-nb">💤 Sleep</span>
+            <span class="chart-val-nb" id="cv-sleep"></span>
+          </div>
           <div class="chart-wrap-nb"><canvas id="ch-sleep"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-section" style="margin-bottom:20px">
+      <div class="section-hdr">Screen Time</div>
+      <div class="chart-outer">
+        <div class="chart-nb">
+          <div class="chart-hdr-nb">
+            <span class="chart-title-nb">📱 Screen Time</span>
+            <span class="chart-val-nb" id="cv-screen"></span>
+          </div>
+          <div class="chart-wrap-nb"><canvas id="ch-screen"></canvas></div>
         </div>
       </div>
     </div>
@@ -1268,7 +1285,7 @@ function getDataPoints(field) {
     .map(([date, v]) => ({ x: fmtShort(date), y: parseFloat(v[field]) || 0 }));
 }
 
-function mkLine(id, label, color, pts) {
+function mkLine(id, label, color, pts, tickFmt) {
   if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
   const canvas = document.getElementById(id);
   if (!canvas) return;
@@ -1309,7 +1326,7 @@ function mkLine(id, label, color, pts) {
         },
         y: {
           grid: { color: 'rgba(148,188,255,0.4)' },
-          ticks: { font: { family: "'Caveat',cursive", size: 13 } }
+          ticks: { font: { family: "'Caveat',cursive", size: 13 }, ...(tickFmt ? { callback: tickFmt } : {}) }
         }
       }
     }
@@ -1324,54 +1341,13 @@ function renderCharts() {
 
   if (followers.length) document.getElementById('cv-followers').textContent = Number(followers[followers.length-1].y).toLocaleString();
   if (revenue.length)   document.getElementById('cv-revenue').textContent   = '$' + Number(revenue[revenue.length-1].y).toLocaleString();
+  if (sleepPts.length)  document.getElementById('cv-sleep').textContent     = sleepPts[sleepPts.length-1].y + 'h';
+  if (screenPts.length) document.getElementById('cv-screen').textContent    = screenPts[screenPts.length-1].y + 'h';
 
-  mkLine('ch-followers', 'Followers', '#1a3a8c', followers);
-  mkLine('ch-revenue',   'Revenue',   '#2d7a4f', revenue);
-
-  if (S.charts['ch-sleep']) { S.charts['ch-sleep'].destroy(); delete S.charts['ch-sleep']; }
-  const canvas = document.getElementById('ch-sleep');
-  if (!canvas) return;
-
-  const allDates = [...new Set([...sleepPts.map(p => p.x), ...screenPts.map(p => p.x)])].sort();
-  if (!allDates.length) {
-    canvas.parentElement.innerHTML = '<div class="empty-chart-nb">No sleep or screen data yet</div>';
-    return;
-  }
-
-  const sleepMap  = Object.fromEntries(sleepPts.map(p => [p.x, p.y]));
-  const screenMap = Object.fromEntries(screenPts.map(p => [p.x, p.y]));
-
-  Chart.defaults.font.family = "'Caveat', cursive";
-  Chart.defaults.font.size   = 14;
-  Chart.defaults.color       = 'rgba(28,28,46,0.5)';
-  Chart.defaults.borderColor = 'rgba(148,188,255,0.45)';
-
-  S.charts['ch-sleep'] = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: allDates,
-      datasets: [
-        {
-          label: 'Sleep (hrs)', data: allDates.map(d => sleepMap[d] ?? null),
-          borderColor: '#1a3a8c', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 3, tension: 0.35, spanGaps: true
-        },
-        {
-          label: 'Screen (hrs)', data: allDates.map(d => screenMap[d] ?? null),
-          borderColor: '#c0392b', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 3, tension: 0.35, spanGaps: true
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12, font: { family: "'Caveat',cursive", size: 14 } } } },
-      scales: {
-        x: { grid: { color: 'rgba(148,188,255,0.4)' }, ticks: { maxTicksLimit: 7, font: { family: "'Caveat',cursive", size: 13 } } },
-        y: { grid: { color: 'rgba(148,188,255,0.4)' }, ticks: { font: { family: "'Caveat',cursive", size: 13 }, callback: v => v + 'h' } }
-      }
-    }
-  });
+  mkLine('ch-followers', 'Followers',   '#1a3a8c', followers);
+  mkLine('ch-revenue',   'Revenue',     '#2d7a4f', revenue);
+  mkLine('ch-sleep',     'Sleep (hrs)', '#1a3a8c', sleepPts,  v => v + 'h');
+  mkLine('ch-screen',    'Screen (hrs)','#c0392b', screenPts, v => v + 'h');
 }
 
 // ── CHAT ──
