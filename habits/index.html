@@ -328,17 +328,20 @@
 
     /* ── CALENDAR ── */
     .cal-habit-row {
-      display: flex;
-      align-items: center;
-      padding: 6px 20px 10px 60px;
-      gap: 8px;
+      padding: 4px 20px 10px 60px;
     }
-    .cal-habit-name {
-      flex: 1;
-      text-align: center;
+    #cal-habit-sel {
+      font-family: var(--font);
       font-size: 20px;
       font-weight: 700;
       color: var(--ink);
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid rgba(28,28,46,0.2);
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+      padding: 2px 0;
     }
     .cal-grid-wrap { padding: 0 16px 20px 56px; }
     .cal-dow-row {
@@ -654,6 +657,9 @@
     }
     .drag-handle:active { cursor: grabbing; }
     .cust-item.dragging { opacity: 0.35; }
+    .cust-item.cust-archived { opacity: 0.4; }
+    .cust-item.cust-archived .drag-handle { visibility: hidden; }
+    .cust-restore { background: none; border: none; color: var(--blue); font-size: 14px; font-family: var(--font); cursor: pointer; padding: 4px 6px; white-space: nowrap; }
     .cust-drag-ghost {
       position: fixed; pointer-events: none; z-index: 9000;
       background: var(--paper); border: 1.5px solid rgba(28,28,46,0.18);
@@ -840,57 +846,7 @@ function doPost(e) {
       </div>
     </div>
 
-    <div class="nb-section">
-      <div class="section-hdr">Followers</div>
-      <div class="chart-outer">
-        <div class="chart-nb">
-          <div class="chart-hdr-nb">
-            <span class="chart-title-nb">👥 Instagram</span>
-            <span class="chart-val-nb" id="cv-followers"></span>
-          </div>
-          <div class="chart-wrap-nb"><canvas id="ch-followers"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="nb-section">
-      <div class="section-hdr">Revenue</div>
-      <div class="chart-outer">
-        <div class="chart-nb">
-          <div class="chart-hdr-nb">
-            <span class="chart-title-nb">💰 Revenue</span>
-            <span class="chart-val-nb" id="cv-revenue"></span>
-          </div>
-          <div class="chart-wrap-nb"><canvas id="ch-revenue"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="nb-section">
-      <div class="section-hdr">Sleep</div>
-      <div class="chart-outer">
-        <div class="chart-nb">
-          <div class="chart-hdr-nb">
-            <span class="chart-title-nb">💤 Sleep</span>
-            <span class="chart-val-nb" id="cv-sleep"></span>
-          </div>
-          <div class="chart-wrap-nb"><canvas id="ch-sleep"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="nb-section" style="margin-bottom:20px">
-      <div class="section-hdr">Screen Time</div>
-      <div class="chart-outer">
-        <div class="chart-nb">
-          <div class="chart-hdr-nb">
-            <span class="chart-title-nb">📱 Screen Time</span>
-            <span class="chart-val-nb" id="cv-screen"></span>
-          </div>
-          <div class="chart-wrap-nb"><canvas id="ch-screen"></canvas></div>
-        </div>
-      </div>
-    </div>
+    <div id="stats-charts" style="margin-bottom:20px"></div>
 
   </div>
 
@@ -907,9 +863,7 @@ function doPost(e) {
     </div>
 
     <div class="cal-habit-row">
-      <button class="nav-arrow" onclick="calShiftHabit(-1)">‹</button>
-      <span class="cal-habit-name" id="cal-habit-lbl"></span>
-      <button class="nav-arrow" onclick="calShiftHabit(1)">›</button>
+      <select id="cal-habit-sel" onchange="C.habitIdx=this.selectedIndex;renderCalendar()"></select>
     </div>
 
     <div class="cal-grid-wrap">
@@ -1048,9 +1002,10 @@ let CFG = {
 };
 let CONFIG = null; // loaded from sheet on boot
 
-function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits; }
-function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats; }
-function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections; }
+function getCfgHabits()      { return (CONFIG || DEFAULT_CONFIG).habits.filter(h => !h.hidden); }
+function getCfgStats()       { return (CONFIG || DEFAULT_CONFIG).stats.filter(s => !s.hidden); }
+function getCfgReflections() { return (CONFIG || DEFAULT_CONFIG).reflections.filter(r => !r.hidden); }
+function getAllCfgItems(key) { return (CONFIG || DEFAULT_CONFIG)[key] || []; }
 
 // Goals are stored per-day and carry forward from the most recent entry
 function getGoalsForDate(date) {
@@ -1074,7 +1029,12 @@ let S = {
 };
 
 // ── DATE UTILS ──
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 function addDays(s, n) {
   const d = new Date(s + 'T12:00:00');
   d.setDate(d.getDate() + n);
@@ -1425,21 +1385,44 @@ function mkLine(id, label, color, pts, tickFmt) {
   });
 }
 
+const CHART_COLORS = ['#1a3a8c','#2d7a4f','#8b5cf6','#f59e0b','#ec4899','#06b6d4','#c0392b','#d97706'];
+
 function renderCharts() {
-  const followers = getDataPoints('followers');
-  const revenue   = getDataPoints('revenue');
-  const sleepPts  = getDataPoints('sleep');
-  const screenPts = getDataPoints('screen_time');
+  const container = document.getElementById('stats-charts');
+  if (!container) return;
+  container.innerHTML = '';
 
-  if (followers.length) document.getElementById('cv-followers').textContent = Number(followers[followers.length-1].y).toLocaleString();
-  if (revenue.length)   document.getElementById('cv-revenue').textContent   = '$' + Number(revenue[revenue.length-1].y).toLocaleString();
-  if (sleepPts.length)  document.getElementById('cv-sleep').textContent     = sleepPts[sleepPts.length-1].y + 'h';
-  if (screenPts.length) document.getElementById('cv-screen').textContent    = screenPts[screenPts.length-1].y + 'h';
+  // Destroy old chart instances
+  Object.keys(S.charts).forEach(id => { S.charts[id].destroy(); delete S.charts[id]; });
 
-  mkLine('ch-followers', 'Followers',   '#1a3a8c', followers);
-  mkLine('ch-revenue',   'Revenue',     '#2d7a4f', revenue);
-  mkLine('ch-sleep',     'Sleep (hrs)', '#1a3a8c', sleepPts,  v => v + 'h');
-  mkLine('ch-screen',    'Screen (hrs)','#c0392b', screenPts, v => v + 'h');
+  const stats = getCfgStats();
+  if (!stats.length) return;
+
+  stats.forEach((s, i) => {
+    const pts   = getDataPoints(s.id);
+    const color = CHART_COLORS[i % CHART_COLORS.length];
+    const canvasId = 'ch-' + s.id;
+    const valId    = 'cv-' + s.id;
+
+    const section = document.createElement('div');
+    section.className = 'nb-section';
+    if (i === stats.length - 1) section.style.marginBottom = '20px';
+    section.innerHTML =
+      '<div class="section-hdr">' + escHtml(s.label) + '</div>' +
+      '<div class="chart-outer"><div class="chart-nb">' +
+        '<div class="chart-hdr-nb">' +
+          '<span class="chart-title-nb">' + escHtml(s.emoji + ' ' + s.label) + '</span>' +
+          '<span class="chart-val-nb" id="' + valId + '"></span>' +
+        '</div>' +
+        '<div class="chart-wrap-nb"><canvas id="' + canvasId + '"></canvas></div>' +
+      '</div></div>';
+    container.appendChild(section);
+
+    if (pts.length) {
+      document.getElementById(valId).textContent = pts[pts.length - 1].y;
+    }
+    mkLine(canvasId, s.label, color, pts);
+  });
 }
 
 // ── CHAT ──
@@ -1597,11 +1580,21 @@ function renderCalendar() {
   C.habitIdx = Math.max(0, Math.min(C.habitIdx, habits.length - 1));
   const habit = habits[C.habitIdx];
 
-  // Header labels
-  const monthLabel = new Date(C.year, C.month, 1)
+  // Month label
+  document.getElementById('cal-month-lbl').textContent = new Date(C.year, C.month, 1)
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  document.getElementById('cal-month-lbl').textContent = monthLabel;
-  document.getElementById('cal-habit-lbl').textContent = habit.emoji + ' ' + habit.label;
+
+  // Populate dropdown (only rebuild if options don't match)
+  const sel = document.getElementById('cal-habit-sel');
+  if (sel.options.length !== habits.length) {
+    sel.innerHTML = '';
+    habits.forEach(h => {
+      const opt = document.createElement('option');
+      opt.textContent = h.emoji + ' ' + h.label;
+      sel.appendChild(opt);
+    });
+  }
+  sel.selectedIndex = C.habitIdx;
 
   // Disable next arrow at current month
   const now = new Date();
@@ -1662,11 +1655,6 @@ function calShiftMonth(dir) {
   renderCalendar();
 }
 
-function calShiftHabit(dir) {
-  const len = getCfgHabits().length;
-  C.habitIdx = (C.habitIdx + dir + len) % len;
-  renderCalendar();
-}
 
 // ── SETTINGS ──
 function openSettings() {
@@ -1688,9 +1676,9 @@ function toggleCustomize(btn) {
 
 // ── CUSTOMIZE UI ──
 function renderCustomize() {
-  renderCustGroup('cust-habits',      getCfgHabits(),      'habits');
-  renderCustGroup('cust-stats',       getCfgStats(),       'stats');
-  renderCustGroup('cust-reflections', getCfgReflections(), 'reflections');
+  renderCustGroup('cust-habits',      getAllCfgItems('habits'),      'habits');
+  renderCustGroup('cust-stats',       getAllCfgItems('stats'),       'stats');
+  renderCustGroup('cust-reflections', getAllCfgItems('reflections'), 'reflections');
 }
 
 function renderCustGroup(id, items, type) {
@@ -1702,16 +1690,58 @@ function renderCustGroup(id, items, type) {
 
 function makeCustItem(item, type) {
   const div = document.createElement('div');
-  div.className = 'cust-item';
-  div.dataset.id   = item.id;
-  div.dataset.type = type;
+  div.className = 'cust-item' + (item.hidden ? ' cust-archived' : '');
+  div.dataset.id      = item.id;
+  div.dataset.type    = type;
+  div.dataset.hidden  = item.hidden ? 'true' : 'false';
   div.innerHTML =
     '<span class="drag-handle">⠿</span>' +
-    '<input class="cust-emoji" value="' + escHtml(item.emoji || '') + '" maxlength="4">' +
-    '<input class="cust-name"  value="' + escHtml(item.label || '') + '" placeholder="Name">' +
-    '<button class="cust-del" onclick="this.closest(\'.cust-item\').remove()">✕</button>';
+    '<input class="cust-emoji" value="' + escHtml(item.emoji || '') + '" maxlength="4"' + (item.hidden ? ' disabled' : '') + '>' +
+    '<input class="cust-name"  value="' + escHtml(item.label || '') + '" placeholder="Name"' + (item.hidden ? ' disabled' : '') + '>' +
+    (item.hidden
+      ? '<button class="cust-restore">Restore</button>'
+      : '<button class="cust-del">✕</button>');
+
+  if (item.hidden) {
+    div.querySelector('.cust-restore').addEventListener('click', () => {
+      div.dataset.hidden = 'false';
+      div.classList.remove('cust-archived');
+      div.querySelector('.cust-emoji').disabled = false;
+      div.querySelector('.cust-name').disabled  = false;
+      div.querySelector('.cust-restore').replaceWith((() => {
+        const b = document.createElement('button');
+        b.className = 'cust-del';
+        b.textContent = '✕';
+        b.addEventListener('click', () => archiveCustItem(div));
+        return b;
+      })());
+    });
+  } else {
+    div.querySelector('.cust-del').addEventListener('click', () => archiveCustItem(div));
+  }
+
   attachDragHandle(div.querySelector('.drag-handle'));
   return div;
+}
+
+function archiveCustItem(div) {
+  div.dataset.hidden = 'true';
+  div.classList.add('cust-archived');
+  div.querySelector('.cust-emoji').disabled = true;
+  div.querySelector('.cust-name').disabled  = true;
+  const delBtn = div.querySelector('.cust-del');
+  const restore = document.createElement('button');
+  restore.className   = 'cust-restore';
+  restore.textContent = 'Restore';
+  restore.addEventListener('click', () => {
+    div.dataset.hidden = 'false';
+    div.classList.remove('cust-archived');
+    div.querySelector('.cust-emoji').disabled = false;
+    div.querySelector('.cust-name').disabled  = false;
+    restore.replaceWith(delBtn);
+    delBtn.addEventListener('click', () => archiveCustItem(div));
+  });
+  delBtn.replaceWith(restore);
 }
 
 // ── DRAG TO REORDER ──
@@ -1795,23 +1825,26 @@ function addCustReflection() {
 function readCustomizeFromDOM() {
   const habits = [];
   document.querySelectorAll('#cust-habits .cust-item').forEach(el => {
-    const label = el.querySelector('.cust-name').value.trim();
-    if (label) habits.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '⭐' });
+    const label  = el.querySelector('.cust-name').value.trim();
+    const hidden = el.dataset.hidden === 'true';
+    if (label || hidden) habits.push({ id: el.dataset.id, label: label || el.querySelector('.cust-name').defaultValue, emoji: el.querySelector('.cust-emoji').value || '⭐', hidden });
   });
   const stats = [];
   document.querySelectorAll('#cust-stats .cust-item').forEach(el => {
-    const label = el.querySelector('.cust-name').value.trim();
-    if (label) {
-      const existing = getCfgStats().find(s => s.id === el.dataset.id);
-      stats.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '📊', type: existing?.type || 'decimal' });
+    const label  = el.querySelector('.cust-name').value.trim();
+    const hidden = el.dataset.hidden === 'true';
+    if (label || hidden) {
+      const existing = getAllCfgItems('stats').find(s => s.id === el.dataset.id);
+      stats.push({ id: el.dataset.id, label: label || el.querySelector('.cust-name').defaultValue, emoji: el.querySelector('.cust-emoji').value || '📊', type: existing?.type || 'decimal', hidden });
     }
   });
   const reflections = [];
   document.querySelectorAll('#cust-reflections .cust-item').forEach(el => {
-    const label = el.querySelector('.cust-name').value.trim();
-    if (label) {
-      const existing = getCfgReflections().find(r => r.id === el.dataset.id);
-      reflections.push({ id: el.dataset.id, label, emoji: el.querySelector('.cust-emoji').value || '💭', placeholder: existing?.placeholder || '' });
+    const label  = el.querySelector('.cust-name').value.trim();
+    const hidden = el.dataset.hidden === 'true';
+    if (label || hidden) {
+      const existing = getAllCfgItems('reflections').find(r => r.id === el.dataset.id);
+      reflections.push({ id: el.dataset.id, label: label || el.querySelector('.cust-name').defaultValue, emoji: el.querySelector('.cust-emoji').value || '💭', placeholder: existing?.placeholder || '', hidden });
     }
   });
   return { habits, stats, reflections };
