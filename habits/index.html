@@ -809,6 +809,13 @@ function doPost(e) {
     </div>
 
     <div class="nb-section">
+      <div class="section-hdr">Today's Plan</div>
+      <div class="notes-inner">
+        <textarea class="note-ta" id="n-todays-plan" placeholder="No plan yet." oninput="autoResize(this);queueTodaysPlanSave(this.value)" style="min-height:64px"></textarea>
+      </div>
+    </div>
+
+    <div class="nb-section">
       <div class="section-hdr">Habits</div>
       <div class="habits-list" id="habits-grid"></div>
     </div>
@@ -827,9 +834,16 @@ function doPost(e) {
       </div>
     </div>
 
-    <div class="nb-section" style="margin-bottom:20px">
+    <div class="nb-section">
       <div class="section-hdr">Reflections</div>
       <div class="notes-inner" id="reflections-list"></div>
+    </div>
+
+    <div class="nb-section" style="margin-bottom:20px">
+      <div class="section-hdr">Tomorrow's Plan</div>
+      <div class="notes-inner">
+        <textarea class="note-ta" id="n-tomorrows-plan" placeholder="What's the plan for tomorrow…" oninput="autoResize(this);queueSave('tomorrows_plan',this.value)" style="min-height:64px"></textarea>
+      </div>
     </div>
   </div>
 
@@ -1125,8 +1139,9 @@ async function saveDayComplete(date) {
     const params = { action: 'saveDay', date };
     getCfgHabits().forEach(h => { params[h.id] = String(!!day[h.id]); });
     getCfgStats().forEach(s => { params[s.id] = day[s.id] != null ? day[s.id] : ''; });
-    params.notes  = day.notes  != null ? day.notes  : '';
-    params.goals  = day.goals  != null ? day.goals  : '';
+    params.notes          = day.notes          != null ? day.notes          : '';
+    params.goals          = day.goals          != null ? day.goals          : '';
+    params.tomorrows_plan = day.tomorrows_plan != null ? day.tomorrows_plan : '';
     getCfgReflections().forEach(r => { params[r.id] = day[r.id] != null ? day[r.id] : ''; });
     await sheetsPost(params);
     showStatus('saved');
@@ -1149,6 +1164,18 @@ function queueSave(key, value) {
 
 function queueGoalsSave(value) {
   queueSave('goals', value);
+}
+
+// Editing Today's Plan writes back to yesterday's tomorrows_plan — one source of truth
+function queueTodaysPlanSave(value) {
+  const yesterday = addDays(S.date, -1);
+  if (!S.data[yesterday]) S.data[yesterday] = {};
+  S.data[yesterday].tomorrows_plan = value;
+  clearTimeout(S.saveTimers[yesterday]);
+  S.saveTimers[yesterday] = setTimeout(() => {
+    delete S.saveTimers[yesterday];
+    saveDayComplete(yesterday);
+  }, 300);
 }
 
 // ── TALLY MARKS (SVG) ──
@@ -1201,6 +1228,13 @@ function renderToday() {
   const goalsEl = document.getElementById('n-goals');
   if (goalsEl) { goalsEl.value = getGoalsForDate(S.date); autoResize(goalsEl); }
 
+  // Today's Plan = yesterday's Tomorrow's Plan (read-only)
+  const todaysPlanEl = document.getElementById('n-todays-plan');
+  if (todaysPlanEl) {
+    todaysPlanEl.value = S.data[addDays(S.date, -1)]?.tomorrows_plan || '';
+    autoResize(todaysPlanEl);
+  }
+
   renderHabitList('habits-grid', getCfgHabits(), d);
   renderStatsList(d);
 
@@ -1208,6 +1242,9 @@ function renderToday() {
   if (notesEl) { notesEl.value = d.notes || ''; autoResize(notesEl); }
 
   renderReflectionsList(d);
+
+  const tomorrowsPlanEl = document.getElementById('n-tomorrows-plan');
+  if (tomorrowsPlanEl) { tomorrowsPlanEl.value = d.tomorrows_plan || ''; autoResize(tomorrowsPlanEl); }
 }
 
 function renderHabitList(gridId, habits, dayData) {
@@ -1467,6 +1504,13 @@ function buildDayContext() {
   const goalsText  = getGoalsForDate(today);
   const goalsBlock = goalsText ? 'MY GOALS\n' + goalsText : '';
 
+  const todaysPlan    = S.data[addDays(today, -1)]?.tomorrows_plan || '';
+  const tomorrowsPlan = d.tomorrows_plan || '';
+  const planBlock     = [
+    todaysPlan    ? 'MY PLAN FOR TODAY\n' + todaysPlan       : '',
+    tomorrowsPlan ? 'MY PLAN FOR TOMORROW\n' + tomorrowsPlan : ''
+  ].filter(Boolean).join('\n\n');
+
   const habits = getCfgHabits().map(h => h.label + ': ' + (d[h.id] ? '✓' : '✗')).join(', ');
   const stats  = getCfgStats().map(s => s.label + ': ' + (d[s.id] != null ? d[s.id] : '—')).join(', ');
   const notes  = d.notes ? 'Notes: ' + d.notes : '';
@@ -1486,7 +1530,7 @@ function buildDayContext() {
   }
   const pastBlock = pastLines.length ? 'RECENT DAYS\n' + pastLines.join('\n') : '';
 
-  return [goalsBlock, todayBlock, pastBlock].filter(Boolean).join('\n\n');
+  return [goalsBlock, planBlock, todayBlock, pastBlock].filter(Boolean).join('\n\n');
 }
 
 async function initInsightChat() {
