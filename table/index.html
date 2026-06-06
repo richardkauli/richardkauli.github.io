@@ -6,11 +6,63 @@
   <title>Table - Richard Kauli</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    embed { display: block; width: 100%; height: 100%; }
+    html, body { background: #525659; min-height: 100%; }
+    #viewer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 12px;
+    }
+    .page-canvas {
+      display: block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      max-width: 100%;
+    }
+    #loading {
+      color: #ccc;
+      font-family: sans-serif;
+      font-size: 14px;
+      padding: 40px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <embed src="/table/table.pdf" type="application/pdf" />
+  <div id="loading">Loading...</div>
+  <div id="viewer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+  <script type="module">
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
+    const viewer = document.getElementById('viewer');
+    const loading = document.getElementById('loading');
+    const scale = Math.min(window.devicePixelRatio || 1, 2);
+    const cssWidth = Math.min(window.innerWidth - 32, 900);
+
+    const pdf = await pdfjsLib.getDocument('/table/table.pdf').promise;
+    loading.remove();
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1 });
+      const renderScale = (cssWidth / viewport.width) * scale;
+      const scaled = page.getViewport({ scale: renderScale });
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'page-canvas';
+      canvas.width = scaled.width;
+      canvas.height = scaled.height;
+      canvas.style.width = cssWidth + 'px';
+      canvas.style.height = (scaled.height / scale) + 'px';
+      viewer.appendChild(canvas);
+
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaled }).promise;
+    }
+  </script>
 </body>
 </html>
