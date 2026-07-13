@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link href="https://www.richardkauli.com/favicon.png" rel="icon" type="image/png"/>
+<meta charset="utf-8"/>
+<title>Richard Kauli - KidSuper Application</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<style>
+@font-face {
+  font-family: 'ArialBlackCustom';
+  src: url('https://www.richardkauli.com/arial_black.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Courier, monospace;
+  background-color: white;
+  color: black;
+  padding-bottom: 100px;
+}
+
+/* ── VIDEO ── */
+.video-wrap {
+  width: 100%;
+  padding: 5% 5% 0 5%;
+}
+
+.video-wrap video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+}
+
+/* ── COPY ── */
+.copy {
+  max-width: 900px;
+  margin: 2em auto 0 auto;
+  padding: 0 5%;
+  font-size: 1em;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em 2vw;
+  height: 4em;
+}
+
+.bottom-nav button {
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.bottom-nav button:hover {
+  color: red !important;
+  background: none !important;
+  transform: scale(1.1);
+}
+
+.instagram-icon {
+  width: 28px;
+  height: 28px;
+  background-color: black;
+  mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  -webkit-mask: url('https://www.richardkauli.com/IG_LOGO.png') no-repeat center / contain;
+  display: inline-block;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.instagram-icon:hover {
+  transform: scale(1.1);
+  background-color: red;
+}
+
+/* ── HAMBURGER (mobile) ── */
+.hamburger { display: none; width: 40px; height: 40px; }
+.hamburger span {
+  display: block;
+  width: 30px;
+  height: 4px;
+  margin: 5px auto;
+  background-color: black;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background-color: white;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+.mobile-menu-overlay ul {
+  list-style: none;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+.mobile-menu-overlay li { margin: 0; padding: 0.75rem 0; }
+.mobile-menu-link {
+  text-decoration: none;
+  font-family: 'ArialBlackCustom', 'Arial Black', Arial, sans-serif;
+  font-size: 2rem;
+  color: black;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  transition: color 0.2s ease;
+}
+.mobile-menu-link:hover { color: red !important; }
+
+.mobile-menu-overlay .instagram-icon {
+  width: 32px; height: 32px;
+}
+
+body.menu-open .mobile-menu-overlay { transform: translateY(0); }
+body.menu-open .hamburger span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+body.menu-open .hamburger span:nth-child(2) { opacity: 0; }
+body.menu-open .hamburger span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+
+@media (max-width: 768px) {
+  .bottom-nav { display: none !important; }
+  .hamburger {
+    display: block;
+    position: fixed;
+    bottom: 1.5em;
+    right: 1.5em;
+    z-index: 1001;
+    cursor: pointer;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="video-wrap">
+  <video controls preload="metadata" playsinline>
+    <source src="kidsuperapplication.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<p class="copy">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+  incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
+  exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure
+  dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+  mollit anim id est laborum.
+</p>
+
+<div class="bottom-nav">
+  <button onclick="location.href='https://www.richardkauli.com'">RICHARD KAULI</button>
+  <button onclick="location.href='../clothes/'">CLOTHES</button>
+  <button onclick="location.href='../portfolio/'">PORTFOLIO</button>
+  <button onclick="location.href='../contact/'">CONTACT</button>
+  <a class="instagram-icon" href="https://www.instagram.com/richard.kauli" target="_blank"></a>
+</div>
+
+<!-- Mobile Hamburger Menu -->
+<div class="hamburger" id="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
+<div class="mobile-menu-overlay" id="menuOverlay">
+  <ul>
+    <li><a class="mobile-menu-link" href="https://www.richardkauli.com">RICHARD KAULI</a></li>
+    <li><a class="mobile-menu-link" href="../clothes/">CLOTHES</a></li>
+    <li><a class="mobile-menu-link" href="../portfolio/">PORTFOLIO</a></li>
+    <li><a class="mobile-menu-link" href="../contact/">CONTACT</a></li>
+    <li><a class="mobile-menu-link" href="https://www.instagram.com/richard.kauli" target="_blank"><span class="instagram-icon"></span></a></li>
+  </ul>
+</div>
+
+<script>
+document.getElementById('hamburger').addEventListener('click', function() {
+  document.body.classList.toggle('menu-open');
+});
+</script>
+
+</body>
+</html>
