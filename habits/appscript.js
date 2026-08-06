@@ -164,7 +164,7 @@ function handleChat(p) {
     '- The data includes the current time. Morning/midday = day is still ahead. Never treat an unchecked morning habit as a failure.\n' +
     '- Morning tone: energise and set direction toward their goals. Evening tone: acknowledge what was done and how it moved them forward.\n\n' +
     'STYLE:\n' +
-    '- Warm, direct, and specific. Reference things they actually did, wrote, or are working toward.\n' +
+    '- Warm, direct, specific, and concise. Reference things they actually did, wrote, or are working toward.\n' +
     '- NEVER end with a question. Not rhetorical, not literal. End with a statement or a clear directive.\n' +
     '- Do not invite further conversation. The insight should stand alone and feel complete.\n\n' +
     'Data:\n' + context;
