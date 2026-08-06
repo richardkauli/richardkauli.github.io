@@ -116,6 +116,28 @@
     .habits-list {
       display: flex;
       flex-direction: column;
+      /* 7 continuous vertical lines drawn as background strips:
+         1 on the left of the grid + 6 between the 7 columns.
+         Positions are calculated from the right edge of the container,
+         matching the mini-grid cells (7 × 22px with 20px right padding). */
+      background-image:
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule)),
+        linear-gradient(to bottom, var(--rule), var(--rule));
+      background-size: 1px 100%;
+      background-repeat: no-repeat;
+      background-position:
+        calc(100% - 20px - 7 * 32px) 0,
+        calc(100% - 20px - 6 * 32px) 0,
+        calc(100% - 20px - 5 * 32px) 0,
+        calc(100% - 20px - 4 * 32px) 0,
+        calc(100% - 20px - 3 * 32px) 0,
+        calc(100% - 20px - 2 * 32px) 0,
+        calc(100% - 20px - 1 * 32px) 0;
     }
     .habit-row {
       display: flex;
@@ -147,8 +169,12 @@
     .habit-emoji { font-size: 18px; flex-shrink: 0; }
     .habit-name-nb {
       flex: 1;
+      min-width: 0;
       font-size: 20px;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       transition: opacity 0.15s, text-decoration 0.15s;
     }
     .habit-row.done .habit-name-nb {
@@ -156,8 +182,40 @@
       opacity: 0.42;
     }
     .habit-tally { flex-shrink: 0; display: flex; align-items: center; }
-    .tally-svg { height: 16px; overflow: visible; }
-    .tally-none { font-size: 16px; color: rgba(28,28,46,0.25); }
+    /* shared date header above all habits */
+    .habit-date-hdr {
+      display: flex;
+      padding: 5px 20px 3px 60px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .habit-date-cells {
+      margin-left: auto;
+      display: grid;
+      grid-template-columns: repeat(7, 32px);
+      place-items: center;
+    }
+    .mg-date {
+      font-size: 20px;
+      color: rgba(28,28,46,0.35);
+      font-family: var(--font);
+      line-height: 1.4;
+      overflow: visible;
+    }
+    .mg-today-lbl { color: var(--blue); font-weight: 700; }
+    /* per-habit mark cells (no dates) */
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 32px);
+      place-items: center;
+    }
+    .mg-mark {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--red);
+      font-family: var(--font);
+      line-height: 1.2;
+      min-height: 20px;
+    }
 
     /* ── STATS ── */
     .stats-list {
@@ -173,7 +231,7 @@
     }
     .stat-row:last-child { border-bottom: none; }
     .stat-lbl {
-      font-size: 18px;
+      font-size: 20px;
       white-space: nowrap;
       flex: 1;
     }
@@ -324,6 +382,28 @@
       font-size: 17px;
       color: rgba(28,28,46,0.3);
       font-family: var(--font);
+    }
+
+    /* ── CHART RANGE SELECTOR ── */
+    .chart-range-sel {
+      display: flex;
+      gap: 6px;
+      padding: 4px 20px 8px 60px;
+    }
+    .chart-range-btn {
+      background: none;
+      border: 1.5px solid rgba(28,28,46,0.2);
+      border-radius: 20px;
+      padding: 3px 13px;
+      font-family: var(--font);
+      font-size: 16px;
+      color: rgba(28,28,46,0.5);
+      cursor: pointer;
+    }
+    .chart-range-btn.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
     }
 
     /* ── CALENDAR ── */
@@ -875,13 +955,23 @@ function doPost(e) {
           <div class="ov-dt" id="ov-date"></div>
         </div>
       </div>
+      <div class="chart-outer" style="margin-top:4px"><div class="chart-nb">
+        <div class="chart-hdr-nb">
+          <span class="chart-title-nb">📅 Habits Completed</span>
+          <span class="chart-val-nb" id="cv-habits"></span>
+        </div>
+        <div class="chart-wrap-nb"><canvas id="ch-habits"></canvas></div>
+      </div></div>
     </div>
 
-    <div class="nb-section">
-      <div class="section-hdr">Streaks</div>
-      <div class="streaks-list" id="streak-list"></div>
-      <p class="cal-hint">Tap a habit to view its calendar</p>
+    <div class="chart-range-sel">
+      <button class="chart-range-btn" data-days="7" onclick="setChartDays(7)">7d</button>
+      <button class="chart-range-btn active" data-days="30" onclick="setChartDays(30)">30d</button>
+      <button class="chart-range-btn" data-days="90" onclick="setChartDays(90)">90d</button>
+      <button class="chart-range-btn" data-days="all" onclick="setChartDays('all')">All</button>
     </div>
+
+    <div id="stats-charts"></div>
 
     <div class="nb-section">
       <div class="section-hdr">Insight</div>
@@ -895,7 +985,11 @@ function doPost(e) {
       </div>
     </div>
 
-    <div id="stats-charts" style="margin-bottom:20px"></div>
+    <div class="nb-section" style="margin-bottom:20px">
+      <div class="section-hdr">Streaks</div>
+      <div class="streaks-list" id="streak-list"></div>
+      <p class="cal-hint">Tap a habit to view its calendar</p>
+    </div>
 
   </div>
 
@@ -1065,6 +1159,8 @@ let S = {
   chatBusy:    false
 };
 
+const G = { chartDays: 30 };
+
 // ── DATE UTILS ──
 function todayStr() {
   const d = new Date();
@@ -1178,29 +1274,30 @@ function queueTodaysPlanSave(value) {
   }, 300);
 }
 
-// ── TALLY MARKS (SVG) ──
-function tallyHtml(n) {
-  if (!n) return '<span class="tally-none">—</span>';
-  const INK = '#1a3a8c';
-  const groups = Math.floor(n / 5);
-  const rem = n % 5;
-  const w = groups * 26 + rem * 6 + 2;
-  let svg = '<svg class="tally-svg" viewBox="0 0 ' + w + ' 20" xmlns="http://www.w3.org/2000/svg">';
-  let x = 2;
-  for (let g = 0; g < groups; g++) {
-    for (let i = 0; i < 4; i++) {
-      const lx = x + i * 5;
-      svg += '<line x1="' + lx + '" y1="1" x2="' + lx + '" y2="19" stroke="' + INK + '" stroke-width="1.6"/>';
-    }
-    svg += '<line x1="' + (x - 2) + '" y1="18" x2="' + (x + 22) + '" y2="2" stroke="' + INK + '" stroke-width="1.6"/>';
-    x += 26;
+// ── HABIT GRID ──
+function fmtMD(dateStr) {
+  return new Date(dateStr + 'T12:00:00').getDate();
+}
+
+function habitDateHeaderHtml() {
+  const today = todayStr();
+  let cells = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = addDays(today, -i);
+    cells += '<span class="mg-date' + (d === S.date ? ' mg-today-lbl' : '') + '">' + fmtMD(d) + '</span>';
   }
-  for (let i = 0; i < rem; i++) {
-    svg += '<line x1="' + x + '" y1="1" x2="' + x + '" y2="19" stroke="' + INK + '" stroke-width="1.6"/>';
-    x += 6;
+  return '<div class="habit-date-hdr"><div class="habit-date-cells">' + cells + '</div></div>';
+}
+
+function miniGridHtml(habitId) {
+  const today = todayStr();
+  let html = '<div class="mini-grid">';
+  for (let i = 6; i >= 0; i--) {
+    const d    = addDays(today, -i);
+    const done = S.data[d]?.[habitId] === true;
+    html += '<span class="mg-mark">' + (done ? '✕' : '') + '</span>';
   }
-  svg += '</svg>';
-  return svg;
+  return html + '</div>';
 }
 
 // ── STREAKS ──
@@ -1250,17 +1347,17 @@ function renderToday() {
 function renderHabitList(gridId, habits, dayData) {
   const list = document.getElementById(gridId);
   list.innerHTML = '';
+  if (habits.length) list.insertAdjacentHTML('beforeend', habitDateHeaderHtml());
   habits.forEach(h => {
-    const done   = dayData[h.id] === true;
-    const streak = getStreak(h.id);
-    const row    = document.createElement('div');
+    const done = dayData[h.id] === true;
+    const row  = document.createElement('div');
     row.className = 'habit-row' + (done ? ' done' : '');
     row.setAttribute('onclick', 'toggleHabit("' + h.id + '")');
     row.innerHTML =
       '<div class="habit-cbx" id="cbx-' + h.id + '">' + (done ? '✓' : '') + '</div>' +
       '<span class="habit-emoji">' + h.emoji + '</span>' +
       '<span class="habit-name-nb">' + h.label + '</span>' +
-      '<div class="habit-tally" id="tal-' + h.id + '">' + tallyHtml(streak) + '</div>';
+      '<div class="habit-tally" id="tal-' + h.id + '">' + miniGridHtml(h.id) + '</div>';
     list.appendChild(row);
   });
 }
@@ -1333,9 +1430,8 @@ async function toggleHabit(habitId) {
     cbx.textContent = newVal ? '✓' : '';
     row?.classList.toggle('done', newVal);
   }
-  const streak = getStreak(habitId);
-  const talEl  = document.getElementById('tal-' + habitId);
-  if (talEl) talEl.innerHTML = tallyHtml(streak);
+  const talEl = document.getElementById('tal-' + habitId);
+  if (talEl) talEl.innerHTML = miniGridHtml(habitId);
 
   const _d = S.date;
   clearTimeout(S.saveTimers[_d]);
@@ -1352,8 +1448,9 @@ function shiftDate(n) {
 // ── DASHBOARD ──
 function renderDashboard() {
   renderOverview();
-  renderStreaks();
+  renderHabitCompletionChart();
   renderCharts();
+  renderStreaks();
   initInsightChat();
 }
 
@@ -1401,11 +1498,36 @@ function openHabitCalendar(habitId) {
 }
 
 // ── CHARTS ──
-function getDataPoints(field) {
-  return Object.entries(S.data)
-    .filter(([, v]) => v[field] !== '' && v[field] != null)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, v]) => ({ x: fmtShort(date), y: parseFloat(v[field]) || 0 }));
+function getDateRange(days) {
+  const today = todayStr();
+  if (days === 'all') {
+    const keys = Object.keys(S.data).sort();
+    if (!keys.length) return [];
+    const result = [];
+    let d = keys[0];
+    while (d <= today) { result.push(d); d = addDays(d, 1); }
+    return result;
+  }
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) result.push(addDays(today, -i));
+  return result;
+}
+
+function getDataPoints(field, days) {
+  return getDateRange(days).map(date => ({
+    x: fmtShort(date),
+    y: (S.data[date]?.[field] != null && S.data[date]?.[field] !== '')
+       ? parseFloat(S.data[date][field]) || null
+       : null
+  }));
+}
+
+function getHabitCompletionPoints(days) {
+  const habits = getCfgHabits();
+  return getDateRange(days).map(date => ({
+    x: fmtShort(date),
+    y: habits.filter(h => S.data[date]?.[h.id] === true).length
+  }));
 }
 
 function mkLine(id, label, color, pts, tickFmt) {
@@ -1414,15 +1536,28 @@ function mkLine(id, label, color, pts, tickFmt) {
   if (!canvas) return;
   const wrap = canvas.parentElement;
 
-  if (!pts.length) {
-    wrap.innerHTML = '<div class="empty-chart-nb">No data yet — start logging!</div>';
+  const hasData = pts.length && pts.some(p => p.y !== null);
+  let overlay = wrap.querySelector('.empty-chart-nb');
+  if (!hasData) {
+    canvas.style.display = 'none';
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'empty-chart-nb';
+      overlay.textContent = 'No data yet — start logging!';
+      wrap.appendChild(overlay);
+    }
     return;
   }
+  canvas.style.display = '';
+  if (overlay) overlay.remove();
 
   Chart.defaults.font.family = "'Caveat', cursive";
   Chart.defaults.font.size   = 14;
   Chart.defaults.color       = 'rgba(28,28,46,0.5)';
   Chart.defaults.borderColor = 'rgba(148,188,255,0.45)';
+
+  const n  = pts.filter(p => p.y !== null).length;
+  const pr = n > 60 ? 0 : n > 20 ? 2 : 4;
 
   S.charts[id] = new Chart(canvas, {
     type: 'line',
@@ -1433,10 +1568,11 @@ function mkLine(id, label, color, pts, tickFmt) {
         borderColor: color,
         backgroundColor: color + '18',
         borderWidth: 2,
-        pointRadius: 4,
+        pointRadius: pr,
         pointBackgroundColor: color,
         tension: 0.35,
-        fill: true
+        fill: true,
+        spanGaps: true
       }]
     },
     options: {
@@ -1458,26 +1594,45 @@ function mkLine(id, label, color, pts, tickFmt) {
 
 const CHART_COLORS = ['#1a3a8c','#2d7a4f','#8b5cf6','#f59e0b','#ec4899','#06b6d4','#c0392b','#d97706'];
 
+function setChartDays(days) {
+  G.chartDays = days;
+  document.querySelectorAll('.chart-range-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.days === String(days));
+  });
+  renderHabitCompletionChart();
+  renderCharts();
+}
+
+function renderHabitCompletionChart() {
+  const pts    = getHabitCompletionPoints(G.chartDays);
+  const maxH   = getCfgHabits().length;
+  const lastVal = [...pts].reverse().find(p => p.y !== null);
+  const valEl   = document.getElementById('cv-habits');
+  if (valEl) valEl.textContent = lastVal != null ? lastVal.y + '/' + maxH : '';
+  mkLine('ch-habits', 'Habits Completed', '#1a3a8c', pts, v => Math.round(v));
+}
+
 function renderCharts() {
   const container = document.getElementById('stats-charts');
   if (!container) return;
   container.innerHTML = '';
 
-  // Destroy old chart instances
-  Object.keys(S.charts).forEach(id => { S.charts[id].destroy(); delete S.charts[id]; });
+  // Destroy stat chart instances (not ch-habits which lives in static HTML)
+  Object.keys(S.charts).filter(id => id !== 'ch-habits').forEach(id => {
+    S.charts[id].destroy(); delete S.charts[id];
+  });
 
   const stats = getCfgStats();
   if (!stats.length) return;
 
   stats.forEach((s, i) => {
-    const pts   = getDataPoints(s.id);
-    const color = CHART_COLORS[i % CHART_COLORS.length];
+    const pts   = getDataPoints(s.id, G.chartDays);
+    const color = CHART_COLORS[(i + 1) % CHART_COLORS.length];
     const canvasId = 'ch-' + s.id;
     const valId    = 'cv-' + s.id;
 
     const section = document.createElement('div');
     section.className = 'nb-section';
-    if (i === stats.length - 1) section.style.marginBottom = '20px';
     section.innerHTML =
       '<div class="section-hdr">' + escHtml(s.label) + '</div>' +
       '<div class="chart-outer"><div class="chart-nb">' +
@@ -1489,9 +1644,8 @@ function renderCharts() {
       '</div></div>';
     container.appendChild(section);
 
-    if (pts.length) {
-      document.getElementById(valId).textContent = pts[pts.length - 1].y;
-    }
+    const lastVal = [...pts].reverse().find(p => p.y !== null);
+    if (lastVal) document.getElementById(valId).textContent = lastVal.y;
     mkLine(canvasId, s.label, color, pts);
   });
 }
