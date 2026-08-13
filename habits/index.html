@@ -1517,7 +1517,7 @@ function getDataPoints(field, days) {
   return getDateRange(days).map(date => ({
     x: fmtShort(date),
     y: (S.data[date]?.[field] != null && S.data[date]?.[field] !== '')
-       ? parseFloat(S.data[date][field]) || null
+       ? (parseFloat(S.data[date][field]) ?? null)
        : null
   }));
 }
