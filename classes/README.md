@@ -6,7 +6,7 @@ Runs on GitHub Actions — no computer of yours needs to be on.
 - **Every 5 min:** checks SP 112, AC 362, AC 411, AC 412, IC 497 and emails you
   the moment any section flips from 0 seats to open, with your best schedule recomputed.
 - **Daily 8:00 AM ET:** a digest email of the last 24h + current openings + best schedule.
-- Reads FIT's **public** class-search API (no login). Auto-stops after **Sep 3, 2026**.
+- Reads FIT's **public** class-search API (no login). Auto-stops after **Sep 7, 2026**.
 
 Lives in the public `richardkauli.github.io` repo, so the email address is kept
 out of the code and provided via encrypted repo secrets.

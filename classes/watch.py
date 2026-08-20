@@ -21,7 +21,7 @@ import smtplib, ssl
 from email.message import EmailMessage
 
 TERM = "202701"                         # FALL 2026
-END_DATE = datetime.date(2026, 9, 3)    # stop after this date (2-week window)
+END_DATE = datetime.date(2026, 9, 7)    # stop watching after this date
 BASE = "https://banner.fitnyc.edu/StudentRegistrationSsb/ssb"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 HERE = os.path.dirname(os.path.abspath(__file__))
