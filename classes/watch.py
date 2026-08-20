@@ -316,13 +316,12 @@ def run_check():
 def run_snapshot():
     now = datetime.datetime.now()
     rows = collect(session())
-    print(f"FIT seat watch — snapshot {now:%a %b %d, %-I:%M %p}\n")
-    print(open_block(rows) + "\n")
     full = sorted([(c, r) for c, r in rows.items()
                    if r["seats"] == 0 and r["key"] in ALERT_KEYS], key=lambda x: (x[1]["key"], x[1]["sec"]))
-    print("Still FULL (being watched for you):\n" + "\n".join("  " + line(c, r) for c, r in full) + "\n")
-    print(schedule_block(rows) + "\n")
-    print("Register: " + REG_URL)
+    lines = [open_block(rows), "", "Still FULL (being watched for you):"]
+    lines += ["  " + line(c, r) for c, r in full]
+    lines += ["", schedule_block(rows), "", "Register: " + REG_URL]
+    emit(f"FIT seat snapshot — {now:%a %b %d, %-I:%M %p}", "\n".join(lines))
 
 
 def run_digest():
