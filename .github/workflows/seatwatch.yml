@@ -1,0 +1,53 @@
+name: FIT seat watch
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # check every 15 min (UTC; GitHub cron is best-effort)
+    - cron: '0 12 * * *'    # daily digest at 08:00 America/New_York (EDT = UTC-4)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check | digest | snapshot'
+        default: check
+
+concurrency:
+  group: seatwatch
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore saved seat state
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            classes/state.json
+            classes/events.jsonl
+          key: seatwatch-state-${{ github.run_id }}
+          restore-keys: |
+            seatwatch-state-
+
+      - name: Run watcher
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            if [ "${{ github.event.schedule }}" = "0 12 * * *" ]; then MODE=digest; else MODE=check; fi
+          fi
+          echo "Running mode: $MODE"
+          python3 classes/watch.py "$MODE"
+
+      - name: Save seat state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            classes/state.json
+            classes/events.jsonl
+          key: seatwatch-state-${{ github.run_id }}
