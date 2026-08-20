@@ -3,7 +3,7 @@
 Always-on watcher for FIT (Banner) course seats, **FALL 2026 (term 202701)**.
 Runs on GitHub Actions — no computer of yours needs to be on.
 
-- **Every 15 min:** checks SP 112, AC 362, AC 411, AC 412, IC 497 and emails you
+- **Every 5 min:** checks SP 112, AC 362, AC 411, AC 412, IC 497 and emails you
   the moment any section flips from 0 seats to open, with your best schedule recomputed.
 - **Daily 8:00 AM ET:** a digest email of the last 24h + current openings + best schedule.
 - Reads FIT's **public** class-search API (no login). Auto-stops after **Sep 3, 2026**.

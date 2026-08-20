@@ -2,7 +2,7 @@ name: FIT seat watch
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # check every 15 min (UTC; GitHub cron is best-effort)
+    - cron: '*/5 * * * *'   # check every 5 min (UTC; GitHub cron is best-effort, may lag)
     - cron: '0 12 * * *'    # daily digest at 08:00 America/New_York (EDT = UTC-4)
   workflow_dispatch:
     inputs:

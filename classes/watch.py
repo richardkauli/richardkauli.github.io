@@ -309,7 +309,7 @@ def run_check():
         lines.append("  >>> " + line(c, r))
     lines += ["", open_block(rows), "", schedule_block(rows), "",
               "Register: " + REG_URL,
-              f"(Seats vanish fast — no waitlist. Checks run every 15 min until {END_DATE:%b %d}.)"]
+              f"(Seats vanish fast — no waitlist. Checks run every 5 min until {END_DATE:%b %d}.)"]
     emit(f"🎓 FIT seat OPENED: {courses}", "\n".join(lines))
 
 
