@@ -37,7 +37,7 @@ FETCH = [("SP", "112"), ("AC", "362"), ("AC", "411"),
 ALERT_KEYS = {"SP 112", "AC 362", "AC 411", "AC 412", "IC 497"}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "33423",   # BL1 Tue 11:10-1:00
-           "AC 411": "23239",   # 701 Wed 11:10-2:00
+           "AC 411": "33160",   # BL1 Tue 2:10-5:00 (Ginsberg)
            "AC 362": "34279",   # 701 Mon 9:10-1:00
            "AC 423": "24208"}   # 75A Tue 6:30-9:20p
 WDAYS = ["M", "Tu", "W", "Th", "F", "Sa", "Su"]
@@ -204,7 +204,7 @@ def hhmm_range(r):
 
 
 def cur_sec(key):
-    return {"SP 112": "BL1", "AC 411": "701", "AC 362": "701", "AC 423": "75A"}.get(key, "?")
+    return {"SP 112": "BL1", "AC 411": "BL1", "AC 362": "701", "AC 423": "75A"}.get(key, "?")
 
 
 def schedule_block(rows):
