@@ -31,10 +31,10 @@ LOG = os.path.join(HERE, "watch.log")
 REG_URL = BASE + "/classRegistration/classRegistration"
 
 # Courses fetched for scheduling (all sections of each).
-FETCH = [("SP", "112"), ("AC", "362"), ("AC", "411"),
+FETCH = [("SP", "112"), ("AC", "312"), ("AC", "321"), ("AC", "362"), ("AC", "411"),
          ("AC", "412"), ("AC", "423"), ("IC", "497")]
 # Only these courses trigger 0->open alert emails.
-ALERT_KEYS = {"SP 112", "AC 362", "AC 411", "AC 412", "IC 497"}
+ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 362", "AC 411", "AC 412", "IC 497"}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "35102",   # OL2 online (Sagardia)
            "AC 411": "33231",   # OL1 online (Sok)
@@ -287,7 +287,9 @@ def run_check():
         if r["key"] not in ALERT_KEYS:
             continue
         was = prev.get(crn)
-        if r["seats"] > 0 and (was is None or was == 0):
+        # was == 0 only: a section unseen before (was is None) is baselined
+        # silently, so newly-added courses / cache resets don't flood alerts.
+        if r["seats"] > 0 and was == 0:
             opened.append((crn, r))
         elif r["seats"] == 0 and was and was > 0:
             closed.append((crn, r))
