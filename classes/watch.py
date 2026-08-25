@@ -35,9 +35,13 @@ FETCH = [("SP", "112"), ("AC", "312"), ("AC", "321"), ("AC", "362"), ("AC", "411
          ("AC", "412"), ("AC", "423"), ("IC", "497")]
 # Only these courses trigger 0->open alert emails.
 ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 362", "AC 411", "AC 412", "IC 497"}
+# For these, only ONLINE sections trigger alerts (registered in-person, wants online).
+ALERT_ONLINE_ONLY = {"AC 312", "AC 321"}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "35102",   # OL2 online (Sagardia)
            "AC 411": "33231",   # OL1 online (Sok)
+           "AC 312": "32195",   # 702 Mon 2:10-5:00 (Durst) — wants online
+           "AC 321": "5323",    # 75A Mon 6:30-9:20p (Volpe) — wants online
            "AC 362": "34279",   # 701 Mon 9:10-1:00
            "AC 423": "24208"}   # 75A Tue 6:30-9:20p
 WDAYS = ["M", "Tu", "W", "Th", "F", "Sa", "Su"]
@@ -117,7 +121,8 @@ def candidates(key, rows):
     Everyone else (AC 411, AC 362, IC 497...): the current section or ANY open section,
     so the solver is free to pick an in-person section if it fits the schedule better."""
     cur = CURRENT.get(key)
-    online_only_alt = key in {"SP 112"}
+    # these are wanted as ONLINE: only keep the current section or an open online one
+    online_only_alt = key in {"SP 112", "AC 312", "AC 321"}
     out = []
     for crn, r in rows.items():
         if r["key"] != key:
@@ -204,18 +209,18 @@ def hhmm_range(r):
 
 
 def cur_sec(key):
-    return {"SP 112": "OL2", "AC 411": "OL1", "AC 362": "701", "AC 423": "75A"}.get(key, "?")
+    return {"SP 112": "OL2", "AC 411": "OL1", "AC 312": "702", "AC 321": "75A",
+            "AC 362": "701", "AC 423": "75A"}.get(key, "?")
 
 
 def schedule_block(rows):
     ic_open = any(r["key"] == "IC 497" and r["seats"] > 0 for r in rows.values())
-    blocks = [fmt_schedule("BEST SCHEDULE NOW (SP 112 & AC 411 in person, AC 423 kept):",
-                           ["SP 112", "AC 411", "AC 362", "AC 423"], rows,
-                           extra_online=["AC 321 (online)", "AC 312 (online)"])]
+    base = ["SP 112", "AC 411", "AC 312", "AC 321", "AC 362"]
+    blocks = [fmt_schedule("BEST SCHEDULE NOW (AC 423 kept):",
+                           base + ["AC 423"], rows, extra_online=[])]
     if ic_open:
         blocks.append(fmt_schedule("\nWHEN INTERNSHIP CLEARS (add IC 497, drop AC 423):",
-                                   ["SP 112", "AC 411", "AC 362", "IC 497"], rows,
-                                   extra_online=["AC 321 (online)", "AC 312 (online)"]))
+                                   base + ["IC 497"], rows, extra_online=[]))
     return "\n".join(blocks)
 
 
@@ -286,6 +291,8 @@ def run_check():
     for crn, r in rows.items():
         if r["key"] not in ALERT_KEYS:
             continue
+        if r["key"] in ALERT_ONLINE_ONLY and not r["online"]:
+            continue  # only online sections of these matter
         was = prev.get(crn)
         # was == 0 only: a section unseen before (was is None) is baselined
         # silently, so newly-added courses / cache resets don't flood alerts.
