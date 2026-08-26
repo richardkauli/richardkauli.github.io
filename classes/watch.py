@@ -30,20 +30,23 @@ EVENTS = os.path.join(HERE, "events.jsonl")
 LOG = os.path.join(HERE, "watch.log")
 REG_URL = BASE + "/classRegistration/classRegistration"
 
-# Courses fetched for scheduling (all sections of each).
-FETCH = [("SP", "112"), ("AC", "312"), ("AC", "321"), ("AC", "362"), ("AC", "411"),
-         ("AC", "412"), ("AC", "423"), ("IC", "497")]
+# Courses fetched (all sections of each) — for alerts and/or schedule optimization.
+FETCH = [("SP", "112"), ("AC", "312"), ("AC", "321"),
+         ("AC", "362"), ("AC", "411"), ("AC", "412")]
 # Only these courses trigger 0->open alert emails.
-ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 362", "AC 411", "AC 412", "IC 497"}
+ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 412"}
 # For these, only ONLINE sections trigger alerts (registered in-person, wants online).
 ALERT_ONLINE_ONLY = {"AC 312", "AC 321"}
+# For these, only these specific CRNs trigger alerts.
+# SP 112 OL2 (35102) = user's own section — watch it so a friend can grab a seat in it.
+ALERT_CRN_ONLY = {"SP 112": {"35102"}}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "35102",   # OL2 online (Sagardia)
            "AC 411": "33231",   # OL1 online (Sok)
+           "IC 497": "35558",   # OL1 online internship (Sussman-Silverman)
            "AC 312": "32195",   # 702 Mon 2:10-5:00 (Durst) — wants online
            "AC 321": "5323",    # 75A Mon 6:30-9:20p (Volpe) — wants online
-           "AC 362": "34279",   # 701 Mon 9:10-1:00
-           "AC 423": "24208"}   # 75A Tue 6:30-9:20p
+           "AC 362": "34279"}   # 701 Mon 9:10-1:00
 WDAYS = ["M", "Tu", "W", "Th", "F", "Sa", "Su"]
 
 
@@ -214,22 +217,28 @@ def cur_sec(key):
 
 
 def schedule_block(rows):
-    ic_open = any(r["key"] == "IC 497" and r["seats"] > 0 for r in rows.values())
     base = ["SP 112", "AC 411", "AC 312", "AC 321", "AC 362"]
-    blocks = [fmt_schedule("BEST SCHEDULE NOW (AC 423 kept):",
-                           base + ["AC 423"], rows, extra_online=[])]
-    if ic_open:
-        blocks.append(fmt_schedule("\nWHEN INTERNSHIP CLEARS (add IC 497, drop AC 423):",
-                                   base + ["IC 497"], rows, extra_online=[]))
-    return "\n".join(blocks)
+    return fmt_schedule("BEST SCHEDULE (current registration):", base, rows,
+                        extra_online=["IC 497 OL1 (online)"])
+
+
+def alertable(crn, r):
+    """Whether a section should trigger / appear in alerts, per the watch config."""
+    if r["key"] not in ALERT_KEYS:
+        return False
+    if r["key"] in ALERT_ONLINE_ONLY and not r["online"]:
+        return False
+    if r["key"] in ALERT_CRN_ONLY and crn not in ALERT_CRN_ONLY[r["key"]]:
+        return False
+    return True
 
 
 def open_block(rows):
-    op = sorted([(c, r) for c, r in rows.items()
-                 if r["seats"] > 0 and r["key"] in ALERT_KEYS], key=lambda x: (x[1]["key"], x[1]["sec"]))
+    op = sorted([(c, r) for c, r in rows.items() if r["seats"] > 0 and alertable(c, r)],
+                key=lambda x: (x[1]["key"], x[1]["sec"]))
     if not op:
-        return "Monitored sections currently open: none."
-    return "Monitored sections currently OPEN:\n" + "\n".join("  " + line(c, r) for c, r in op)
+        return "Watched sections currently open: none."
+    return "Watched sections currently OPEN:\n" + "\n".join("  " + line(c, r) for c, r in op)
 
 
 # ---------------------------------------------------------------- modes
@@ -289,10 +298,8 @@ def run_check():
     prev = load_state()
     opened, closed = [], []
     for crn, r in rows.items():
-        if r["key"] not in ALERT_KEYS:
+        if not alertable(crn, r):
             continue
-        if r["key"] in ALERT_ONLINE_ONLY and not r["online"]:
-            continue  # only online sections of these matter
         was = prev.get(crn)
         # was == 0 only: a section unseen before (was is None) is baselined
         # silently, so newly-added courses / cache resets don't flood alerts.
@@ -326,7 +333,7 @@ def run_snapshot():
     now = datetime.datetime.now()
     rows = collect(session())
     full = sorted([(c, r) for c, r in rows.items()
-                   if r["seats"] == 0 and r["key"] in ALERT_KEYS], key=lambda x: (x[1]["key"], x[1]["sec"]))
+                   if r["seats"] == 0 and alertable(c, r)], key=lambda x: (x[1]["key"], x[1]["sec"]))
     lines = [open_block(rows), "", "Still FULL (being watched for you):"]
     lines += ["  " + line(c, r) for c, r in full]
     lines += ["", schedule_block(rows), "", "Register: " + REG_URL]
