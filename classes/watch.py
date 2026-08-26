@@ -38,8 +38,10 @@ ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 412"}
 # For these, only ONLINE sections trigger alerts (registered in-person, wants online).
 ALERT_ONLINE_ONLY = {"AC 312", "AC 321"}
 # For these, only these specific CRNs trigger alerts.
-# SP 112 OL2 (35102) = user's own section — watch it so a friend can grab a seat in it.
-ALERT_CRN_ONLY = {"SP 112": {"35102"}}
+# SP 112 OL2 (35102) = user's own section (so a friend can grab a seat in it).
+# AC 412 702 (20848) = the MONDAY section only — swaps cleanly for AC 312 (same 2:10-5 slot),
+# so getting it means dropping AC 312 with no new campus day. Tue 701 (adds a day) is ignored.
+ALERT_CRN_ONLY = {"SP 112": {"35102"}, "AC 412": {"20848"}}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "35102",   # OL2 online (Sagardia)
            "AC 411": "33231",   # OL1 online (Sok)
