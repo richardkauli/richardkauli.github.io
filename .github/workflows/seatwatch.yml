@@ -14,7 +14,7 @@ on:
 # with the next scheduled trigger queued behind it (continuous coverage). Digest / manual
 # runs use a separate group so they are never blocked by the long check loop.
 concurrency:
-  group: seatwatch-${{ (github.event_name == 'schedule' && github.event.schedule == '*/5 * * * *') && 'check' || 'aux' }}
+  group: seatwatch-${{ ((github.event_name == 'schedule' && github.event.schedule == '*/5 * * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'check')) && 'check' || 'aux' }}
   cancel-in-progress: false
 
 jobs:
@@ -51,7 +51,7 @@ jobs:
           ALERT_TO: ${{ secrets.ALERT_TO }}
         run: |
           MODE="${{ steps.m.outputs.mode }}"
-          if [ "$MODE" = "check" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ "$MODE" = "check" ]; then
             END=$(( $(date +%s) + 20400 ))   # loop ~5h40m of checks, every 5 min
             echo "Looping 5-min checks for ~5.7h"
             while [ "$(date +%s)" -lt "$END" ]; do
