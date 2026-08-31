@@ -32,16 +32,19 @@ REG_URL = BASE + "/classRegistration/classRegistration"
 
 # Courses fetched (all sections of each) — for alerts and/or schedule optimization.
 FETCH = [("SP", "112"), ("AC", "312"), ("AC", "321"),
-         ("AC", "362"), ("AC", "411"), ("AC", "412")]
+         ("AC", "362"), ("AC", "411"), ("AC", "412"), ("MA", "311")]
 # Only these courses trigger 0->open alert emails.
-ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 412"}
-# For these, only ONLINE sections trigger alerts (registered in-person, wants online).
-ALERT_ONLINE_ONLY = {"AC 312", "AC 321"}
+ALERT_KEYS = {"SP 112", "AC 312", "AC 321", "AC 412", "MA 311"}
+# For these, only ONLINE sections trigger alerts.
+ALERT_ONLINE_ONLY = {"AC 312", "AC 321", "MA 311"}
 # For these, only these specific CRNs trigger alerts.
 # SP 112 OL2 (35102) = user's own section (so a friend can grab a seat in it).
 # AC 412: BOTH sections watched — Mon 702 (20848) swaps for AC 312 (same slot, stays 1 day);
 # Tue 701 (19992) adds a day but the user still wants to know.
 ALERT_CRN_ONLY = {"SP 112": {"35102"}}
+# Per-course alert recipient; a course not listed here goes to you (the default).
+# MA 311 online watch is for a friend — alerts go ONLY to Joey, not to you.
+ALERT_RECIPIENTS = {"MA 311": "joseph_diliberto@fitnyc.edu"}
 # Sections the user is currently registered in (kept as candidates even if full).
 CURRENT = {"SP 112": "35102",   # OL2 online (Sagardia)
            "AC 411": "33231",   # OL1 online (Sok)
@@ -235,8 +238,15 @@ def alertable(crn, r):
     return True
 
 
+def recipient_of(crn, r):
+    """Email for this section's alerts; None = the default recipient (you)."""
+    return ALERT_RECIPIENTS.get(r["key"])
+
+
 def open_block(rows):
-    op = sorted([(c, r) for c, r in rows.items() if r["seats"] > 0 and alertable(c, r)],
+    # only YOUR watches (sections routed to someone else stay out of your emails)
+    op = sorted([(c, r) for c, r in rows.items()
+                 if r["seats"] > 0 and alertable(c, r) and recipient_of(c, r) is None],
                 key=lambda x: (x[1]["key"], x[1]["sec"]))
     if not op:
         return "Watched sections currently open: none."
@@ -251,13 +261,13 @@ def load_state():
         return {}
 
 
-def send_email(subject, body):
+def send_email(subject, body, to=None):
     """Send via Gmail SMTP using an App Password from env. Returns True on success."""
     user = os.environ.get("GMAIL_USER")          # your gmail (set as a repo secret)
     pw = os.environ.get("GMAIL_APP_PASSWORD")    # 16-char app password (repo secret)
     pw = pw.replace(" ", "") if pw else None     # Google shows it with spaces
-    to = os.environ.get("ALERT_TO") or user      # defaults to sending to yourself
-    if not (user and pw):
+    to = to or os.environ.get("ALERT_TO") or user  # default recipient = yourself
+    if not (user and pw and to):
         return False
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = user, to, subject
@@ -268,17 +278,18 @@ def send_email(subject, body):
     return True
 
 
-def emit(subject, body):
-    """Email if a Gmail App Password is configured (GitHub Actions); otherwise
-    print the SUBJECT/---BODY--- contract (local / Claude-task use)."""
+def emit(subject, body, to=None):
+    """Email `to` (default = you) if a Gmail App Password is configured (GitHub
+    Actions); otherwise print for local runs."""
     if os.environ.get("GMAIL_APP_PASSWORD"):
         try:
-            ok = send_email(subject, body)
+            ok = send_email(subject, body, to)
         except Exception as e:
             print(f"[email FAILED: {e}]")
             ok = False
-        print(f"[email sent={ok}] {subject}")
+        print(f"[email to={to or 'self'} sent={ok}] {subject}")
     else:
+        print(f"TO: {to or 'self'}")
         print(f"SUBJECT: {subject}")
         print("---BODY---")
         print(body)
@@ -303,39 +314,50 @@ def run_check():
         if not alertable(crn, r):
             continue
         was = prev.get(crn)
-        # was == 0 only: a section unseen before (was is None) is baselined
-        # silently, so newly-added courses / cache resets don't flood alerts.
-        if r["seats"] > 0 and was == 0:
+        # Alert only when a section we've SEEN before flips from unavailable (<=0,
+        # incl. over-enrolled -1) to available (>0). Unseen/cache-reset sections are
+        # baselined silently so adding courses / cache resets don't flood alerts.
+        if r["seats"] > 0 and was is not None and was <= 0:
             opened.append((crn, r))
-        elif r["seats"] == 0 and was and was > 0:
+        elif r["seats"] <= 0 and was is not None and was > 0:
             closed.append((crn, r))
     json.dump({c: r["seats"] for c, r in rows.items()}, open(STATE, "w"), indent=2)
-    with open(EVENTS, "a") as f:
+    with open(EVENTS, "a") as f:  # log only YOUR watches (for your digest); others excluded
         f.write(json.dumps({"ts": now.isoformat(timespec="minutes"),
-                            "open": [c for c, r in rows.items() if r["seats"] > 0 and r["key"] in ALERT_KEYS],
-                            "opened": [f'{r["key"]} {r["sec"]}' for _, r in opened],
-                            "closed": [f'{r["key"]} {r["sec"]}' for _, r in closed]}) + "\n")
+                            "open": [c for c, r in rows.items()
+                                     if r["seats"] > 0 and alertable(c, r) and recipient_of(c, r) is None],
+                            "opened": [f'{r["key"]} {r["sec"]}' for c, r in opened if recipient_of(c, r) is None],
+                            "closed": [f'{r["key"]} {r["sec"]}' for c, r in closed if recipient_of(c, r) is None]}) + "\n")
     with open(LOG, "a") as f:
         f.write(f'{now:%Y-%m-%d %H:%M}  {len(opened)} opened, {len(closed)} closed\n')
 
     print(f"NEW_OPENINGS: {len(opened)}")
     if not opened:
         return
-    courses = ", ".join(sorted({r["key"] for _, r in opened}))
-    lines = [f"New opening(s) detected {now:%a %b %d, %-I:%M %p}:", ""]
-    for c, r in sorted(opened, key=lambda x: (x[1]["key"], x[1]["sec"])):
-        lines.append("  >>> " + line(c, r))
-    lines += ["", open_block(rows), "", schedule_block(rows), "",
-              "Register: " + REG_URL,
-              f"(Seats vanish fast — no waitlist. Checks run every 5 min until {END_DATE:%b %d}.)"]
-    emit(f"🎓 FIT seat OPENED: {courses}", "\n".join(lines))
+    # group openings by recipient (None = you) and email each person separately
+    groups = {}
+    for crn, r in opened:
+        groups.setdefault(recipient_of(crn, r), []).append((crn, r))
+    for to, items in groups.items():
+        courses = ", ".join(sorted({r["key"] for _, r in items}))
+        lines = [f"New opening(s) detected {now:%a %b %d, %-I:%M %p}:", ""]
+        for c, r in sorted(items, key=lambda x: (x[1]["key"], x[1]["sec"])):
+            lines.append("  >>> " + line(c, r))
+        if to is None:                       # your alert — full context + schedule
+            lines += ["", open_block(rows), "", schedule_block(rows)]
+        else:                                # a watch set up for someone else
+            lines += ["", "(A friend set up this seat alert for you.)"]
+        lines += ["", "Register: " + REG_URL,
+                  f"(Seats vanish fast — no waitlist. Watch runs through {END_DATE:%b %d}.)"]
+        emit(f"\U0001F393 FIT seat OPENED: {courses}", "\n".join(lines), to)
 
 
 def run_snapshot():
     now = datetime.datetime.now()
     rows = collect(session())
     full = sorted([(c, r) for c, r in rows.items()
-                   if r["seats"] == 0 and alertable(c, r)], key=lambda x: (x[1]["key"], x[1]["sec"]))
+                   if r["seats"] <= 0 and alertable(c, r) and recipient_of(c, r) is None],
+                  key=lambda x: (x[1]["key"], x[1]["sec"]))
     lines = [open_block(rows), "", "Still FULL (being watched for you):"]
     lines += ["  " + line(c, r) for c, r in full]
     lines += ["", schedule_block(rows), "", "Register: " + REG_URL]
