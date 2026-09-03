@@ -21,7 +21,8 @@
      font-weight:bold;color:#555;text-align:center;pointer-events:none}
   #loading{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center;
      justify-content:center;font-family:Arial Black,Arial,sans-serif;font-size:6vw;z-index:50;transition:opacity .5s}
-  #loading .lbarwrap{width:min(62vw,320px);height:12px;border:2px solid #fff;margin-top:26px}
+  #loading .ltop{width:fit-content;margin:0 auto}
+  #loading .lbarwrap{width:100%;height:12px;border:2px solid #fff;margin-top:22px}
   #loading .lbar{height:100%;width:0%;background:#fff;transition:width .22s ease}
   #loading .lstatus{margin-top:14px;font-family:'Courier New',monospace;font-size:13px;font-weight:normal;
      color:#9a9a9a;letter-spacing:.02em;height:1em}
@@ -73,8 +74,10 @@
 </head>
 <body>
 <div id="loading">
-  <div class="lbig">LOADING&nbsp;DESK…</div>
-  <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
+  <div class="ltop">
+    <div class="lbig">LOADING&nbsp;DESK…</div>
+    <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
+  </div>
   <div class="lstatus" id="lstatus">starting up…</div>
   <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div>
 </div>
