@@ -448,7 +448,13 @@ function startDive(toPos,toTgt,newMode,after){
   dive.fromTgt.copy(curTgt); dive.toTgt.copy(toTgt);
   dive.t0=performance.now(); dive.active=true; mode=newMode; dive.after=after;
 }
-function enterSection(label){
+/* each section has its own #hash URL so the browser Back button returns to the desk */
+const SLUGS={PORTFOLIO:'portfolio',CLOTHES:'clothes',SHOP:'shop',CONTACT:'contact','RICH ARCHIVE':'archive',PHOTOGRAPHY:'photography'};
+function labelFromHash(){ const h=location.hash.replace(/^#\/?/,'').toLowerCase();
+  for(const k in SLUGS){ if(SLUGS[k]===h) return k; } return null; }
+
+// --- visual transitions ---
+function doEnter(label){
   if(mode!=='room')return; hideLabel(); curTgt.copy(target);
   const dk=dockPose();
   buildBody(label); positionOverlay();
@@ -461,16 +467,31 @@ function enterSection(label){
   setTimeout(()=>{ if(mode==='diving') ovl.style.opacity='1'; }, half);
   startDive(dk.pos,dk.tgt,'diving',()=>{ mode='docked'; backBtn.classList.add('on'); ovl.style.opacity='1'; });
 }
-function goBack(){
+function doGoBack(){
   if(mode!=='docked')return;
   backBtn.classList.remove('on'); brandEl.style.opacity=1; hintEl.style.opacity=1;
-  // fade the page out over the first half of the fly-out
   const half=dive.dur/2;
   ovl.style.transition='opacity '+(half/1000)+'s ease'; ovl.style.opacity='0';
   setTimeout(()=>{ ovl.style.display='none'; }, half+60);
   startDive(roomPos(),target.clone(),'returning',()=>{ mode='room'; applyCam(); });
 }
-document.getElementById('backBtn').addEventListener('click',goBack);
+
+// --- URL-driven navigation ---
+function enterSection(label){
+  if(mode!=='room')return;
+  history.pushState({label}, '', '#'+(SLUGS[label]||''));  // new link → Back returns here
+  doEnter(label);
+}
+function requestBack(){ if(mode==='docked') history.back(); }  // uses browser history
+function syncToHash(){
+  const label=labelFromHash();
+  if(label && mode==='room') doEnter(label);
+  else if(!label && mode==='docked') doGoBack();
+}
+addEventListener('popstate', syncToHash);      // Back/Forward buttons
+document.getElementById('backBtn').addEventListener('click', requestBack);
+// deep-link: if loaded straight to a section hash, enter it once the scene is ready
+if(labelFromHash()){ const di=setInterval(()=>{ if(typeof firstFrame!=='undefined' && firstFrame){ clearInterval(di); syncToHash(); } }, 100); }
 
 /* ---------- overlay ---------- */
 const ovl=document.getElementById('screenOverlay'), backBtn=document.getElementById('backBtn');
