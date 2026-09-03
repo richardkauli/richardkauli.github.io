@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+<title>The Desk — Concept 2</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#e9e6df;font-family:'Courier New',monospace}
+  #c{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+  #c:active{cursor:grabbing}
+  .brand{position:fixed;top:22px;left:26px;font-family:Arial Black,Arial,sans-serif;
+     font-size:26px;letter-spacing:-.03em;color:#111;line-height:.95;pointer-events:none}
+  .brand small{display:block;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0;color:#777;margin-top:6px}
+  #label{position:fixed;transform:translate(-50%,-130%);background:#111;color:#fff;
+     font-family:Arial Black,Arial,sans-serif;font-size:13px;padding:6px 12px;white-space:nowrap;
+     opacity:0;transition:opacity .12s;pointer-events:none;z-index:20}
+  #label:after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+     border:6px solid transparent;border-top-color:#111}
+  #hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;
+     font-weight:bold;color:#555;text-align:center;pointer-events:none}
+  #loading{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center;
+     justify-content:center;font-family:Arial Black,Arial,sans-serif;font-size:6vw;z-index:50;transition:opacity .5s}
+  #loading .lhint{margin-top:20px;font-family:'Courier New',monospace;font-size:14px;font-weight:normal;
+     color:#888;letter-spacing:.02em;text-align:center;padding:0 20px}
+  .switch{position:fixed;bottom:44px;right:14px;z-index:60;display:flex;gap:6px}
+  .switch a{font-family:Arial Black,Arial,sans-serif;text-decoration:none;color:#000;
+    background:#fff;border:2px solid #000;padding:4px 8px;font-size:11px}
+  .switch a.on{background:#000;color:#fff}
+  .switch a:hover{color:#f20}.switch a.on:hover{color:#fff;background:#f20;border-color:#f20}
+
+  /* ---- content "inside the screen" ---- */
+  #screenOverlay{position:fixed;display:none;background:#f6f4ee;overflow:hidden;z-index:30;
+    border:1px solid #cfc9bd;box-shadow:inset 0 0 46px rgba(0,0,0,0.05);
+    font-family:'Courier New',monospace;color:#111;opacity:0;transition:opacity .16s}
+  #screenOverlay.on{display:block;opacity:1}
+  #screenInner{position:absolute;inset:0;display:flex;flex-direction:column}
+  #soHead{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:2px solid #111;flex:0 0 auto}
+  #soTitle{font-family:Arial Black,Arial,sans-serif;font-size:clamp(14px,2.3vw,22px);letter-spacing:-.02em}
+  #soBody{flex:1 1 auto;overflow:auto;padding:14px 16px}
+  #soBody::-webkit-scrollbar{width:8px}#soBody::-webkit-scrollbar-thumb{background:#cbc6ba}
+  .soFilter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .sochip{font-family:'Courier New',monospace;font-size:12px;font-weight:bold;border:2px solid #111;background:#f6f4ee;padding:4px 9px}
+  .sochip .n{color:#999;margin-left:5px}
+  .sochip:hover{background:#ececec}.sochip.on{background:#111;color:#fff}.sochip.on .n{color:#bbb}
+  .soGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;max-width:1400px;margin:0 auto}
+  @media(max-width:1100px){.soGrid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:820px){.soGrid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.soGrid{grid-template-columns:repeat(2,1fr);gap:12px}}
+  .soCard .ph{width:100%;aspect-ratio:1;background:#eee center/cover;border:2px solid #111}
+  .soCard:hover .ph{outline:3px solid #f20;outline-offset:-3px}
+  .soCard .m{font-size:11px;margin-top:5px;line-height:1.3}.soCard .m b{display:block}.soCard .m span{color:#888}
+  .soText{font-size:14px;line-height:1.7;max-width:520px}
+  .soText h3{font-family:Arial Black,Arial,sans-serif;font-size:22px;margin-bottom:10px}
+  .soTag{display:inline-block;background:#111;color:#fff;font-weight:bold;font-size:11px;padding:2px 7px;margin-bottom:12px}
+  .soRow{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ddd;padding:11px 0;font-size:13px}
+  .soRow .p{font-weight:bold}
+  #backBtn{position:fixed;display:none;z-index:31;font-family:Arial Black,Arial,sans-serif;font-size:13px;
+    border:2px solid #111;background:#f6f4ee;color:#111;padding:7px 14px}
+  #backBtn:hover{background:#111;color:#fff}
+  #backBtn.on{display:block}
+  /* always-on object labels (touch) */
+  .objlab{position:fixed;transform:translate(-50%,-150%);background:#111;color:#fff;
+    font-family:Arial Black,Arial,sans-serif;font-size:12px;padding:5px 10px;white-space:nowrap;
+    pointer-events:none;z-index:18;display:none}
+  .objlab:after{content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#111}
+</style>
+</head>
+<body>
+<div id="loading"><div>LOADING&nbsp;DESK…</div>
+  <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div></div>
+<canvas id="c"></canvas>
+<div class="brand">RICHARD KAULI<small>the desk · click an object</small></div>
+<div id="label"></div>
+<div id="hint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div>
+<div id="screenOverlay">
+  <div id="screenInner">
+    <div id="soHead"><span id="soTitle">PORTFOLIO</span></div>
+    <div id="soBody"></div>
+  </div>
+</div>
+<button id="backBtn">&#9664; BACK TO DESK</button>
+
+<script src="assets/textures.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const S = THREE;
+const scene = new S.Scene();
+scene.background = new S.Color(0xe9e6df);
+// (no fog — objects stay full-strength when you zoom out)
+
+const renderer = new S.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = S.PCFSoftShadowMap;
+
+const camera = new S.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
+
+/* ---------- lights ---------- */
+scene.add(new S.HemisphereLight(0xffffff, 0x9a958c, 0.6));
+const key = new S.DirectionalLight(0xfff2e0, 1.1);
+key.position.set(7, 13, 6); key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.near=1; key.shadow.camera.far=44;
+key.shadow.camera.left=-16;key.shadow.camera.right=16;
+key.shadow.camera.top=16;key.shadow.camera.bottom=-16;
+key.shadow.bias=-0.0004;
+scene.add(key);
+const fill = new S.DirectionalLight(0xbcd0ff, 0.35); fill.position.set(-8,6,-4); scene.add(fill);
+const warm = new S.PointLight(0xffb060, 0.55, 20); warm.position.set(-2.4,4.6,1.6); scene.add(warm);
+
+/* ---------- helpers ---------- */
+function mat(c,r=0.85,m=0){ return new S.MeshStandardMaterial({color:c,roughness:r,metalness:m}); }
+function box(w,h,d,c,r,m){ const g=new S.Mesh(new S.BoxGeometry(w,h,d),mat(c,r,m)); g.castShadow=true; g.receiveShadow=true; return g; }
+const clickable=[];
+function tag(root,label){ root.userData.label=label; root.traverse(o=>{o.userData.root=root;}); clickable.push(root); return root; }
+const tl=new S.TextureLoader();
+function tex(dataurl){ const t=tl.load(dataurl); t.encoding=S.sRGBEncoding; t.anisotropy=4; return t; }
+renderer.outputEncoding = S.sRGBEncoding;
+
+/* ---------- room ---------- */
+const floor=new S.Mesh(new S.PlaneGeometry(70,70), mat(0xd9d3c7,0.97));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+function wall(w,h,c){ const m=new S.Mesh(new S.PlaneGeometry(w,h), mat(c,1)); m.receiveShadow=true; return m; }
+const back=wall(70,34,0xefece4); back.position.set(0,17,-11); scene.add(back);
+const side=wall(70,34,0xe7e3da); side.rotation.y=Math.PI/2; side.position.set(-15,17,0); scene.add(side);
+
+/* ---------- desk ---------- */
+const desk=new S.Group();
+const deskTop=box(13,0.5,6.2,0xf4efe6,0.6); deskTop.position.y=4; desk.add(deskTop);
+const apron=box(12.4,0.7,0.4,0xe4dccb,0.7); apron.position.set(0,3.5,2.9); desk.add(apron);
+[[ -6,-2.7],[6,-2.7],[-6,2.7],[6,2.7]].forEach(p=>{
+  const leg=box(0.5,4,0.5,0xcbb48f,0.8); leg.position.set(p[0],1.9,p[1]); desk.add(leg);
+});
+scene.add(desk);
+
+/* ---------- MONITOR = PORTFOLIO ---------- */
+const mon=new S.Group();
+const foot=box(2.4,0.25,1.4,0x1a1a1a,0.5); foot.position.y=4.35; mon.add(foot);
+const neck=box(0.5,1.4,0.4,0x222,0.5); neck.position.y=5.1; mon.add(neck);
+const bezel=box(6.2,3.9,0.4,0x111,0.4); bezel.position.y=7.1; mon.add(bezel);
+// screen canvas — monochrome HELLO + time / date / weather
+const sc=document.createElement('canvas'); sc.width=640; sc.height=400;
+const x=sc.getContext('2d');
+const MONTHS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+let WX={temp:null,code:null,isDay:1,label:'LOADING…'};
+function wxLabel(c){
+  if(c===0)return 'CLEAR'; if(c===1)return 'MOSTLY CLEAR'; if(c===2)return 'PARTLY CLOUDY';
+  if(c===3)return 'OVERCAST'; if(c===45||c===48)return 'FOG';
+  if(c>=51&&c<=57)return 'DRIZZLE'; if((c>=61&&c<=67)||(c>=80&&c<=82))return 'RAIN';
+  if((c>=71&&c<=77)||c===85||c===86)return 'SNOW'; if(c>=95)return 'THUNDERSTORM'; return '—';
+}
+function wxKind(c){
+  if(c===0||c===1)return WX.isDay?'sun':'moon'; if(c===2)return 'partly';
+  if(c===3||c===45||c===48)return 'cloud'; if((c>=51&&c<=67)||(c>=80&&c<=82))return 'rain';
+  if((c>=71&&c<=77)||c===85||c===86)return 'snow'; if(c>=95)return 'storm'; return 'cloud';
+}
+function icon(g,cx,cy,s,kind,col,bg){
+  col=col||'#111'; bg=bg||'#f6f4ee';
+  g.fillStyle=col; g.strokeStyle=col; g.lineWidth=Math.max(2,s*0.09); g.lineCap='round';
+  function cloud(ox,oy,k){ k=k||1; g.beginPath();
+    g.arc(ox-0.34*s*k,oy+0.05*s*k,0.22*s*k,0,7);
+    g.arc(ox-0.02*s*k,oy-0.16*s*k,0.30*s*k,0,7);
+    g.arc(ox+0.30*s*k,oy+0.02*s*k,0.24*s*k,0,7);
+    g.rect(ox-0.34*s*k,oy+0.05*s*k,0.66*s*k,0.24*s*k); g.fill(); }
+  if(kind==='sun'){ g.beginPath(); g.arc(cx,cy,s*0.30,0,7); g.fill();
+    for(let i=0;i<8;i++){const a=i*Math.PI/4; g.beginPath();
+      g.moveTo(cx+Math.cos(a)*s*0.44,cy+Math.sin(a)*s*0.44);
+      g.lineTo(cx+Math.cos(a)*s*0.60,cy+Math.sin(a)*s*0.60); g.stroke();}
+  } else if(kind==='moon'){ g.beginPath(); g.arc(cx,cy,s*0.36,0,7); g.fill();
+    g.fillStyle=bg; g.beginPath(); g.arc(cx+s*0.16,cy-s*0.10,s*0.32,0,7); g.fill();
+  } else if(kind==='partly'){ g.beginPath(); g.arc(cx-0.2*s,cy-0.2*s,s*0.20,0,7); g.fill();
+    for(let i=0;i<8;i++){const a=i*Math.PI/4; g.beginPath();
+      g.moveTo(cx-0.2*s+Math.cos(a)*s*0.28,cy-0.2*s+Math.sin(a)*s*0.28);
+      g.lineTo(cx-0.2*s+Math.cos(a)*s*0.38,cy-0.2*s+Math.sin(a)*s*0.38); g.stroke();}
+    cloud(cx+0.06*s,cy+0.10*s,0.85);
+  } else { cloud(cx,cy-0.06*s,1);
+    if(kind==='rain'){ for(let i=-1;i<=1;i++){ g.beginPath();
+      g.moveTo(cx+i*0.2*s,cy+0.28*s); g.lineTo(cx+i*0.2*s-0.06*s,cy+0.5*s); g.stroke(); } }
+    if(kind==='snow'){ g.fillStyle=col; for(let i=-1;i<=1;i++){ g.beginPath();
+      g.arc(cx+i*0.2*s,cy+0.4*s,0.045*s,0,7); g.fill(); } }
+    if(kind==='storm'){ g.beginPath(); g.moveTo(cx+0.04*s,cy+0.24*s); g.lineTo(cx-0.12*s,cy+0.46*s);
+      g.lineTo(cx+0.0*s,cy+0.46*s); g.lineTo(cx-0.12*s,cy+0.68*s); g.stroke(); } }
+}
+function drawScreen(cursor){
+  const BG='#f6f4ee';
+  x.fillStyle=BG; x.fillRect(0,0,640,400);
+  const now=new Date(), hh=now.getHours(), mm=String(now.getMinutes()).padStart(2,'0');
+  const h12=((hh%12)||12), ap=hh<12?'AM':'PM';
+  // HELLO — smaller, at top
+  x.textAlign='center'; x.textBaseline='alphabetic'; x.fillStyle='#111';
+  x.font='900 66px Arial Black, Arial'; x.fillText('HELLO', 320, 78);
+  x.strokeStyle='#dcd8cf'; x.lineWidth=2; x.beginPath(); x.moveTo(70,104); x.lineTo(570,104); x.stroke();
+  // BIG time (h:mm + AM/PM)
+  const tstr=h12+':'+mm;
+  x.font='900 96px Arial Black, Arial'; const tw=x.measureText(tstr).width;
+  x.font='900 30px Arial Black, Arial'; const apw=x.measureText(ap).width;
+  const gap=14, total=tw+gap+apw, startx=320-total/2;
+  x.textAlign='left'; x.fillStyle='#111';
+  x.font='900 96px Arial Black, Arial'; x.fillText(tstr, startx, 208);
+  x.font='900 30px Arial Black, Arial'; x.fillText(ap, startx+tw+gap, 208);
+  // weather row (icon + big temp), centered
+  const tempStr = WX.temp!=null? WX.temp+'°F' : '—';
+  x.font='900 50px Arial Black, Arial'; const tpw=x.measureText(tempStr).width;
+  const iconS=44, g2=18, grpW=iconS+g2+tpw, gx=320-grpW/2;
+  icon(x, gx+iconS/2, 262, iconS, WX.code!=null? wxKind(WX.code):'cloud', '#111', BG);
+  x.textAlign='left'; x.fillStyle='#111'; x.fillText(tempStr, gx+iconS+g2, 280);
+  // date + condition
+  x.textAlign='center'; x.font='23px Courier New'; x.fillStyle='#666';
+  const dateStr=DAYS[now.getDay()]+' '+String(now.getDate()).padStart(2,'0')+' '+MONTHS[now.getMonth()]+' '+now.getFullYear();
+  x.fillText(dateStr+'   ·   '+WX.label, 320, 336);
+  // footer prompt
+  x.textAlign='left'; x.fillStyle='#9a968d'; x.font='18px Courier New';
+  x.fillText('richardkauli.com'+(cursor?' _':''), 24, 384);
+  // very faint scanlines
+  x.fillStyle='rgba(0,0,0,0.03)'; for(let i=0;i<400;i+=3){ x.fillRect(0,i,640,1); }
+}
+fetch('https://api.open-meteo.com/v1/forecast?latitude=40.68&longitude=-73.94&current=temperature_2m,weather_code,is_day&temperature_unit=fahrenheit')
+  .then(r=>r.json()).then(d=>{ const c=d.current;
+    WX={temp:Math.round(c.temperature_2m),code:c.weather_code,isDay:c.is_day,label:wxLabel(c.weather_code)};
+    drawScreen(true); if(typeof stex!=='undefined') stex.needsUpdate=true; })
+  .catch(()=>{ WX.label='OFFLINE'; });
+drawScreen(true);
+const stex=new S.CanvasTexture(sc); stex.encoding=S.sRGBEncoding;
+const screen=new S.Mesh(new S.PlaneGeometry(5.7,3.5), new S.MeshBasicMaterial({map:stex}));
+screen.position.set(0,7.1,0.22); mon.add(screen);
+mon.position.set(-3.2,0,-0.6); mon.rotation.y=0.18;
+scene.add(tag(mon,'PORTFOLIO'));
+
+/* ---------- CLOTHING RACK = CLOTHES (with real garment shot) ---------- */
+const rack=new S.Group();
+const bar=box(5,0.16,0.16,0x333,0.4,0.6); bar.position.y=9; rack.add(bar);
+[[-2.4],[2.4]].forEach(p=>{ const pole=box(0.14,9,0.14,0x444,0.4,0.6); pole.position.set(p[0],4.5,0); rack.add(pole);
+  const foot=box(1.4,0.14,0.9,0x333,0.4,0.6); foot.position.set(p[0],0.07,0); rack.add(foot); });
+// hanger + garment plane (double sided textured)
+function garment(dx,texkey,c){
+  const g=new S.Group();
+  const hook=box(0.5,0.1,0.1,0x777,0.3,0.7); hook.position.y=8.95; g.add(hook);
+  const gm=new S.MeshStandardMaterial({map:tex(KTEX[texkey]),roughness:0.9,side:S.DoubleSide,color:0xffffff});
+  const cloth=new S.Mesh(new S.PlaneGeometry(2.1,3.0), gm);
+  cloth.castShadow=true; cloth.position.set(0,7.1,0.02); g.add(cloth);
+  const shoulders=box(1.5,0.12,0.12,0xdedede,0.6); shoulders.position.y=8.6; g.add(shoulders);
+  g.position.x=dx; return g;
+}
+rack.add(garment(-1.6,'money'));
+rack.add(garment(0.2,'galaxy'));
+rack.add(garment(1.9,'stop'));
+rack.position.set(7.6,0,-3.4);
+scene.add(tag(rack,'CLOTHES'));
+
+/* ---------- CASH REGISTER = SHOP ---------- */
+const reg=new S.Group();
+const body=box(2.2,1.4,1.8,0xd8402f,0.6); body.position.y=4.9; reg.add(body);
+const drawer=box(2.3,0.5,1.9,0xb5301f,0.6); drawer.position.y=4.1; reg.add(drawer);
+const sr=box(1.4,0.9,0.15,0x111,0.4); sr.position.set(0,6.0,0.6); sr.rotation.x=-0.3; reg.add(sr);
+const key1=box(1.6,0.12,1.0,0xf2e9d8,0.7); key1.position.set(0,5.65,0.2); reg.add(key1);
+reg.position.set(3.9,0,1.2); reg.rotation.y=-0.25;
+scene.add(tag(reg,'SHOP'));
+
+/* ---------- ENVELOPE = CONTACT ---------- */
+const env=new S.Group();
+const paper=box(2.4,1.6,0.12,0xfaf7ef,0.8); env.add(paper);
+const flap=new S.Mesh(new S.ConeGeometry(1.28,0.9,4), mat(0xece4d3,0.8));
+flap.rotation.x=Math.PI/2; flap.rotation.z=Math.PI/4; flap.position.set(0,0.35,0.09); flap.scale.set(1,1,0.4);
+env.add(flap);
+const stamp=box(0.5,0.5,0.14,0xd8402f,0.7); stamp.position.set(0.8,0.45,0.02); env.add(stamp);
+env.position.set(0.9,4.55,2.0); env.rotation.x=-Math.PI/2.3; env.rotation.z=0.15;
+scene.add(tag(env,'CONTACT'));
+
+/* ---------- CARDBOARD BOX = RICH ARCHIVE ---------- */
+const arc=new S.Group();
+const cb=box(2.6,2.2,2.6,0xc79a5e,0.95); cb.position.y=1.1; arc.add(cb);
+// open flaps
+function flapMesh(){ const f=new S.Mesh(new S.BoxGeometry(2.6,0.08,1.3),mat(0xb98c4f,0.95)); f.castShadow=true; return f; }
+const f1=flapMesh(); f1.position.set(0,2.2,0.95); f1.rotation.x=-0.9; arc.add(f1);
+const f2=flapMesh(); f2.position.set(0,2.2,-0.95); f2.rotation.x=0.9; arc.add(f2);
+// tape line
+const tape=box(0.5,2.22,2.62,0xd8402f,0.8); tape.position.y=1.1; arc.add(tape);
+arc.position.set(10.5,0,3.2);
+scene.add(tag(arc,'RICH ARCHIVE'));
+
+/* ---------- framed photo on wall = PHOTOGRAPHY ---------- */
+const frame=new S.Group();
+const fr=box(3.6,4.4,0.2,0x111,0.5); frame.add(fr);
+const ph=new S.Mesh(new S.PlaneGeometry(3.0,3.8), new S.MeshStandardMaterial({map:tex(KTEX.tv),roughness:0.9}));
+ph.position.z=0.12; frame.add(ph);
+frame.position.set(-9.6,10,-10.7);
+scene.add(tag(frame,'PHOTOGRAPHY'));
+
+/* ---------- desk lamp (decor) ---------- */
+const lamp=new S.Group();
+const lbase=new S.Mesh(new S.CylinderGeometry(0.6,0.7,0.25,20),mat(0x222,0.5)); lbase.position.y=4.4; lamp.add(lbase);
+const arm1=box(0.14,2.4,0.14,0x333,0.4); arm1.position.set(0,5.5,0); arm1.rotation.z=0.5; lamp.add(arm1);
+const arm2=box(0.14,2.2,0.14,0x333,0.4); arm2.position.set(-1.0,6.6,0); arm2.rotation.z=-0.7; lamp.add(arm2);
+const head=new S.Mesh(new S.ConeGeometry(0.7,0.9,20),mat(0xd8402f,0.5)); head.position.set(-1.7,7.4,0); head.rotation.z=1.6; lamp.add(head);
+lamp.position.set(6.2,0,-1.4);
+scene.add(lamp);
+
+/* small keyboard */
+const kb=box(3.2,0.2,1.2,0x2a2a2a,0.6); kb.position.set(-3.0,4.2,1.6); scene.add(kb);
+const mouse=box(0.6,0.25,0.9,0x2a2a2a,0.5); mouse.position.set(-0.6,4.2,1.7); scene.add(mouse);
+
+/* ---------- custom orbit ---------- */
+const target=new S.Vector3(1.5,5,0);
+let az=0.62, pol=1.16, rad=26;
+if(matchMedia('(pointer:coarse)').matches || innerWidth<720){ rad=42; }  // start zoomed out on mobile
+function applyCam(){
+  camera.position.set(
+    target.x + rad*Math.sin(pol)*Math.sin(az),
+    target.y + rad*Math.cos(pol),
+    target.z + rad*Math.sin(pol)*Math.cos(az));
+  camera.lookAt(target);
+}
+applyCam();
+let down=false, px=0, py=0, moved=0;
+let mode='room';  // 'room' | 'diving' | 'docked' | 'returning'
+const cv=renderer.domElement;
+function pd(e){ if(mode!=='room')return; down=true; moved=0; const t=e.touches?e.touches[0]:e; px=t.clientX; py=t.clientY; }
+function pm(e){ if(!down||mode!=='room')return; const t=e.touches?e.touches[0]:e;
+  const dx=t.clientX-px, dy=t.clientY-py; px=t.clientX; py=t.clientY; moved+=Math.abs(dx)+Math.abs(dy);
+  az -= dx*0.006; pol -= dy*0.005; pol=Math.max(0.55,Math.min(1.45,pol)); applyCam(); hideLabel(); }
+function pu(){ down=false; }
+cv.addEventListener('mousedown',pd); addEventListener('mousemove',pm); addEventListener('mouseup',pu);
+cv.addEventListener('touchstart',pd,{passive:true}); addEventListener('touchmove',pm,{passive:true}); addEventListener('touchend',pu);
+// Trackpad pinch = ctrl+wheel → the browser would zoom the whole page. Intercept it
+// so pinch/scroll zoom the 3D scene instead. (Overlay still scrolls normally when docked.)
+addEventListener('wheel',e=>{
+  if(mode!=='room'){ if(e.ctrlKey) e.preventDefault(); return; }
+  e.preventDefault();
+  rad=Math.max(12,Math.min(48, rad + e.deltaY*0.03));
+  applyCam();
+},{passive:false});
+// Safari uses gesture events for pinch
+let _gs=1;
+addEventListener('gesturestart',e=>{ e.preventDefault(); _gs=e.scale; },{passive:false});
+addEventListener('gesturechange',e=>{ e.preventDefault(); if(mode!=='room')return;
+  const d=e.scale-_gs; _gs=e.scale; rad=Math.max(12,Math.min(48, rad - d*30)); applyCam(); },{passive:false});
+addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+
+/* ---------- raycast hover/click ---------- */
+const ray=new S.Raycaster(), mouse2=new S.Vector2();
+const labelEl=document.getElementById('label');
+let hovered=null;
+function setPointer(e){ const t=e.touches?e.touches[0]:e; mouse2.x=(t.clientX/innerWidth)*2-1; mouse2.y=-(t.clientY/innerHeight)*2+1; return t; }
+function hideLabel(){ labelEl.style.opacity=0; if(hovered){hovered.scale.set(1,1,1);hovered=null;} cv.style.cursor='grab'; }
+cv.addEventListener('mousemove',e=>{
+  if(down||mode!=='room'){ if(mode!=='room')hideLabel(); return; }
+  const t=setPointer(e);
+  ray.setFromCamera(mouse2,camera);
+  const hit=ray.intersectObjects(clickable,true)[0];
+  if(hit){ const root=hit.object.userData.root;
+    if(hovered!==root){ if(hovered)hovered.scale.set(1,1,1); hovered=root; root.scale.set(1.05,1.05,1.05); }
+    labelEl.textContent=root.userData.label; labelEl.style.left=t.clientX+'px'; labelEl.style.top=t.clientY+'px';
+    labelEl.style.opacity=1;
+  } else hideLabel();
+});
+cv.addEventListener('click',e=>{
+  if(moved>8||mode!=='room')return; setPointer(e); ray.setFromCamera(mouse2,camera);
+  let label=null;
+  const hit=ray.intersectObjects(clickable,true)[0];
+  if(hit) label=hit.object.userData.root.userData.label;
+  else { const sHit=ray.intersectObjects(labelSprites.filter(s=>s.visible),false)[0];
+    if(sHit) label=sHit.object.userData.label; }
+  if(label) enterSection(label);
+});
+
+/* ---------- product data ---------- */
+const ITEMS=[
+  {img:'TVBackpack',t:'TV Backpack',cat:'Clothes',loc:'Brooklyn, NY',d:'2024 Nov'},
+  {img:'MillionDollarBackpack',t:'Million Dollar Bag',cat:'Clothes',loc:'Brooklyn, NY',d:'2023 Aug'},
+  {img:'MoneySuit',t:'Money Suit',cat:'Clothes',loc:'New York, NY',d:'2023 Sep'},
+  {img:'JetpackBackPack',t:'Jetpack Backpack',cat:'Clothes',loc:'Brooklyn, NY',d:'2024'},
+  {img:'FireFighterHat',t:'Firefighter Hat',cat:'Clothes',loc:'Brooklyn, NY',d:'2023'},
+  {img:'StopSignBackpack',t:'Stop Sign Backpack',cat:'Clothes',loc:'Brooklyn, NY',d:'2024'},
+  {img:'GalaxyHoodie',t:'Galaxy Hoodie',cat:'Clothes',loc:'Brooklyn, NY',d:'2023'},
+  {img:'TeddyHat',t:'Teddy Hat',cat:'Clothes',loc:'Brooklyn, NY',d:'2023 Oct'},
+  {img:'CensoredShirt',t:'Censored Shirt',cat:'Clothes',loc:'Brooklyn, NY',d:'2023 Apr'},
+  {img:'BrainBucketHat',t:'Brain Bucket Hat',cat:'Clothes',loc:'Brooklyn, NY',d:'2023'},
+  {img:'MattressBackpack',t:'Mattress Backpack',cat:'Clothes',loc:'Brooklyn, NY',d:'2023 Oct'},
+  {img:'LockedUpDress',t:'Locked Up Dress',cat:'Clothes',loc:'Brooklyn, NY',d:'2023'},
+  {img:'FlowerVision',t:'Flower Vision',cat:'Jewelry',loc:'Brooklyn, NY',d:'2024'},
+  {img:'OneWayHat',t:'One Way Hat',cat:'Graphic',loc:'Brooklyn, NY',d:'2023'},
+];
+const CATS=['Everything','Clothes','Jewelry','Graphic','Photography','Furniture','Websites'];
+
+/* ---------- dock / dive ---------- */
+const curTgt=new S.Vector3();
+const dive={active:false,t0:0,dur:600,fromPos:new S.Vector3(),toPos:new S.Vector3(),fromTgt:new S.Vector3(),toTgt:new S.Vector3(),after:null};
+function isMobile(){ return matchMedia('(pointer:coarse)').matches || innerWidth<720; }
+function screenWorld(){ return screen.getWorldPosition(new S.Vector3()); }
+function screenNormal(){ return new S.Vector3(0,0,1).applyQuaternion(screen.getWorldQuaternion(new S.Quaternion())).normalize(); }
+function dockPose(){
+  const c=screenWorld(), n=screenNormal(), fov=camera.fov*Math.PI/180, tan=Math.tan(fov/2);
+  const dH=1.75/tan, dW=2.85/(tan*camera.aspect);
+  // COVER the viewport (fill both dimensions, crop the overflow) so the screen's top & bottom
+  // reach the phone's top & bottom — nothing shows behind, no gap to fade over.
+  const dist=Math.min(dH,dW)/1.03;
+  return {pos:c.clone().add(n.multiplyScalar(dist)), tgt:c};
+}
+function roomPos(){ return new S.Vector3(
+  target.x+rad*Math.sin(pol)*Math.sin(az), target.y+rad*Math.cos(pol), target.z+rad*Math.sin(pol)*Math.cos(az)); }
+function startDive(toPos,toTgt,newMode,after){
+  dive.fromPos.copy(camera.position); dive.toPos.copy(toPos);
+  dive.fromTgt.copy(curTgt); dive.toTgt.copy(toTgt);
+  dive.t0=performance.now(); dive.active=true; mode=newMode; dive.after=after;
+}
+function enterSection(label){
+  if(mode!=='room')return; hideLabel(); curTgt.copy(target);
+  const dk=dockPose();
+  buildBody(label); positionOverlay();
+  brandEl.style.opacity=0; hintEl.style.opacity=0;
+  // fade the page in AS the camera dives (synced to the dive duration)
+  ovl.style.display='block'; ovl.style.opacity='0'; void ovl.offsetWidth;
+  ovl.style.transition='opacity '+(dive.dur/1000)+'s ease';
+  ovl.style.opacity='1';
+  startDive(dk.pos,dk.tgt,'diving',()=>{ mode='docked'; backBtn.classList.add('on'); });
+}
+function goBack(){
+  if(mode!=='docked')return;
+  backBtn.classList.remove('on'); brandEl.style.opacity=1; hintEl.style.opacity=1;
+  // fade the page out as the camera flies back
+  ovl.style.transition='opacity '+(dive.dur/1000)+'s ease'; ovl.style.opacity='0';
+  setTimeout(()=>{ if(mode==='room'||mode==='returning') ovl.style.display='none'; }, dive.dur);
+  startDive(roomPos(),target.clone(),'returning',()=>{ mode='room'; applyCam(); });
+}
+document.getElementById('backBtn').addEventListener('click',goBack);
+
+/* ---------- overlay ---------- */
+const ovl=document.getElementById('screenOverlay'), backBtn=document.getElementById('backBtn');
+const brandEl=document.querySelector('.brand'), hintEl=document.getElementById('hint');
+function projectRect(){
+  const pts=[[-2.85,-1.75],[2.85,-1.75],[2.85,1.75],[-2.85,1.75]].map(([lx,ly])=>{
+    const v=screen.localToWorld(new S.Vector3(lx,ly,0)); v.project(camera);
+    return {x:(v.x*0.5+0.5)*innerWidth,y:(-v.y*0.5+0.5)*innerHeight}; });
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  return {left:Math.min(...xs),top:Math.min(...ys),right:Math.max(...xs),bottom:Math.max(...ys)};
+}
+function positionOverlay(){
+  // full viewport — the whole screen IS the page, no monitor border
+  ovl.style.left='0'; ovl.style.top='0'; ovl.style.width='100vw'; ovl.style.height='100vh';
+  backBtn.style.left='50%'; backBtn.style.transform='translateX(-50%)'; backBtn.style.bottom='18px'; backBtn.style.top='auto';
+}
+function showOverlay(label){ buildBody(label); positionOverlay();
+  ovl.classList.add('on'); backBtn.classList.add('on'); brandEl.style.opacity=0; hintEl.style.opacity=0; }
+function hideOverlay(){ ovl.classList.remove('on'); backBtn.classList.remove('on'); brandEl.style.opacity=1; hintEl.style.opacity=1; }
+
+/* ---------- content ---------- */
+function count(cat){ return cat==='Everything'?ITEMS.length:ITEMS.filter(i=>i.cat===cat).length; }
+function gridHTML(active){
+  const chips=CATS.map(c=>'<div class="sochip'+(c===active?' on':'')+'" data-c="'+c+'">'+c.toUpperCase()+'<span class="n">'+count(c)+'</span></div>').join('');
+  const list=active==='Everything'?ITEMS:ITEMS.filter(i=>i.cat===active);
+  const cards=list.length?list.map(i=>'<div class="soCard"><div class="ph" style="background-image:url(assets/'+i.img+'.jpg)"></div>'+
+    '<div class="m"><b>'+i.t+'</b><span>('+i.loc+') '+i.d+'</span></div></div>').join('')
+    :'<div style="font-size:12px;color:#999;padding:6px">— nothing here yet —</div>';
+  return '<div class="soFilter">'+chips+'</div><div class="soGrid">'+cards+'</div>';
+}
+function wireChips(){ document.querySelectorAll('#soBody .sochip').forEach(ch=>{
+  ch.addEventListener('click',()=>{ document.getElementById('soBody').innerHTML=gridHTML(ch.dataset.c); wireChips(); }); }); }
+function buildBody(label){
+  document.getElementById('soTitle').textContent=label;
+  const body=document.getElementById('soBody');
+  if(label==='CONTACT'){ body.innerHTML='<div class="soText"><span class="soTag">MAIL</span><h3>Say something.</h3>'+
+    'richard@richardkauli.com<br>@richard.kauli<br>Brooklyn, NY</div>'; return; }
+  if(label==='SHOP'){ body.innerHTML='<div class="soText"><span class="soTag">STORE</span><h3>Buy the objects.</h3>'+
+    'Fixed price · Auctions · Name-your-price. Checkout lives right here.</div>'+
+    '<div style="margin-top:8px">'+
+    '<div class="soRow"><span>Money Suit</span><span class="p">$450</span></div>'+
+    '<div class="soRow"><span>TV Backpack</span><span class="p">AUCTION →</span></div>'+
+    '<div class="soRow"><span>Censored Shirt</span><span class="p">NAME YOUR PRICE</span></div>'+
+    '<div class="soRow"><span>Teddy Hat</span><span class="p">$120</span></div></div>'; return; }
+  const map={'CLOTHES':'Clothes','PHOTOGRAPHY':'Photography','JEWELRY':'Jewelry','GRAPHIC':'Graphic'};
+  const active=(label==='PORTFOLIO'||label==='RICH ARCHIVE')?'Everything':(map[label]||'Everything');
+  body.innerHTML=gridHTML(active); wireChips();
+}
+
+/* ---------- retro pixel hand cursor (desktop only) ---------- */
+(function(){
+  if(matchMedia('(pointer:coarse)').matches) return;
+  const rows=[
+   "...KK.........",
+   "..KWWK........",
+   "..KWWK........",
+   "..KWWK........",
+   "..KWWK........",
+   "..KWWKKK......",
+   "..KWWKWWKK....",
+   "..KWWKWWKWWK..",
+   "..KWWWWWWKWWK.",
+   "KKKWWWWWWWWWWK",
+   "KWWKWWWWWWWWWK",
+   "KWWKWWWWWWWWWK",
+   "KWWWWWWWWWWWWK",
+   ".KWWWWWWWWWWWK",
+   ".KWWWWWWWWWWK.",
+   "..KWWWWWWWWK..",
+   "...KWWWWWWK...",
+   "...KKKKKKKK..."];
+  const SCALE=2, W=rows[0].length, H=rows.length;
+  const cc=document.createElement('canvas'); cc.width=W*SCALE; cc.height=H*SCALE;
+  const cg=cc.getContext('2d');
+  for(let y=0;y<H;y++) for(let xx=0;xx<W;xx++){ const ch=rows[y][xx];
+    if(ch==='.')continue; cg.fillStyle=(ch==='K')?'#000':'#fff'; cg.fillRect(xx*SCALE,y*SCALE,SCALE,SCALE); }
+  const uri=cc.toDataURL();
+  const st=document.createElement('style');
+  st.textContent="*{cursor:url('"+uri+"') 7 0, auto !important}";
+  document.head.appendChild(st);
+})();
+
+/* ---------- always-on labels for touch, as in-scene sprites (no DOM = no lag) ---------- */
+function roundRectPath(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function makeLabelSprite(text){
+  const fs=40, padX=20, padY=14, tri=16, dpr=2;
+  const meas=document.createElement('canvas').getContext('2d');
+  meas.font='900 '+fs+'px Arial Black, Arial';
+  const boxW=Math.ceil(meas.measureText(text).width)+padX*2, boxH=fs+padY*2;
+  const c=document.createElement('canvas'); c.width=boxW*dpr; c.height=(boxH+tri)*dpr;
+  const g=c.getContext('2d'); g.scale(dpr,dpr);
+  g.fillStyle='#111'; roundRectPath(g,0,0,boxW,boxH,7); g.fill();
+  g.beginPath(); g.moveTo(boxW/2-tri*0.7,boxH); g.lineTo(boxW/2+tri*0.7,boxH); g.lineTo(boxW/2,boxH+tri); g.closePath(); g.fill();
+  g.fillStyle='#fff'; g.font='900 '+fs+'px Arial Black, Arial'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(text, boxW/2, boxH/2+1);
+  const tx=new S.CanvasTexture(c); tx.minFilter=S.LinearFilter; tx.anisotropy=4;
+  const sp=new S.Sprite(new S.SpriteMaterial({map:tx, depthTest:false, transparent:true}));
+  const H=1.35; sp.scale.set(H*c.width/c.height, H, 1); sp.renderOrder=999;
+  sp.userData.label=text;   // so the sprite itself is clickable → enter section
+  return sp;
+}
+const labelSprites=[];
+clickable.forEach(root=>{
+  const b=new S.Box3().setFromObject(root); const c=b.getCenter(new S.Vector3());
+  const sp=makeLabelSprite(root.userData.label);
+  // sit the sprite just above the object; its downward tip points at the object
+  sp.position.set(c.x, b.max.y + sp.scale.y*0.55, c.z);
+  sp.visible=false; scene.add(sp); labelSprites.push(sp);
+});
+function updateObjLabels(){ const show=isMobile() && mode==='room'; for(const s of labelSprites) s.visible=show; }
+
+/* ---------- loop ---------- */
+let blink=0;
+function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);
+  if(mode==='docked'){ const dk=dockPose(); camera.position.copy(dk.pos); curTgt.copy(dk.tgt); camera.lookAt(dk.tgt); positionOverlay(); } }
+addEventListener('resize',resize); resize();
+function animate(t){
+  requestAnimationFrame(animate);
+  if(t-blink>500){ blink=t; drawScreen(Math.floor(t/500)%2===0); stex.needsUpdate=true; }
+  if(dive.active){
+    const k=Math.min(1,(t-dive.t0)/dive.dur);
+    const e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    camera.position.lerpVectors(dive.fromPos,dive.toPos,e);
+    curTgt.lerpVectors(dive.fromTgt,dive.toTgt,e);
+    camera.lookAt(curTgt);
+    if(k>=1){ dive.active=false; if(dive.after){const a=dive.after; dive.after=null; a();} }
+  }
+  updateObjLabels();
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+setTimeout(()=>{ const l=document.getElementById('loading'); l.style.opacity=0; setTimeout(()=>l.remove(),500); }, 500);
+</script>
+</body>
+</html>
