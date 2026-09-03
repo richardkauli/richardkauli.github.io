@@ -22,6 +22,8 @@
      font-weight:bold;color:#555;text-align:center;pointer-events:none}
   #loading{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center;
      justify-content:center;font-family:Arial Black,Arial,sans-serif;font-size:6vw;z-index:50;transition:opacity .5s}
+  #loading .lbig{text-align:center;max-width:90vw;padding:0 20px;line-height:1.02;
+     font-size:clamp(24px,6vw,46px)}
   #loading .lbarwrap{width:min(62vw,320px);height:12px;border:2px solid #fff;margin-top:26px}
   #loading .lbar{height:100%;width:0%;background:#fff;transition:width .22s ease}
   #loading .lstatus{margin-top:14px;font-family:'Courier New',monospace;font-size:13px;font-weight:normal;
@@ -74,7 +76,15 @@
 </head>
 <body>
 <div id="loading">
-  <div class="lbig">LOADING&nbsp;DESK…</div>
+  <div class="lbig" id="lbig">SETTING&nbsp;THE&nbsp;SCENE…</div>
+  <script>
+    (function(){
+      var H=['SETTING THE SCENE…','WARMING UP…','UNPACKING…','CLOCKING IN…',
+        'PULLING IT TOGETHER…','ONE SEC, TIDYING UP…','RENDERING REALITY…',
+        'ARRANGING THE FURNITURE…','ALMOST HOME…','DUSTING OFF THE DESK…','HANG TIGHT…'];
+      document.getElementById('lbig').textContent=H[Math.floor(Math.random()*H.length)];
+    })();
+  </script>
   <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
   <div class="lstatus" id="lstatus">starting up…</div>
   <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div>
