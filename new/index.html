@@ -453,24 +453,22 @@ function enterSection(label){
   const dk=dockPose();
   buildBody(label); positionOverlay();
   brandEl.style.opacity=0; hintEl.style.opacity=0;
-  // paint the page ONTO the monitor so you watch it load as you fly in
-  screenPage=label; drawPageOnScreen(label); stex.needsUpdate=true;
-  ovl.style.display='none'; ovl.style.opacity='0';
-  startDive(dk.pos,dk.tgt,'diving',()=>{
-    mode='docked'; backBtn.classList.add('on');
-    // the ONLY fade — a quick hand-off to the interactive layer, on arrival
-    ovl.style.display='block'; void ovl.offsetWidth;
-    ovl.style.transition='opacity .28s ease'; ovl.style.opacity='1';
-  });
+  // monitor keeps showing the clock/weather during the fly-in
+  const half=dive.dur/2;
+  ovl.style.display='block'; ovl.style.opacity='0'; void ovl.offsetWidth;
+  ovl.style.transition='opacity '+(half/1000)+'s ease';
+  // fade the page in over the SECOND HALF of the flight
+  setTimeout(()=>{ if(mode==='diving') ovl.style.opacity='1'; }, half);
+  startDive(dk.pos,dk.tgt,'diving',()=>{ mode='docked'; backBtn.classList.add('on'); ovl.style.opacity='1'; });
 }
 function goBack(){
   if(mode!=='docked')return;
   backBtn.classList.remove('on'); brandEl.style.opacity=1; hintEl.style.opacity=1;
-  // fade the interactive layer out; the monitor keeps showing the page as you fly out
-  ovl.style.transition='opacity .28s ease'; ovl.style.opacity='0';
-  setTimeout(()=>{ ovl.style.display='none'; }, 300);
-  startDive(roomPos(),target.clone(),'returning',()=>{
-    mode='room'; applyCam(); screenPage=null; drawScreen(true); stex.needsUpdate=true; });
+  // fade the page out over the first half of the fly-out
+  const half=dive.dur/2;
+  ovl.style.transition='opacity '+(half/1000)+'s ease'; ovl.style.opacity='0';
+  setTimeout(()=>{ ovl.style.display='none'; }, half+60);
+  startDive(roomPos(),target.clone(),'returning',()=>{ mode='room'; applyCam(); });
 }
 document.getElementById('backBtn').addEventListener('click',goBack);
 
