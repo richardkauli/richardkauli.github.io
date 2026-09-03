@@ -324,6 +324,7 @@ function applyCam(){
 applyCam();
 let down=false, px=0, py=0, moved=0;
 let mode='room';  // 'room' | 'diving' | 'docked' | 'returning'
+let screenPage=null;  // when set, the 3D monitor renders this section's page
 const cv=renderer.domElement;
 function pd(e){ if(mode!=='room')return; down=true; moved=0; const t=e.touches?e.touches[0]:e; px=t.clientX; py=t.clientY; }
 function pm(e){ if(!down||mode!=='room')return; const t=e.touches?e.touches[0]:e;
@@ -393,6 +394,39 @@ const ITEMS=[
 ];
 const CATS=['Everything','Clothes','Jewelry','Graphic','Photography','Furniture','Websites'];
 
+/* preload product images so they can be painted onto the 3D monitor */
+const imgCache={};
+ITEMS.forEach(i=>{ const im=new Image(); im.src='assets/'+i.img+'.jpg'; imgCache[i.img]=im; });
+function pageItems(label){
+  const map={'CLOTHES':'Clothes','PHOTOGRAPHY':'Photography','JEWELRY':'Jewelry','GRAPHIC':'Graphic'};
+  if(label==='PORTFOLIO'||label==='RICH ARCHIVE'||label==='SHOP') return ITEMS;
+  const c=map[label]; return c?ITEMS.filter(i=>i.cat===c):ITEMS;
+}
+/* draws the section page directly onto the monitor's screen canvas (x/sc) */
+function drawPageOnScreen(label){
+  const g=x, W=640, H=400, BG='#f6f4ee';
+  g.fillStyle=BG; g.fillRect(0,0,W,H);
+  g.fillStyle='#111'; g.textAlign='left'; g.textBaseline='alphabetic';
+  g.font='900 30px Arial Black, Arial'; g.fillText(label, 20, 40);
+  g.fillRect(0,54,W,3);
+  if(label==='CONTACT'){ g.font='20px Courier New'; g.fillStyle='#333';
+    g.fillText('richard@richardkauli.com', 20, 104);
+    g.fillText('@richard.kauli', 20, 138);
+    g.fillText('Brooklyn, NY', 20, 172);
+  } else {
+    const items=pageItems(label), cols=4, gap=14, pad=20, top=74;
+    const cw=(W-pad*2-gap*(cols-1))/cols;
+    items.slice(0,12).forEach((it,idx)=>{
+      const cx=pad+(idx%cols)*(cw+gap), cy=top+Math.floor(idx/cols)*(cw+gap);
+      g.fillStyle='#e6e2d8'; g.fillRect(cx,cy,cw,cw);
+      const im=imgCache[it.img];
+      if(im&&im.complete&&im.naturalWidth) g.drawImage(im,cx,cy,cw,cw);
+      g.strokeStyle='#111'; g.lineWidth=2; g.strokeRect(cx,cy,cw,cw);
+    });
+  }
+  g.fillStyle='rgba(0,0,0,0.03)'; for(let i=0;i<H;i+=3){ g.fillRect(0,i,W,1); }
+}
+
 /* ---------- dock / dive ---------- */
 const curTgt=new S.Vector3();
 const dive={active:false,t0:0,dur:600,fromPos:new S.Vector3(),toPos:new S.Vector3(),fromTgt:new S.Vector3(),toTgt:new S.Vector3(),after:null};
@@ -419,19 +453,25 @@ function enterSection(label){
   const dk=dockPose();
   buildBody(label); positionOverlay();
   brandEl.style.opacity=0; hintEl.style.opacity=0;
-  // fade the page in AS the camera dives (synced to the dive duration)
-  ovl.style.display='block'; ovl.style.opacity='0'; void ovl.offsetWidth;
-  ovl.style.transition='opacity '+(dive.dur/1000)+'s ease';
-  ovl.style.opacity='1';
-  startDive(dk.pos,dk.tgt,'diving',()=>{ mode='docked'; backBtn.classList.add('on'); });
+  // paint the page ONTO the monitor so you watch it while flying in
+  screenPage=label; drawPageOnScreen(label); stex.needsUpdate=true;
+  // interactive overlay stays hidden during the dive
+  ovl.style.display='none'; ovl.style.opacity='0';
+  startDive(dk.pos,dk.tgt,'diving',()=>{
+    mode='docked'; backBtn.classList.add('on');
+    // the ONLY fade — a quick hand-off to the interactive layer, on arrival
+    ovl.style.display='block'; void ovl.offsetWidth;
+    ovl.style.transition='opacity .28s ease'; ovl.style.opacity='1';
+  });
 }
 function goBack(){
   if(mode!=='docked')return;
   backBtn.classList.remove('on'); brandEl.style.opacity=1; hintEl.style.opacity=1;
-  // fade the page out as the camera flies back
-  ovl.style.transition='opacity '+(dive.dur/1000)+'s ease'; ovl.style.opacity='0';
-  setTimeout(()=>{ if(mode==='room'||mode==='returning') ovl.style.display='none'; }, dive.dur);
-  startDive(roomPos(),target.clone(),'returning',()=>{ mode='room'; applyCam(); });
+  // fade the interactive layer out; the monitor keeps showing the page as you fly out
+  ovl.style.transition='opacity .28s ease'; ovl.style.opacity='0';
+  setTimeout(()=>{ ovl.style.display='none'; }, 300);
+  startDive(roomPos(),target.clone(),'returning',()=>{
+    mode='room'; applyCam(); screenPage=null; drawScreen(true); stex.needsUpdate=true; });
 }
 document.getElementById('backBtn').addEventListener('click',goBack);
 
@@ -554,7 +594,9 @@ function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjection
 addEventListener('resize',resize); resize();
 function animate(t){
   requestAnimationFrame(animate);
-  if(t-blink>500){ blink=t; drawScreen(Math.floor(t/500)%2===0); stex.needsUpdate=true; }
+  if(t-blink>500){ blink=t;
+    if(screenPage) drawPageOnScreen(screenPage); else drawScreen(Math.floor(t/500)%2===0);
+    stex.needsUpdate=true; }
   if(dive.active){
     const k=Math.min(1,(t-dive.t0)/dive.dur);
     const e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
