@@ -21,8 +21,7 @@
      font-weight:bold;color:#555;text-align:center;pointer-events:none}
   #loading{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center;
      justify-content:center;font-family:Arial Black,Arial,sans-serif;font-size:6vw;z-index:50;transition:opacity .5s}
-  #loading .ltop{width:fit-content;margin:0 auto}
-  #loading .lbarwrap{width:100%;height:12px;border:2px solid #fff;margin-top:22px}
+  #loading .lbarwrap{width:min(62vw,320px);height:12px;border:2px solid #fff;margin-top:26px}
   #loading .lbar{height:100%;width:0%;background:#fff;transition:width .22s ease}
   #loading .lstatus{margin-top:14px;font-family:'Courier New',monospace;font-size:13px;font-weight:normal;
      color:#9a9a9a;letter-spacing:.02em;height:1em}
@@ -74,10 +73,8 @@
 </head>
 <body>
 <div id="loading">
-  <div class="ltop">
-    <div class="lbig">LOADING&nbsp;DESK…</div>
-    <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
-  </div>
+  <div class="lbig">LOADING&nbsp;DESK…</div>
+  <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
   <div class="lstatus" id="lstatus">starting up…</div>
   <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div>
 </div>
@@ -432,7 +429,7 @@ function drawPageOnScreen(label){
 
 /* ---------- dock / dive ---------- */
 const curTgt=new S.Vector3();
-const dive={active:false,t0:0,dur:600,fromPos:new S.Vector3(),toPos:new S.Vector3(),fromTgt:new S.Vector3(),toTgt:new S.Vector3(),after:null};
+const dive={active:false,t0:0,dur:780,fromPos:new S.Vector3(),toPos:new S.Vector3(),fromTgt:new S.Vector3(),toTgt:new S.Vector3(),after:null};
 function isMobile(){ return matchMedia('(pointer:coarse)').matches || innerWidth<720; }
 function screenWorld(){ return screen.getWorldPosition(new S.Vector3()); }
 function screenNormal(){ return new S.Vector3(0,0,1).applyQuaternion(screen.getWorldQuaternion(new S.Quaternion())).normalize(); }
@@ -453,19 +450,23 @@ function startDive(toPos,toTgt,newMode,after){
 }
 function enterSection(label){
   if(mode!=='room')return; hideLabel(); curTgt.copy(target);
-  const dk=dockPose();
   buildBody(label); positionOverlay();
   brandEl.style.opacity=0; hintEl.style.opacity=0;
-  // paint the page ONTO the monitor so you watch it while flying in
+  // 1) the page loads ON the monitor first — you see it change from the room
   screenPage=label; drawPageOnScreen(label); stex.needsUpdate=true;
-  // interactive overlay stays hidden during the dive
   ovl.style.display='none'; ovl.style.opacity='0';
-  startDive(dk.pos,dk.tgt,'diving',()=>{
-    mode='docked'; backBtn.classList.add('on');
-    // the ONLY fade — a quick hand-off to the interactive layer, on arrival
-    ovl.style.display='block'; void ovl.offsetWidth;
-    ovl.style.transition='opacity .28s ease'; ovl.style.opacity='1';
-  });
+  mode='entering';
+  // 2) short beat so that swap is visible, then the camera dives into the screen
+  setTimeout(()=>{
+    if(mode!=='entering')return;
+    const dk=dockPose();
+    startDive(dk.pos,dk.tgt,'diving',()=>{
+      mode='docked'; backBtn.classList.add('on');
+      // the ONLY fade — a quick hand-off to the interactive layer, on arrival
+      ovl.style.display='block'; void ovl.offsetWidth;
+      ovl.style.transition='opacity .28s ease'; ovl.style.opacity='1';
+    });
+  }, 320);
 }
 function goBack(){
   if(mode!=='docked')return;
