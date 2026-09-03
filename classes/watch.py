@@ -19,7 +19,9 @@ check-mode stdout contract for the scheduled task:
 import json, os, sys, datetime, itertools, urllib.parse, urllib.request, http.cookiejar
 import smtplib, ssl
 from email.message import EmailMessage
+from zoneinfo import ZoneInfo
 
+ET = ZoneInfo("America/New_York")       # all emailed timestamps shown in Eastern
 TERM = "202701"                         # FALL 2026
 END_DATE = datetime.date(2026, 9, 7)    # stop watching after this date
 BASE = "https://banner.fitnyc.edu/StudentRegistrationSsb/ssb"
@@ -296,7 +298,7 @@ def emit(subject, body, to=None):
 
 
 def run_check():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(ET)
     if now.date() > END_DATE:
         print("NEW_OPENINGS: 0")
         return
@@ -353,7 +355,7 @@ def run_check():
 
 
 def run_snapshot():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(ET)
     rows = collect(session())
     full = sorted([(c, r) for c, r in rows.items()
                    if r["seats"] <= 0 and alertable(c, r) and recipient_of(c, r) is None],
@@ -365,7 +367,7 @@ def run_snapshot():
 
 
 def run_digest():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(ET)
     cutoff = now - datetime.timedelta(hours=24)
     checks, opened, closed = 0, [], []
     if os.path.exists(EVENTS):
@@ -373,6 +375,9 @@ def run_digest():
             try:
                 ev = json.loads(ln)
                 ts = datetime.datetime.fromisoformat(ev["ts"])
+                if ts.tzinfo is None:            # older entries were naive UTC
+                    ts = ts.replace(tzinfo=datetime.timezone.utc)
+                ts = ts.astimezone(ET)           # show/compare in Eastern
             except Exception:
                 continue
             if ts < cutoff:
