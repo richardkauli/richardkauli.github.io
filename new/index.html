@@ -21,6 +21,10 @@
      font-weight:bold;color:#555;text-align:center;pointer-events:none}
   #loading{position:fixed;inset:0;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center;
      justify-content:center;font-family:Arial Black,Arial,sans-serif;font-size:6vw;z-index:50;transition:opacity .5s}
+  #loading .lbarwrap{width:min(62vw,320px);height:12px;border:2px solid #fff;margin-top:26px}
+  #loading .lbar{height:100%;width:0%;background:#fff;transition:width .22s ease}
+  #loading .lstatus{margin-top:14px;font-family:'Courier New',monospace;font-size:13px;font-weight:normal;
+     color:#9a9a9a;letter-spacing:.02em;height:1em}
   #loading .lhint{margin-top:20px;font-family:'Courier New',monospace;font-size:14px;font-weight:normal;
      color:#888;letter-spacing:.02em;text-align:center;padding:0 20px}
   .switch{position:fixed;bottom:44px;right:14px;z-index:60;display:flex;gap:6px}
@@ -68,8 +72,12 @@
 </style>
 </head>
 <body>
-<div id="loading"><div>LOADING&nbsp;DESK…</div>
-  <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div></div>
+<div id="loading">
+  <div class="lbig">LOADING&nbsp;DESK…</div>
+  <div class="lbarwrap"><div class="lbar" id="lbar"></div></div>
+  <div class="lstatus" id="lstatus">starting up…</div>
+  <div class="lhint">DRAG to look around &nbsp;·&nbsp; CLICK an object to enter</div>
+</div>
 <canvas id="c"></canvas>
 <div class="brand">RICHARD KAULI<small>the desk · click an object</small></div>
 <div id="label"></div>
@@ -540,7 +548,7 @@ clickable.forEach(root=>{
 function updateObjLabels(){ const show=isMobile() && mode==='room'; for(const s of labelSprites) s.visible=show; }
 
 /* ---------- loop ---------- */
-let blink=0;
+let blink=0, firstFrame=false;
 function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);
   if(mode==='docked'){ const dk=dockPose(); camera.position.copy(dk.pos); curTgt.copy(dk.tgt); camera.lookAt(dk.tgt); positionOverlay(); } }
 addEventListener('resize',resize); resize();
@@ -557,9 +565,25 @@ function animate(t){
   }
   updateObjLabels();
   renderer.render(scene,camera);
+  firstFrame=true;
 }
 requestAnimationFrame(animate);
-setTimeout(()=>{ const l=document.getElementById('loading'); l.style.opacity=0; setTimeout(()=>l.remove(),500); }, 500);
+
+/* ---------- loading bar ---------- */
+(function(){
+  const lbar=document.getElementById('lbar'), lstatus=document.getElementById('lstatus');
+  const stages=[[12,'loading 3D engine…'],[30,'building the room…'],[50,'hanging the clothes…'],
+                [68,'framing the photos…'],[84,'checking the weather…']];
+  let si=0, t0=performance.now();
+  function done(){ const l=document.getElementById('loading'); l.style.opacity=0; setTimeout(()=>l.remove(),500); }
+  const iv=setInterval(()=>{
+    if(si<stages.length){ lbar.style.width=stages[si][0]+'%'; lstatus.textContent=stages[si][1]; si++; return; }
+    // wait for the first rendered frame (or a 2.5s safety cap) before completing
+    if(firstFrame || performance.now()-t0>2500){
+      lbar.style.width='100%'; lstatus.textContent='ready.'; clearInterval(iv); setTimeout(done,280);
+    }
+  },200);
+})();
 </script>
 </body>
 </html>
