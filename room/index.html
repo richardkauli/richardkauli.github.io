@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Room 23K</title>
+<title>Richie's Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -29,25 +29,34 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 .sw i{display:block;height:18px;border:1px solid var(--line)}
 .tag button.toggle{all:unset;cursor:pointer;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .tag button.toggle:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
-.ctl{position:fixed;left:16px;top:calc(16px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:1fr;gap:8px;padding:12px;width:220px;max-height:calc(100% - 32px);overflow:auto;
+.optbtn{position:fixed;left:16px;top:calc(16px + env(safe-area-inset-top,0px));z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:9px 14px;cursor:pointer;backdrop-filter:blur(8px)}
+.optbtn:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+.ctl[hidden]{display:none}
+.ctl{position:fixed;left:16px;top:calc(56px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:1fr;gap:8px;padding:12px;width:220px;max-height:calc(100% - 72px);overflow:auto;
   background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);box-sizing:border-box}
 .ctl label{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .ctl select{font-family:var(--mono);font-size:12px;color:var(--ink);background:#1d1a18;border:1px solid var(--line);padding:6px 8px;border-radius:0;cursor:pointer}
 .ctl select:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
-@media (max-width:600px){.ctl{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:12px;width:auto;grid-template-columns:1fr 1fr;max-height:45%}}
+@media (max-width:600px){.ctl{top:calc(56px + env(safe-area-inset-top,0px));left:12px;right:12px;width:auto;grid-template-columns:1fr 1fr;max-height:45%}}
 .hint{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.walknote{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:9px 14px;transition:opacity .6s;pointer-events:none;white-space:nowrap}
+.walknote{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:9px 14px;transition:opacity .6s;pointer-events:none;white-space:nowrap}
 .walknote.fade{opacity:0}
-.shot .tag,.shot .ctl,.shot .hint,.shot .walknote{display:none}
+.pad{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:none;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:6px;z-index:2;user-select:none;-webkit-user-select:none}
+.pad button{all:unset;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-size:20px;touch-action:none;-webkit-tap-highlight-color:transparent}
+.pad button.on{background:#3a332d}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+@media (pointer:coarse){body.walking .pad{display:grid}}
+.shot .tag,.shot .ctl,.shot .optbtn,.shot .hint,.shot .walknote,.shot .pad{display:none}
 @media (max-width:520px){.hint{display:none}.tag{padding:10px 12px}.tag h1{font-size:18px}}
 </style>
-
 </head>
 <body>
+
 <canvas id="c" aria-label="3D render of the room"></canvas>
 <div class="walknote" id="walknote" hidden>W A S D to walk · drag to look · Shift to run</div>
-<div class="hint" id="hint">Drag to orbit · scroll to zoom</div>
-<form class="ctl" id="ctl" aria-label="Room options" onsubmit="return false">
+<div class="pad" id="pad" aria-label="Walk controls"><button class="u" data-k="arrowup" aria-label="Forward">▲</button><button class="l" data-k="arrowleft" aria-label="Turn left">◀</button><button class="d" data-k="arrowdown" aria-label="Back">▼</button><button class="r" data-k="arrowright" aria-label="Turn right">▶</button></div>
+<button type="button" class="optbtn" id="optbtn" aria-expanded="false" aria-controls="ctl">Options</button>
+<form class="ctl" id="ctl" aria-label="Room options" onsubmit="return false" hidden>
   <label for="s-mode">Mode<select id="s-mode"><option value="orbit">Orbit (drag to rotate)</option><option value="walk">Walk (WASD + drag to look)</option></select></label>
   <label for="s-view">View<select id="s-view"></select></label>
   <label for="s-work">Work side<select id="s-work"></select></label>
@@ -61,6 +70,10 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 </form>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script>
+(()=>{const b=document.getElementById('optbtn'),f=document.getElementById('ctl');
+b.addEventListener('click',()=>{const o=f.hidden;f.hidden=!o;b.setAttribute('aria-expanded',o);b.textContent=o?'Close':'Options';});})();
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -249,7 +262,7 @@ function smallPlant(x, y, z, kind = 'pothos', mat = M.terracotta) { const top = 
   else if (kind === 'cactus') { C(leafMats[2], 0.09, 0.1, 0.7, x, top, z, 10); C(leafMats[2], 0.05, 0.06, 0.3, x + 0.12, top + 0.25, z, 8); }
   else for (let i = 0; i < 14; i++) { const a = R(0, 7), rr = R(0, 0.18); leaf(x + Math.cos(a) * rr, top + R(0.05, 0.4), z + Math.sin(a) * rr, 0.14, 0.09, R(-1, 0), a, R(-.5, .5)); } }
 
-// ================= ROOM 23K — studio vibe: block + plywood + red rug + warm lamps =================
+// ================= Richie's room — studio vibe: block + plywood + red rug + warm lamps =================
 const plyTex = tex(woodCanvas(512, 512, 4, 36, 42, 58, 68, 1));
 const PLY = new THREE.MeshStandardMaterial({ map: plyTex, roughness: .7 });
 function plainWood(h, sat, l) { const [c, g] = cv(1024, 512); g.fillStyle = `hsl(${h},${sat}%,${l}%)`; g.fillRect(0, 0, 1024, 512);
@@ -598,8 +611,8 @@ wall(-0.15, 0.2, 17.2, 19.9, 7.0, H, false);
 // radiator in the NE corner + 1" table over it with one full-width leg by the balcony door
 { const radMat2 = new THREE.MeshStandardMaterial({ color: 0xf1efe9, roughness: .5 });
   B(radMat2, 0.2, 0.85, 0.3, 2.4, 13.75, 16.3); for (let i = 0; i < 11; i++) B(M.dark, 0.85, 0.86, 1.0, 2.2, 13.95 + i * 0.21, 14.05 + i * 0.21);
-  B(M.oak, 0.2, 1.75, 2.75, 2.83, 13.65, 16.55); B(M.oak, 0.2, 1.75, 0, 2.75, 16.47, 16.55); WALLS.push([0.2, 1.75, 16.45, 16.57]);
-  smallPlant(0.9, 2.83, 14.3, 'leafy'); B(M.walnut, 1.0, 1.5, 2.83, 3.2, 15.4, 15.9); } wall(-0.15, 7.48, 25.6, 25.9); wall(6.83, 7.48, 12.33, 24.08); wall(4.78, 7.48, 24.08, 25.6);
+  B(M.oak, 0.2, 1.75, 2.92, 3.0, 13.65, 17.2); B(M.oak, 0.2, 1.75, 0, 2.92, 17.12, 17.2); WALLS.push([0.2, 1.75, 17.1, 17.22]);
+  smallPlant(0.9, 3.0, 14.3, 'leafy'); B(M.walnut, 1.0, 1.5, 3.0, 3.37, 15.4, 15.9); } wall(-0.15, 7.48, 25.6, 25.9); wall(6.83, 7.48, 12.33, 24.08); wall(4.78, 7.48, 24.08, 25.6);
 wall(1.44, 1.79, 12.33, 13.6);
 { const steel = new THREE.MeshStandardMaterial({ color: 0xc9cbcc, metalness: .7, roughness: .35 }), top = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .35 }), cab = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: .5 });
   B(steel, 4.42, 6.8, 0, 5.8, 13.8, 16.0); B(BLACK, 4.4, 4.42, 3.2, 4.6, 14.0, 14.06);                        // fridge
@@ -668,9 +681,6 @@ for (const x of [20.9, 21.2]) C(M.brass, 0.03, 0.03, 0.5, x, 3.0, 8.47, 8);  // 
   for (const z of [Z1 + 0.05, Z2 - 0.05]) for (let x = X1 + 0.05; x <= X2 - 0.1; x += 0.33) C(BLACK, 0.02, 0.02, 3.4, x, 0, z, 6);
   B(BLACK, X1, X1 + 0.12, 3.4, 3.5, Z1, Z2); B(BLACK, X1, X2, 3.4, 3.5, Z1, Z1 + 0.12); B(BLACK, X1, X2, 3.4, 3.5, Z2 - 0.12, Z2);
   WALLS.push([X1 - 0.2, X1 + 0.1, Z1, Z2], [X1, X2, Z1 - 0.2, Z1 + 0.1], [X1, X2, Z2 - 0.1, Z2 + 0.2]);
-  for (const z of [12.6, 14.6]) { B(M.oak, -2.6, -1.4, 1.4, 1.5, z - 0.6, z + 0.6); for (const [dx, dz] of [[-0.55, -0.5], [0.55, -0.5], [-0.55, 0.5], [0.55, 0.5]]) B(BLACK, -2.0 + dx - 0.03, -2.0 + dx + 0.03, 0, 1.4, z + dz - 0.03, z + dz + 0.03); }
-  C(M.oak, 0.5, 0.5, 0.06, -2.0, 1.7, 13.6, 24); C(BLACK, 0.04, 0.04, 1.7, -2.0, 0, 13.6, 8);
-  monstera(-2.9, 19.4, 0.7); smallPlant(-3.1, 0, 10.8, 'leafy', M.terracotta); smallPlant(-0.7, 0, 10.7, 'pothos', M.concrete);
   const L = new THREE.PointLight(0xffc98a, 2.5, 0, 2); L.position.set(-0.6, 6.5, 15.0); scene.add(L);}
 
 // ---------- bed layout variants: regroup movable pieces around pivots ----------
@@ -727,34 +737,39 @@ const VIEWS = {
   board: { p: [12.6, 4.8, 9.0], t: [16.0, 4.2, 0.0], fov: 60 },
   bean: { p: [7.6, 5.2, 6.8], t: [2.6, 1.4, 2.0], fov: 60 },
   abovebed: { p: [11.0, 4.8, 5.83], t: [19.0, 4.6, 5.83], fov: 62 },
-  kitchenin: { p: [3.4, 5.3, 12.9], t: [3.2, 2.4, 24.5], fov: 75 },
-  bath: { p: [12.9, 5.3, 19.9], t: [9.4, 2.0, 24.5], fov: 80 },
-  balcony: { p: [4.0, 5.3, 18.6], t: [-3.0, 2.2, 14.0], fov: 70 },
+  kitchenin: { p: [3.4, 5.58, 12.9], t: [3.2, 2.4, 24.5], fov: 75 },
+  bath: { p: [12.9, 5.58, 19.9], t: [9.4, 2.0, 24.5], fov: 80 },
+  balcony: { p: [4.0, 5.58, 18.6], t: [-3.0, 2.2, 14.0], fov: 70 },
   apartment: { p: [11.0, 44, 13.0], t: [11.0, 0, 13.0], fov: 45 },
   closet: { p: [11.6, 5.2, 4.6], t: [15.6, 3.2, 12.2], fov: 72 },
   entry: { p: [11.5, 5.2, 4.0], t: [19.0, 3.4, 10.4], fov: 66 },
   kitchen: { p: [10.5, 5.0, 4.5], t: [2.5, 3.2, 11.5], fov: 66 },
   desk: { p: [6.8, 5.4, 7.6], t: [5.0, 2.6, 0.8], fov: 70 },
   work: { p: [17.6, 5.4, 10.4], t: [3.0, 2.6, 4.0], fov: 70 },
-  sleep: { p: [3.4, 5.3, 9.4], t: [16.0, 2.2, 4.4], fov: 66 },
+  sleep: { p: [3.4, 5.58, 9.4], t: [16.0, 2.2, 4.4], fov: 66 },
   plan: { p: [9.5, 30, 6.15], t: [9.5, 0, 6.0], fov: 40 },
 };
 let anim = null;
 // ---------- walk mode ----------
 const walkS = { on: false, yaw: 0, pitch: 0, keys: new Set(), drag: null, last: performance.now() };
 function setWalk(on, start) { walkS.on = on; controls.enabled = !on; anim = null;
-  const hint = document.getElementById('hint'); if (hint) hint.textContent = on ? 'W A S D to walk · drag to look · Shift to run' : 'Drag to orbit · scroll to zoom';
+  document.body.classList.toggle('walking', on); if (!on) walkS.keys.clear();
   const sm = document.getElementById('s-mode'); if (sm) sm.value = on ? 'walk' : 'orbit';
   if (on) { const p = camera.position; let x = p.x, z = p.z; if (p.y > H - 0.5 || blocked(x, z)) { x = 9.0; z = 9.0; }
-    camera.position.set(x, 5.3, z); camera.fov = 70; camera.updateProjectionMatrix();
+    camera.position.set(x, EYE, z); camera.fov = 70; camera.updateProjectionMatrix();
     const d = new THREE.Vector3(); camera.getWorldDirection(d); walkS.yaw = Math.atan2(-d.x, -d.z); walkS.pitch = 0;
-    if (start) { camera.position.set(start[0], 5.3, start[1]); walkS.yaw = start[2]; }
-    const n = document.getElementById('walknote'); if (n && !document.body.classList.contains('shot')) { n.hidden = false; n.classList.remove('fade'); clearTimeout(walkS.nt);
-      const hide = () => { n.classList.add('fade'); setTimeout(() => n.hidden = true, 700); removeEventListener('keydown', hide); };
-      walkS.nt = setTimeout(hide, 3500); addEventListener('keydown', hide); } } }
+    if (start) { camera.position.set(start[0], EYE, start[1]); walkS.yaw = start[2]; }
+    const n = document.getElementById('walknote'); if (n && !document.body.classList.contains('shot')) { if (matchMedia('(pointer:coarse)').matches) n.textContent = 'Arrows to walk · drag to look'; n.hidden = false; n.classList.remove('fade'); clearTimeout(walkS.nt);
+      const hide = () => { n.classList.add('fade'); setTimeout(() => n.hidden = true, 700); removeEventListener('keydown', hide); removeEventListener('pointerdown', hide); };
+      const startT = () => { if (window.__ready) walkS.nt = setTimeout(hide, 3500); else walkS.nt = setTimeout(startT, 200); }; startT(); addEventListener('keydown', hide); addEventListener('pointerdown', hide); } } }
+const EYE = 5.58; // 5'7"
 function blocked(x, z, r = 0.55) { return WALLS.some(([x1, x2, z1, z2]) => x > x1 - r && x < x2 + r && z > z1 - r && z < z2 + r); }
 addEventListener('keydown', e => { if (e.target.closest && e.target.closest('select')) return; const k = e.key.toLowerCase(); if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)) { walkS.keys.add(k); if (walkS.on && k.startsWith('arrow')) e.preventDefault(); } });
 addEventListener('keyup', e => walkS.keys.delete(e.key.toLowerCase()));
+document.querySelectorAll('#pad button').forEach(b => { const k = b.dataset.k;
+  const dn = e => { e.preventDefault(); walkS.keys.add(k); b.classList.add('on'); b.setPointerCapture?.(e.pointerId); };
+  const up = () => { walkS.keys.delete(k); b.classList.remove('on'); };
+  b.addEventListener('pointerdown', dn); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up); b.addEventListener('contextmenu', e => e.preventDefault()); });
 addEventListener('blur', () => walkS.keys.clear());
 canvas.addEventListener('pointerdown', e => { if (!walkS.on) return; walkS.drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointermove', e => { if (!walkS.on || !walkS.drag) return; walkS.yaw -= (e.clientX - walkS.drag.x) * 0.004; walkS.pitch = Math.max(-1.2, Math.min(1.2, walkS.pitch - (e.clientY - walkS.drag.y) * 0.004)); walkS.drag = { x: e.clientX, y: e.clientY }; });
