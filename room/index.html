@@ -54,7 +54,7 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 
 <canvas id="c" aria-label="3D render of the room"></canvas>
 <div class="walknote" id="walknote" hidden>W A S D to walk · drag to look · Shift to run</div>
-<div class="pad" id="pad" aria-label="Walk controls"><button class="u" data-k="arrowup" aria-label="Forward">▲</button><button class="l" data-k="arrowleft" aria-label="Turn left">◀</button><button class="d" data-k="arrowdown" aria-label="Back">▼</button><button class="r" data-k="arrowright" aria-label="Turn right">▶</button></div>
+<div class="pad" id="pad" aria-label="Walk controls"><button class="u" data-k="arrowup" aria-label="Forward">▲</button><button class="l" data-k="arrowleft" aria-label="Step left">◀</button><button class="d" data-k="arrowdown" aria-label="Back">▼</button><button class="r" data-k="arrowright" aria-label="Step right">▶</button></div>
 <button type="button" class="optbtn" id="optbtn" aria-expanded="false" aria-controls="ctl">Options</button>
 <form class="ctl" id="ctl" aria-label="Room options" onsubmit="return false" hidden>
   <label for="s-mode">Mode<select id="s-mode"><option value="orbit">Orbit (drag to rotate)</option><option value="walk">Walk (WASD + drag to look)</option></select></label>
@@ -775,8 +775,7 @@ canvas.addEventListener('pointerdown', e => { if (!walkS.on) return; walkS.drag 
 canvas.addEventListener('pointermove', e => { if (!walkS.on || !walkS.drag) return; walkS.yaw -= (e.clientX - walkS.drag.x) * 0.004; walkS.pitch = Math.max(-1.2, Math.min(1.2, walkS.pitch - (e.clientY - walkS.drag.y) * 0.004)); walkS.drag = { x: e.clientX, y: e.clientY }; });
 canvas.addEventListener('pointerup', () => walkS.drag = null); canvas.addEventListener('pointercancel', () => walkS.drag = null);
 function walkStep(dt) { const k = walkS.keys, sp = (k.has('shift') ? 9 : 4.5) * dt;
-  if (k.has('arrowleft')) walkS.yaw += 1.8 * dt; if (k.has('arrowright')) walkS.yaw -= 1.8 * dt;
-  let f = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0), st = (k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0);
+  let f = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0), st = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
   const fx = -Math.sin(walkS.yaw), fz = -Math.cos(walkS.yaw), rx = Math.cos(walkS.yaw), rz = -Math.sin(walkS.yaw);
   const dx = (fx * f + rx * st) * sp, dz = (fz * f + rz * st) * sp, p = camera.position;
   if (!blocked(p.x + dx, p.z)) p.x += dx; if (!blocked(p.x, p.z + dz)) p.z += dz;
