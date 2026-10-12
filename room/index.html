@@ -36,13 +36,16 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 .ctl select:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
 @media (max-width:600px){.ctl{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:12px;width:auto;grid-template-columns:1fr 1fr;max-height:45%}}
 .hint{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.shot .tag,.shot .ctl,.shot .hint{display:none}
+.walknote{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:9px 14px;transition:opacity .6s;pointer-events:none;white-space:nowrap}
+.walknote.fade{opacity:0}
+.shot .tag,.shot .ctl,.shot .hint,.shot .walknote{display:none}
 @media (max-width:520px){.hint{display:none}.tag{padding:10px 12px}.tag h1{font-size:18px}}
 </style>
 
 </head>
 <body>
 <canvas id="c" aria-label="3D render of the room"></canvas>
+<div class="walknote" id="walknote" hidden>W A S D to walk · drag to look · Shift to run</div>
 <div class="hint" id="hint">Drag to orbit · scroll to zoom</div>
 <form class="ctl" id="ctl" aria-label="Room options" onsubmit="return false">
   <label for="s-mode">Mode<select id="s-mode"><option value="orbit">Orbit (drag to rotate)</option><option value="walk">Walk (WASD + drag to look)</option></select></label>
@@ -204,8 +207,8 @@ for (const [a, b] of WIN) {
   gr.addColorStop(0, '#141c33'); gr.addColorStop(.6, '#2c3a5c'); gr.addColorStop(1, '#6a5a72'); g.fillStyle = gr; g.fillRect(0, 0, 1600, 700);
   let x = 0; while (x < 1600) { const w = R(60, 180), h = R(120, 330); g.fillStyle = `hsl(230,${R(10,20)}%,${R(10,18)}%)`; g.fillRect(x, 700 - h, w, h);
     g.fillStyle = 'rgba(255,205,140,.75)'; for (let wy = 700 - h + 20; wy < 690; wy += 36) for (let wx = x + 10; wx < x + w - 14; wx += 26) g.fillRect(wx, wy, 12, 18); x += w + R(0, 8); }
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(36, 16), new THREE.MeshBasicMaterial({ map: tex(c) }));
-  m.rotation.y = Math.PI / 2; m.position.set(-9, 3.2, 4.5); scene.add(m); }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(60, 18), new THREE.MeshBasicMaterial({ map: tex(c) }));
+  m.rotation.y = Math.PI / 2; m.position.set(-12, 3.2, 10); scene.add(m); }
 
 // ---------- cinderblock ----------
 // 16x8x8 nominal (15.625 x 7.625 x 7.625 in). Built with holes through Z; group rotations orient it.
@@ -545,7 +548,7 @@ foldOpen = capture(() => { const x1 = 4.42, x2 = 10.25, z1 = 5.25, z2 = 8.25, t 
 curtain('x', 1.82, 4.72, 11.78, 0.05, 6.8); B(M.steel, 1.8, 4.75, 6.8, 6.84, 11.8, 11.84);
 // tall black-framed fitting mirror leaning on the short wall next to the kitchen curtain (real reflection)
 { const zc = 10.0, w = 2.0, h = 6.0, x0 = 1.79;
-  const g = new THREE.Group(); g.position.set(x0 + 0.28, 0, zc); g.rotation.z = -0.045; scene.add(g);
+  const g = new THREE.Group(); g.position.set(x0 + 0.005, 0.3, zc); scene.add(g);
   B(BLACK, 0, 0.08, 0.05, h, -w/2, w/2, g);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const m = new Reflector(new THREE.PlaneGeometry(w - 0.24, h - 0.3), { clipBias: 0.003, textureWidth: Math.round(innerWidth * dpr * 0.6), textureHeight: Math.round(innerHeight * dpr * 0.6), color: 0xd8dcdc });
@@ -582,25 +585,42 @@ const DOORMAT = new THREE.MeshStandardMaterial({ color: 0xf2efe9, roughness: .5 
 
 // kitchen  (X 0.2–6.83, Z 12.33–25.6; solid column X 0.2–1.79 until Z 13.6)
 space(0.2, 6.83, 12.33, 25.6, KITCHEN_FLOOR);
-wall(-0.15, 1.44, 8.28, 13.6); wall(-0.15, 0.2, 13.6, 25.9); wall(-0.15, 7.48, 25.6, 25.9); wall(6.83, 7.48, 12.33, 24.08); wall(4.78, 7.48, 24.08, 25.6);
+wall(-0.15, 1.44, 8.28, 13.6); wall(-0.15, 0.2, 19.9, 25.9); wall(-0.15, 0.2, 13.6, 17.2, 0, 3.0, false); wall(-0.15, 0.2, 13.6, 17.2, 6.9, H, false); WALLS.push([-0.15, 0.2, 13.6, 17.2]);
+wall(-0.15, 0.2, 17.2, 19.9, 7.0, H, false);
+{ const F = M.oak, x1 = -0.12, x2 = 0.0;   // kitchen window
+  B(F, x1, x2, 3.0, 3.15, 13.6, 17.2); B(F, x1, x2, 6.75, 6.9, 13.6, 17.2); B(F, x1, x2, 3.0, 6.9, 13.6, 13.75); B(F, x1, x2, 3.0, 6.9, 17.05, 17.2); B(F, x1, x2, 3.0, 6.9, 15.33, 15.47); B(F, x1, x2, 4.88, 5.02, 13.6, 17.2);
+  const g = mesh(new THREE.PlaneGeometry(3.6, 3.9), M.glass, false, false); g.rotation.y = Math.PI / 2; g.position.set(-0.06, 4.95, 15.4); scene.add(g);
+  // balcony door: black-framed glass door, slid open
+  const DF = BLACK; B(DF, -0.15, 0.2, 0, 7.0, 17.2, 17.3); B(DF, -0.15, 0.2, 0, 7.0, 19.8, 19.9); B(DF, -0.15, 0.2, 6.9, 7.0, 17.2, 19.9);
+  const dg = new THREE.Group(); dg.position.set(-0.02, 0, 17.35); scene.add(dg); B(DF, -0.04, 0.04, 0.05, 6.85, 0, 1.3, dg);
+  const gl = mesh(new THREE.PlaneGeometry(1.15, 6.6), M.glass, false, false); gl.rotation.y = Math.PI / 2; gl.position.set(0.045, 3.45, 0.65); dg.add(gl);
+  B(new THREE.MeshStandardMaterial({ color: 0xc9cbcc, metalness: .6, roughness: .4 }), -0.15, 0.2, 0, 0.04, 17.3, 19.8); }
+// radiator in the NE corner + 1" table over it with one full-width leg by the balcony door
+{ const radMat2 = new THREE.MeshStandardMaterial({ color: 0xf1efe9, roughness: .5 });
+  B(radMat2, 0.2, 0.85, 0.3, 2.4, 13.75, 16.3); for (let i = 0; i < 11; i++) B(M.dark, 0.85, 0.86, 1.0, 2.2, 13.95 + i * 0.21, 14.05 + i * 0.21);
+  B(M.oak, 0.2, 1.75, 2.75, 2.83, 13.65, 16.55); B(M.oak, 0.2, 1.75, 0, 2.75, 16.47, 16.55); WALLS.push([0.2, 1.75, 16.45, 16.57]);
+  smallPlant(0.9, 2.83, 14.3, 'leafy'); B(M.walnut, 1.0, 1.5, 2.83, 3.2, 15.4, 15.9); } wall(-0.15, 7.48, 25.6, 25.9); wall(6.83, 7.48, 12.33, 24.08); wall(4.78, 7.48, 24.08, 25.6);
 wall(1.44, 1.79, 12.33, 13.6);
 { const steel = new THREE.MeshStandardMaterial({ color: 0xc9cbcc, metalness: .7, roughness: .35 }), top = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .35 }), cab = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: .5 });
   B(steel, 4.42, 6.8, 0, 5.8, 13.8, 16.0); B(BLACK, 4.4, 4.42, 3.2, 4.6, 14.0, 14.06);                        // fridge
   const counter = (x1, x2, z1, z2) => { B(M.walnut, x1, x2, 0, 2.85, z1, z2); B(top, x1 - 0.03, x2 + 0.03, 2.85, 3.0, z1 - 0.03, z2 + 0.03); };
-  counter(4.78, 6.8, 16.05, 21.8); counter(0.22, 4.78, 24.08, 25.58); counter(0.22, 1.69, 19.96, 24.08);
+  counter(4.78, 6.8, 16.05, 21.8);
+  B(M.oak, 0.22, 4.76, 2.9, 3.02, 24.4, 25.58); for (const x of [0.6, 2.5, 4.4]) B(BLACK, x - 0.03, x + 0.03, 2.6, 2.9, 25.3, 25.58); // wood counter on the wall, open below
   B(steel, 4.55, 6.8, 0, 2.95, 21.8, 24.06); B(BLACK, 4.6, 6.75, 2.95, 3.0, 21.85, 24.0);                     // range
   for (const [cx, cz] of [[5.2, 22.35], [6.2, 22.35], [5.2, 23.45], [6.2, 23.45]]) C(M.dark, 0.32, 0.32, 0.02, cx, 3.0, cz, 20);
-  B(steel, 1.5, 3.1, 2.86, 3.01, 24.4, 25.3); C(steel, 0.03, 0.03, 0.9, 2.3, 3.0, 25.4, 8);                  // sink
-  for (const [x1, x2, z1, z2] of [[5.6, 6.8, 16.05, 21.8], [0.22, 4.78, 24.9, 25.58], [0.22, 0.9, 19.96, 24.9]]) B(cab, x1, x2, 4.6, 7.0, z1, z2); // uppers
+  B(steel, 5.05, 6.55, 2.86, 3.01, 17.8, 19.6); C(steel, 0.03, 0.03, 0.9, 6.6, 3.0, 18.7, 8);                  // sink
+  B(cab, 5.6, 6.8, 4.6, 7.0, 16.05, 21.8); // uppers
   B(new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .4 }), 4.6, 6.8, 5.4, 6.0, 21.8, 24.06);      // hood
-  smallPlant(0.8, 3.0, 21.0, 'leafy'); C(new THREE.MeshStandardMaterial({ color: 0xb5552b, roughness: .5 }), 0.3, 0.3, 0.6, 5.7, 3.0, 17.0, 20);
+  smallPlant(1.2, 3.02, 24.95, 'pothos'); C(M.white, 0.3, 0.3, 0.5, 3.4, 3.02, 25.0, 16); C(new THREE.MeshStandardMaterial({ color: 0xb5552b, roughness: .5 }), 0.3, 0.3, 0.6, 5.7, 3.0, 20.8, 20);
   for (const z of [16.0, 22.0]) { const L = new THREE.PointLight(0xffd2a0, 7, 0, 2); L.position.set(3.2, 7.3, z); scene.add(L); C(M.white, 0.35, 0.35, 0.08, 3.2, H - 0.08, z, 20); } }
 
 // hall closet (X 7.48–9.23, Z 12.33–18.77) with sliding doors onto the hallway
 space(7.48, 9.4, 12.33, 18.77, HALL_FLOOR); wall(7.48, 9.4, 18.77, 19.1);
 B(M.paint, 9.23, 9.4, 6.9, H, 12.33, 18.77);
-B(M.white, 9.25, 9.31, 0, 6.9, 12.5, 15.7); B(M.white, 9.33, 9.39, 0, 6.9, 15.5, 18.7); WALLS.push([9.23, 9.4, 12.33, 18.77]);
-for (const z of [15.6]) B(M.steel, 9.3, 9.33, 3.0, 3.6, z - 0.02, z + 0.02);
+for (const y of [1.2, 2.6, 4.0, 5.4]) B(PLAIN, 7.5, 8.9, y, y + 0.08, 12.4, 18.7);
+for (let i = 0; i < 6; i++) RB(new THREE.MeshStandardMaterial({ color: [0xc8b08a, 0xe9e4da, 0x55593f][i % 3], roughness: 1 }), 7.6, 8.8, 1.28 + Math.floor(i / 3) * 1.4, 2.3 + Math.floor(i / 3) * 1.4, 12.6 + (i % 3) * 2.0, 14.3 + (i % 3) * 2.0, 0.05);
+for (let i = 0; i < 4; i++) { let y = 4.08; for (let k = 0; k < 4; k++) { B(colorMat(R(0, 0.12), R(0.05, 0.35), R(0.2, 0.8)), 7.6, 8.7, y, y + 0.16, 12.7 + i * 1.5, 13.9 + i * 1.5); y += 0.17; } }
+WALLS.push([7.48, 9.0, 12.33, 18.77]);
 
 // hallway to the bathroom (X 9.4–12.35 then widens to 13.81)
 space(9.4, 12.35, 12.33, 14.48, HALL_FLOOR); space(9.4, 13.81, 14.48, 18.77, HALL_FLOOR);
@@ -637,17 +657,21 @@ wall(19, 23.1, 6.73, 7.03); wall(17.46, 23.1, 11.98, 12.3); wall(22.8, 23.1, 7.0
 B(M.paint, 22.8, 23.1, 6.9, H, 8.6, 11.6);
 B(new THREE.MeshStandardMaterial({ color: 0x2b2b2d, roughness: .6, metalness: .3 }), 22.72, 22.8, 0, 6.9, 8.6, 11.6); WALLS.push([22.72, 23.1, 8.6, 11.6]);
 C(M.brass, 0.05, 0.05, 0.12, 22.66, 3.2, 11.2, 10); B(DOORMAT, 21.0, 22.6, 0.005, 0.03, 9.0, 11.2);
-for (const z of [7.4, 7.9]) { B(M.oak, 19.05, 19.15, 5.0, 5.15, z - 0.05, z + 0.05); }
+B(M.white, 19.35, 22.8, 0, 6.9, 8.38, 8.43); B(M.paint, 19.35, 22.8, 6.9, H, 8.38, 8.45); WALLS.push([19.35, 22.8, 7.03, 8.45]);
+for (const x of [20.9, 21.2]) C(M.brass, 0.03, 0.03, 0.5, x, 3.0, 8.47, 8);  // entry closet doors
 
-// balcony: placeholder outside the NE window (location/size not in the DWG)
-{ const conc = new THREE.MeshStandardMaterial({ map: tex(speckle('#8f8c86', 6000), 4, 2), roughness: .95 });
-  B(conc, -6.0, -0.35, -0.25, 0, 0.6, 9.4);
-  for (let z = 0.6; z <= 9.4; z += 0.35) C(BLACK, 0.02, 0.02, 3.4, -5.95, 0, z, 6);
-  B(BLACK, -6.05, -5.85, 3.4, 3.5, 0.6, 9.4); for (const z of [0.6, 9.4]) { for (let x = -5.95; x <= -0.4; x += 0.35) C(BLACK, 0.02, 0.02, 3.4, x, 0, z, 6); B(BLACK, -6.05, -0.35, 3.4, 3.5, z - 0.05, z + 0.05); }
-  for (const z of [2.6, 5.0]) { B(M.oak, -4.1, -2.9, 1.4, 1.5, z - 0.6, z + 0.6); for (const [dx, dz] of [[-0.55, -0.5], [0.55, -0.5], [-0.55, 0.5], [0.55, 0.5]]) B(BLACK, -3.5 + dx - 0.03, -3.5 + dx + 0.03, 0, 1.4, z + dz - 0.03, z + dz + 0.03); }
-  C(M.oak, 0.5, 0.5, 0.06, -3.5, 1.7, 3.8, 24); C(BLACK, 0.04, 0.04, 1.7, -3.5, 0, 3.8, 8);
-  monstera(-5.2, 8.6, 0.8); smallPlant(-5.3, 0, 1.4, 'leafy', M.terracotta); smallPlant(-1.0, 0, 8.9, 'pothos', M.concrete);
-  const L = new THREE.PointLight(0xffc98a, 2.5, 0, 2); L.position.set(-1.2, 6.5, 4.5); scene.add(L); }
+// balcony: outside the kitchen and window wall (X -3.6..-0.15, Z 10.2..20.3); door in the kitchen
+{ const conc = new THREE.MeshStandardMaterial({ map: tex(speckle('#8f8c86', 6000), 2, 4), roughness: .95 });
+  const X1 = -3.6, X2 = -0.15, Z1 = 10.2, Z2 = 20.3;
+  B(conc, X1, X2, -0.25, 0.0, Z1, Z2);
+  for (let z = Z1; z <= Z2 + 0.01; z += 0.33) C(BLACK, 0.02, 0.02, 3.4, X1 + 0.05, 0, z, 6);
+  for (const z of [Z1 + 0.05, Z2 - 0.05]) for (let x = X1 + 0.05; x <= X2 - 0.1; x += 0.33) C(BLACK, 0.02, 0.02, 3.4, x, 0, z, 6);
+  B(BLACK, X1, X1 + 0.12, 3.4, 3.5, Z1, Z2); B(BLACK, X1, X2, 3.4, 3.5, Z1, Z1 + 0.12); B(BLACK, X1, X2, 3.4, 3.5, Z2 - 0.12, Z2);
+  WALLS.push([X1 - 0.2, X1 + 0.1, Z1, Z2], [X1, X2, Z1 - 0.2, Z1 + 0.1], [X1, X2, Z2 - 0.1, Z2 + 0.2]);
+  for (const z of [12.6, 14.6]) { B(M.oak, -2.6, -1.4, 1.4, 1.5, z - 0.6, z + 0.6); for (const [dx, dz] of [[-0.55, -0.5], [0.55, -0.5], [-0.55, 0.5], [0.55, 0.5]]) B(BLACK, -2.0 + dx - 0.03, -2.0 + dx + 0.03, 0, 1.4, z + dz - 0.03, z + dz + 0.03); }
+  C(M.oak, 0.5, 0.5, 0.06, -2.0, 1.7, 13.6, 24); C(BLACK, 0.04, 0.04, 1.7, -2.0, 0, 13.6, 8);
+  monstera(-2.9, 19.4, 0.7); smallPlant(-3.1, 0, 10.8, 'leafy', M.terracotta); smallPlant(-0.7, 0, 10.7, 'pothos', M.concrete);
+  const L = new THREE.PointLight(0xffc98a, 2.5, 0, 2); L.position.set(-0.6, 6.5, 15.0); scene.add(L);}
 
 // ---------- bed layout variants: regroup movable pieces around pivots ----------
 let BEDS, setBed;
@@ -705,7 +729,7 @@ const VIEWS = {
   abovebed: { p: [11.0, 4.8, 5.83], t: [19.0, 4.6, 5.83], fov: 62 },
   kitchenin: { p: [3.4, 5.3, 12.9], t: [3.2, 2.4, 24.5], fov: 75 },
   bath: { p: [12.9, 5.3, 19.9], t: [9.4, 2.0, 24.5], fov: 80 },
-  balcony: { p: [3.0, 5.6, 4.5], t: [-4.0, 2.0, 4.5], fov: 65 },
+  balcony: { p: [4.0, 5.3, 18.6], t: [-3.0, 2.2, 14.0], fov: 70 },
   apartment: { p: [11.0, 44, 13.0], t: [11.0, 0, 13.0], fov: 45 },
   closet: { p: [11.6, 5.2, 4.6], t: [15.6, 3.2, 12.2], fov: 72 },
   entry: { p: [11.5, 5.2, 4.0], t: [19.0, 3.4, 10.4], fov: 66 },
@@ -718,12 +742,16 @@ const VIEWS = {
 let anim = null;
 // ---------- walk mode ----------
 const walkS = { on: false, yaw: 0, pitch: 0, keys: new Set(), drag: null, last: performance.now() };
-function setWalk(on) { walkS.on = on; controls.enabled = !on; anim = null;
+function setWalk(on, start) { walkS.on = on; controls.enabled = !on; anim = null;
   const hint = document.getElementById('hint'); if (hint) hint.textContent = on ? 'W A S D to walk · drag to look · Shift to run' : 'Drag to orbit · scroll to zoom';
   const sm = document.getElementById('s-mode'); if (sm) sm.value = on ? 'walk' : 'orbit';
   if (on) { const p = camera.position; let x = p.x, z = p.z; if (p.y > H - 0.5 || blocked(x, z)) { x = 9.0; z = 9.0; }
     camera.position.set(x, 5.3, z); camera.fov = 70; camera.updateProjectionMatrix();
-    const d = new THREE.Vector3(); camera.getWorldDirection(d); walkS.yaw = Math.atan2(-d.x, -d.z); walkS.pitch = 0; } }
+    const d = new THREE.Vector3(); camera.getWorldDirection(d); walkS.yaw = Math.atan2(-d.x, -d.z); walkS.pitch = 0;
+    if (start) { camera.position.set(start[0], 5.3, start[1]); walkS.yaw = start[2]; }
+    const n = document.getElementById('walknote'); if (n && !document.body.classList.contains('shot')) { n.hidden = false; n.classList.remove('fade'); clearTimeout(walkS.nt);
+      const hide = () => { n.classList.add('fade'); setTimeout(() => n.hidden = true, 700); removeEventListener('keydown', hide); };
+      walkS.nt = setTimeout(hide, 3500); addEventListener('keydown', hide); } } }
 function blocked(x, z, r = 0.55) { return WALLS.some(([x1, x2, z1, z2]) => x > x1 - r && x < x2 + r && z > z1 - r && z < z2 + r); }
 addEventListener('keydown', e => { if (e.target.closest && e.target.closest('select')) return; const k = e.key.toLowerCase(); if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)) { walkS.keys.add(k); if (walkS.on && k.startsWith('arrow')) e.preventDefault(); } });
 addEventListener('keyup', e => walkS.keys.delete(e.key.toLowerCase()));
@@ -758,7 +786,7 @@ const pick = (k, v) => (k in DEF ? DEF[k] : v);
   const vkeys = Object.keys(VIEWS); const sv = document.getElementById('s-view');
   vkeys.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = VIEW_NAMES[k] || k; sv.appendChild(o); });
   sv.value = pick('view', vkeys.find(k => params.includes(k)) || 'entrance'); if (DEF.view) setView(DEF.view, true); sv.addEventListener('change', () => { if (walkS.on) setWalk(false); setView(sv.value); sv.blur(); });
-  const sm = document.getElementById('s-mode'); sm.addEventListener('change', () => { setWalk(sm.value === 'walk'); sm.blur(); }); if (params.includes('walk')) setWalk(true);
+  const sm = document.getElementById('s-mode'); sm.addEventListener('change', () => { setWalk(sm.value === 'walk'); sm.blur(); }); if (params.includes('walk') || !location.hash) setWalk(true, [16.6, 9.8, Math.PI / 2 - 0.35]);
   dd('s-work', WORK.map(w => w.name), pick('work', params.includes('work1') ? 1 : 0), i => setWork(i));
   const bm = params.find(p => /^bed\d$/.test(p));
   dd('s-bed', BEDS.map(b => b.name), pick('bed', bm ? +bm[3] : 0), i => setBed(i));
