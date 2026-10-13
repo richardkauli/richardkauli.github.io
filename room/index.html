@@ -36,6 +36,7 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
   background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);box-sizing:border-box}
 .ctl label{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .ctl select{font-family:var(--mono);font-size:12px;color:var(--ink);background:#1d1a18;border:1px solid var(--line);padding:6px 8px;border-radius:0;cursor:pointer}
+.ctl select:disabled{opacity:.45;cursor:not-allowed}
 .ctl select:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
 @media (max-width:600px){.ctl{top:calc(56px + env(safe-area-inset-top,0px));left:12px;right:12px;width:auto;grid-template-columns:1fr 1fr;max-height:45%}}
 .hint{position:fixed;right:16px;top:calc(16px + env(safe-area-inset-top,0px));font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
@@ -58,6 +59,7 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 <button type="button" class="optbtn" id="optbtn" aria-expanded="false" aria-controls="ctl">Options</button>
 <form class="ctl" id="ctl" aria-label="Room options" onsubmit="return false" hidden>
   <label for="s-mode">Mode<select id="s-mode"><option value="orbit">Orbit (drag to rotate)</option><option value="walk">Walk (WASD + drag to look)</option></select></label>
+  <label for="s-layout">Layout<select id="s-layout"></select></label>
   <label for="s-view">View<select id="s-view"></select></label>
   <label for="s-work">Work side<select id="s-work"></select></label>
   <label for="s-bed">Bed layout<select id="s-bed"></select></label>
@@ -296,7 +298,7 @@ for (let z = 2.15; z < 7.5; z += 0.62) { const k = Math.floor(R(0, 3)); smallPla
 B(M.steel, 0.3, 0.34, 7.05, 7.09, 1.2, 7.9); curtain('z', 1.25, 2.15, 0.36, 0.5, 7.05); curtain('z', 7.0, 7.82, 0.36, 0.5, 7.05);
 
 function capture(fn, parent = scene) { const n0 = parent.children.length; fn(); const g = new THREE.Group(); parent.children.slice(n0).forEach(o => g.add(o)); parent.add(g); return g; }
-let sewMine, sewNew, deskMine, deskBlock, bikeG, sewG, beanBag, foldOpen, foldStored;
+let sewMine, sewNew, deskMine, deskBlock, bikeG, sewG, beanBag, foldOpen, foldStored, mirrorG, deskG, deskWallG, floatG, applyBed;
 // ---------- 1) Singer on the bottom wall (between kitchen curtain and hall), oak top, black legs ----------
 const blue = new THREE.MeshStandardMaterial({ color: 0x5d889c, roughness: .45, metalness: .15 });
 { const g = new THREE.Group(); g.position.set(7.08, 0, 12.0); g.rotation.y = Math.PI; scene.add(g); sewG = g;
@@ -321,6 +323,7 @@ const blue = new THREE.MeshStandardMaterial({ color: 0x5d889c, roughness: .45, m
   warmLamp(7.08 - X(0.95), t + 0.9, 12.0 - 0.85, 2.5);
   }
 
+const __dk0 = scene.children.length;
 { const __n0 = scene.children.length;
 // ---------- 2) cinderblock + plywood desk ----------
 { const x1 = 5.0, x2 = 9.67, z1 = 0.05, z2 = 2.35;
@@ -561,7 +564,7 @@ foldOpen = capture(() => { const x1 = 4.42, x2 = 10.25, z1 = 5.25, z2 = 8.25, t 
 curtain('x', 1.82, 4.72, 11.78, 0.05, 6.8); B(M.steel, 1.8, 4.75, 6.8, 6.84, 11.8, 11.84);
 // tall black-framed fitting mirror leaning on the short wall next to the kitchen curtain (real reflection)
 { const zc = 10.0, w = 2.0, h = 6.0, x0 = 1.79;
-  const g = new THREE.Group(); g.position.set(x0 + 0.005, 0.3, zc); scene.add(g);
+  const g = new THREE.Group(); g.position.set(x0 + 0.005, 0.3, zc); scene.add(g); mirrorG = g;
   B(BLACK, 0, 0.08, 0.05, h, -w/2, w/2, g);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const m = new Reflector(new THREE.PlaneGeometry(w - 0.24, h - 0.3), { clipBias: 0.003, textureWidth: Math.round(innerWidth * dpr * 0.6), textureHeight: Math.round(innerHeight * dpr * 0.6), color: 0xd8dcdc });
@@ -686,10 +689,14 @@ for (const x of [20.9, 21.2]) C(M.brass, 0.03, 0.03, 0.5, x, 3.0, 8.47, 8);  // 
 // ---------- bed layout variants: regroup movable pieces around pivots ----------
 let BEDS, setBed;
 { const kids = scene.children;
+  scene.updateMatrixWorld(true); const floatObjs = kids.slice(__bd1, __mu0), deskAll = kids.slice(__dk0, __sh0), _bb = new THREE.Box3(), _c = new THREE.Vector3();
+  const isWall = o => { _bb.setFromObject(o); if (_bb.isEmpty()) { o.getWorldPosition(_c); } else _bb.getCenter(_c); return _c.y > 5.0 && _c.z < 1.0; };
+  const deskWallObjs = deskAll.filter(isWall), deskObjs = deskAll.filter(o => !isWall(o));
   const shelfObjs = [...kids.slice(__sh0, __bd0), ...kids.slice(__mu0, __mu1)], boardObjs = kids.slice(__bd0, __bd1), bedObjs = kids.slice(__bed0, __rug0), rugMesh = kids[__rug0];
   const piv = (objs, px, pz) => { const G = new THREE.Group(); objs.forEach(o => { o.position.x -= px; o.position.z -= pz; G.add(o); }); G.position.set(px, 0, pz); scene.add(G); return G; };
   const shelfG = piv(shelfObjs, 10.67, 0), boardG = piv(boardObjs, 16.525, 0), bedG = piv(bedObjs, 15.46, 5.83), rugG = piv([rugMesh], 13.67, 6.08);
   const aboveG = piv(ABOVE.map(a => a[1]), 19, 5.83);
+  deskG = piv(deskObjs, 8.33, 2.5); deskWallG = piv(deskWallObjs, 0, 0); floatG = piv(floatObjs, 0, 0);
   const PI = Math.PI, H = PI / 2;
   BEDS = [
     { name: 'Current', bed: [15.46, 5.83, 0], rug: [13.67, 6.08, 'z', 9], shelf: [10.67, 0, 0], board: [16.525, 0, 0], above: [19, 5.83, 0] },
@@ -701,7 +708,8 @@ let BEDS, setBed;
     { name: 'Corner nook (my pick)', bed: [15.46, 2.58, 0], rug: [15.0, 8.5, 'x', 8], shelf: [11.92, 0, -H], board: [15.46, 0, 0], above: [19, 2.58, 0] },
   ];
   const put = (G, [x, z, r]) => { G.position.set(x, 0, z); G.rotation.y = r; };
-  setBed = i => { const b = BEDS[i]; put(bedG, b.bed); put(shelfG, b.shelf); put(boardG, b.board); put(aboveG, b.above);
+  setBed = i => applyBed(BEDS[i]);
+  applyBed = b => { put(bedG, b.bed); put(shelfG, b.shelf); put(boardG, b.board); put(aboveG, b.above);
     rugG.position.set(b.rug[0], 0, b.rug[1]); rugMesh.position.set(0, 0.012, 0); rugMesh.rotation.z = b.rug[2] === 'z' ? H : 0; rugMesh.scale.set(b.rug[3] / 9, 1, 1);
   };
 }
@@ -719,7 +727,20 @@ const WORK = [
   { name: 'Sewing at window', sew: [3.92, 0, 0], bean: [16.75, 9.33], rack: true, fold: [-0.84, -0.58], openFold: true },
 ];
 let setFold;
-const setWork = i => { const w = WORK[i]; sewG.position.set(w.sew[0], 0, w.sew[1]); sewG.rotation.y = w.sew[2]; beanBag.position.set(w.bean[0], 0, w.bean[1]); rackG.visible = w.rack; foldOpen.position.set(w.fold[0], 0, w.fold[1]); if (setFold && w.openFold !== undefined) setFold(w.openFold); };
+const setWork = (i, keepFold) => { const w = WORK[i]; sewG.position.set(w.sew[0], 0, w.sew[1]); sewG.rotation.y = w.sew[2]; beanBag.position.set(w.bean[0], 0, w.bean[1]); rackG.visible = w.rack; foldOpen.position.set(w.fold[0], 0, w.fold[1]); if (!keepFold && setFold && w.openFold !== undefined) setFold(w.openFold); };
+// ---------- feng shui layout: bed in command position far from the door, desk facing the room with a wall behind, clear entry ----------
+const FS = { bed: { bed: [7.88, 3.54, Math.PI / 2], rug: [7.88, 7.8, 'x', 8], shelf: [10.67, 0, 0], board: [16.525, 0, 0], above: [7.88, 0, Math.PI / 2] },
+  sew: [7.08, 12.0, Math.PI], bean: [3.35, 2.05], fold: [6.3, 1.9], desk: [14.33, 3.4, Math.PI], deskWall: [6.0, 0.9], float: [-0.4, 0], mirror: [18.995, 7.2, Math.PI], rack: [29.45, -3.65, -Math.PI / 2] };
+let layoutFS = false;
+function setLayout(fs) { layoutFS = fs; const sw = document.getElementById('s-work'), sb = document.getElementById('s-bed');
+  if (sw) sw.disabled = fs; if (sb) sb.disabled = fs;
+  if (fs) { applyBed(FS.bed); sewG.position.set(FS.sew[0], 0, FS.sew[1]); sewG.rotation.y = FS.sew[2]; beanBag.position.set(FS.bean[0], 0, FS.bean[1]); rackG.visible = true; rackG.position.set(FS.rack[0], 0, FS.rack[1]); rackG.rotation.y = FS.rack[2];
+    foldOpen.position.set(FS.fold[0], 0, FS.fold[1]); deskG.position.set(FS.desk[0], 0, FS.desk[1]); deskG.rotation.y = FS.desk[2];
+    deskWallG.position.set(FS.deskWall[0], FS.deskWall[1], 0); floatG.position.set(FS.float[0], 0, FS.float[1]);
+    mirrorG.position.set(FS.mirror[0], 0.3, FS.mirror[1]); mirrorG.rotation.y = FS.mirror[2]; }
+  else { rackG.position.set(0, 0, 0); rackG.rotation.y = 0; deskG.position.set(8.33, 0, 2.5); deskG.rotation.y = 0; deskWallG.position.set(0, 0, 0); floatG.position.set(0, 0, 0);
+    mirrorG.position.set(1.795, 0.3, 10.0); mirrorG.rotation.y = 0;
+    setWork(sw ? +sw.value : 0, true); setBed(sb ? +sb.value : 0); } }
 // ---------- light (evening: dim the studio fill so lamps carry the room) ----------
 scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m => { if ('envMapIntensity' in m) m.envMapIntensity = Math.min(m.envMapIntensity ?? 1, 1) * 0.22; }); });
 scene.add(new THREE.HemisphereLight(0xffe2c0, 0x3a2820, 0.22));
@@ -811,7 +832,8 @@ const pick = (k, v) => (k in DEF ? DEF[k] : v);
   dd('s-sew', ['Mine (mint top)', 'Oak top + black legs'], pick('sew', params.includes('oaksew') ? 1 : 0), i => { sewMine.visible = i === 0; sewNew.visible = i === 1; });
   dd('s-above', ABOVE.map(a => a[0]), pick('above', Math.max(0, ABOVE.findIndex(a => params.includes(a[0].toLowerCase().replace(/[^a-z]/g, ''))))), i => ABOVE.forEach(([, g], j) => g.visible = j === i));
   dd('s-bean', BEAN_COLORS.map(c => c[0]), pick('bean', Math.max(0, BEAN_COLORS.findIndex(c => params.includes(c[0].toLowerCase())))), i => beanMat.color.setHex(BEAN_COLORS[i][1]));
-  dd('s-hall', ['Off', 'On'], pick('hall', params.includes('hallc') ? 1 : 0), i => { hallCurtain.visible = i === 1; }); }
+  dd('s-hall', ['Off', 'On'], pick('hall', params.includes('hallc') ? 1 : 0), i => { hallCurtain.visible = i === 1; });
+  dd('s-layout', ['Custom (options below)', 'Feng shui'], pick('layout', params.includes('fengshui') ? 1 : 0), i => setLayout(i === 1)); }
 
 
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
