@@ -62,7 +62,9 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
   <label for="s-layout">Layout<select id="s-layout"></select></label>
   <label for="s-view">View<select id="s-view"></select></label>
   <label for="s-work">Work side<select id="s-work"></select></label>
+  <label for="s-sleep">Bed / couch<select id="s-sleep"></select></label>
   <label for="s-bed">Bed layout<select id="s-bed"></select></label>
+  <label for="s-couch">Couch layout<select id="s-couch"></select></label>
   <label for="s-fold">Fold-out table<select id="s-fold"></select></label>
   <label for="s-desk">Desk<select id="s-desk"></select></label>
   <label for="s-sew">Sewing table<select id="s-sew"></select></label>
@@ -104,7 +106,7 @@ const R = (a, b) => a + (b - a) * rnd();
 
 function mesh(geo, mat, cast = true, recv = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = recv; return m; }
 function B(mat, x1, x2, y1, y2, z1, z2, parent = scene) { const m = mesh(new THREE.BoxGeometry(x2 - x1, y2 - y1, z2 - z1), mat); m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); parent.add(m); return m; }
-function RB(mat, x1, x2, y1, y2, z1, z2, r = 0.12) { const m = mesh(new RoundedBoxGeometry(x2 - x1, y2 - y1, z2 - z1, 4, r), mat); m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); scene.add(m); return m; }
+function RB(mat, x1, x2, y1, y2, z1, z2, r = 0.12, parent = scene) { const m = mesh(new RoundedBoxGeometry(x2 - x1, y2 - y1, z2 - z1, 4, r), mat); m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); parent.add(m); return m; }
 function C(mat, r1, r2, h, x, y, z, seg = 24, parent = scene) { const m = mesh(new THREE.CylinderGeometry(r1, r2, h, seg), mat); m.position.set(x, y + h / 2, z); parent.add(m); return m; }
 function cv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
 function tex(c, rx = 1, ry = 1, srgb = true) { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; }
@@ -298,7 +300,7 @@ for (let z = 2.15; z < 7.5; z += 0.62) { const k = Math.floor(R(0, 3)); smallPla
 B(M.steel, 0.3, 0.34, 7.05, 7.09, 1.2, 7.9); curtain('z', 1.25, 2.15, 0.36, 0.5, 7.05); curtain('z', 7.0, 7.82, 0.36, 0.5, 7.05);
 
 function capture(fn, parent = scene) { const n0 = parent.children.length; fn(); const g = new THREE.Group(); parent.children.slice(n0).forEach(o => g.add(o)); parent.add(g); return g; }
-let sewMine, sewNew, deskMine, deskBlock, bikeG, sewG, beanBag, foldOpen, foldStored, mirrorG, deskG, deskWallG, floatG, applyBed;
+let sewMine, sewNew, deskMine, deskBlock, bikeG, sewG, beanBag, foldOpen, foldStored, mirrorG, deskG, deskWallG, floatG, applyBed, bedGroup;
 // ---------- 1) Singer on the bottom wall (between kitchen curtain and hall), oak top, black legs ----------
 const blue = new THREE.MeshStandardMaterial({ color: 0x5d889c, roughness: .45, metalness: .15 });
 { const g = new THREE.Group(); g.position.set(7.08, 0, 12.0); g.rotation.y = Math.PI; scene.add(g); sewG = g;
@@ -694,7 +696,7 @@ let BEDS, setBed;
   const deskWallObjs = deskAll.filter(isWall), deskObjs = deskAll.filter(o => !isWall(o));
   const shelfObjs = [...kids.slice(__sh0, __bd0), ...kids.slice(__mu0, __mu1)], boardObjs = kids.slice(__bd0, __bd1), bedObjs = kids.slice(__bed0, __rug0), rugMesh = kids[__rug0];
   const piv = (objs, px, pz) => { const G = new THREE.Group(); objs.forEach(o => { o.position.x -= px; o.position.z -= pz; G.add(o); }); G.position.set(px, 0, pz); scene.add(G); return G; };
-  const shelfG = piv(shelfObjs, 10.67, 0), boardG = piv(boardObjs, 16.525, 0), bedG = piv(bedObjs, 15.46, 5.83), rugG = piv([rugMesh], 13.67, 6.08);
+  const shelfG = piv(shelfObjs, 10.67, 0), boardG = piv(boardObjs, 16.525, 0), bedG = piv(bedObjs, 15.46, 5.83), rugG = piv([rugMesh], 13.67, 6.08); bedGroup = bedG;
   const aboveG = piv(ABOVE.map(a => a[1]), 19, 5.83);
   deskG = piv(deskObjs, 8.33, 2.5); deskWallG = piv(deskWallObjs, 0, 0); floatG = piv(floatObjs, 0, 0);
   const PI = Math.PI, H = PI / 2;
@@ -732,15 +734,53 @@ const setWork = (i, keepFold) => { const w = WORK[i]; sewG.position.set(w.sew[0]
 const FS = { bed: { bed: [7.88, 3.54, Math.PI / 2], rug: [7.88, 7.8, 'x', 8], shelf: [10.67, 0, 0], board: [16.525, 0, 0], above: [7.88, 0, Math.PI / 2] },
   sew: [7.08, 12.0, Math.PI], bean: [3.35, 2.05], fold: [6.3, 1.9], desk: [14.33, 3.4, Math.PI], deskWall: [6.0, 0.9], float: [-0.4, 0], mirror: [18.995, 7.2, Math.PI], rack: [29.45, -3.65, -Math.PI / 2] };
 let layoutFS = false;
-function setLayout(fs) { layoutFS = fs; const sw = document.getElementById('s-work'), sb = document.getElementById('s-bed');
-  if (sw) sw.disabled = fs; if (sb) sb.disabled = fs;
-  if (fs) { applyBed(FS.bed); sewG.position.set(FS.sew[0], 0, FS.sew[1]); sewG.rotation.y = FS.sew[2]; beanBag.position.set(FS.bean[0], 0, FS.bean[1]); rackG.visible = true; rackG.position.set(FS.rack[0], 0, FS.rack[1]); rackG.rotation.y = FS.rack[2];
+// ---------- IKEA FRIHETEN sleeper sectional (dark gray): 90.5" W x 59.5" D, backrest 26", 33 7/8" with cushions; bed 55 1/8" x 80 3/8" ----------
+// local coords: origin = footprint centre, back along -z, chaise on the +x end, armrest on the -x end
+const couchG = new THREE.Group(), couchInner = new THREE.Group(); couchG.add(couchInner); scene.add(couchG); couchG.visible = false;
+const couchPull = new THREE.Group(), couchSheets = new THREE.Group(); couchInner.add(couchPull, couchSheets);
+{ const W = 90.5 / 12, D = 59.5 / 12, MD = 3.0, CW = 2.6, x1 = -W / 2, x2 = W / 2, z1 = -D / 2, z2 = D / 2, zm = z1 + MD, cx = x2 - CW;
+  const fab = new THREE.MeshStandardMaterial({ color: 0x88898f, roughness: 1 }), fab2 = new THREE.MeshStandardMaterial({ color: 0x939499, roughness: 1 });
+  const P = couchInner, A = 0.3;
+  RB(fab, x1, x2, A - 0.25, 1.05, z1, zm, 0.06, P);                       // main base
+  RB(fab, cx, x2, A - 0.25, 1.05, zm - 0.1, z2, 0.06, P);                 // chaise base (storage)
+  RB(fab, x1, x2, 1.05, 2.17, z1, z1 + 0.5, 0.08, P);                     // back frame (26")
+  RB(fab, x1, x1 + 0.5, 1.05, 1.9, z1, zm, 0.1, P);                       // armrest
+  for (const [a, b] of [[x1 + 0.5, x1 + 0.5 + (cx - x1 - 0.5) / 2], [x1 + 0.5 + (cx - x1 - 0.5) / 2, cx]]) RB(fab2, a + 0.02, b - 0.02, 1.05, 1.5, z1 + 0.5, zm, 0.12, P); // seat cushions
+  RB(fab2, cx + 0.02, x2, 1.05, 1.5, z1 + 0.5, z2, 0.12, P);             // chaise cushion
+  const nb = 3, bw = (x2 - x1 - 0.5) / nb; for (let i = 0; i < nb; i++) { const c = RB(fab2, x1 + 0.5 + i * bw + 0.03, x1 + 0.5 + (i + 1) * bw - 0.03, 1.5, 2.82, z1 + 0.15, z1 + 0.75, 0.2, P); c.rotation.x = -0.12; }
+  for (const [lx, lz] of [[x1 + 0.2, z1 + 0.2], [x2 - 0.2, z1 + 0.2], [x1 + 0.2, zm - 0.2], [x2 - 0.2, z2 - 0.2]]) C(BLACK, 0.05, 0.05, A - 0.25, lx, 0, lz, 8, P);
+  // pulled out: the gap inside the L fills in level with the seat
+  RB(fab, x1 + 0.5, cx - 0.02, A - 0.25, 1.05, zm, z2, 0.06, couchPull); RB(fab2, x1 + 0.52, cx - 0.04, 1.05, 1.5, zm + 0.02, z2, 0.12, couchPull);
+  // green sheets + pillows over the whole sleeping surface (head at the armrest end)
+  const sheet = new THREE.MeshStandardMaterial({ color: 0x7f9470, roughness: 1 });
+  RB(sheet, x1 + 0.5, x2 + 0.02, 1.48, 1.6, z1 + 0.72, z2 + 0.03, 0.1, couchSheets); RB(new THREE.MeshStandardMaterial({ color: 0x6b8360, roughness: 1 }), x1 + 2.2, x2 + 0.04, 1.55, 1.72, z1 + 0.7, z2 + 0.05, 0.12, couchSheets);
+  const pg = new THREE.SphereGeometry(1, 24, 16); for (const z of [z1 + 1.65, z1 + 3.65]) { const pl = mesh(pg, new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 1 })); pl.scale.set(0.55, 0.28, 0.95); pl.position.set(x1 + 1.15, 1.85, z); couchSheets.add(pl); } }
+const H2 = Math.PI / 2;
+const COUCHES = [
+  { name: 'Corner nook (top wall)', couch: [15.2, 2.48, 0, false], rug: [15.2, 6.6, 'x', 7.5], shelf: [11.4, 0, -H2], board: [15.2, 0, 0], above: [19, 2.5, 0] },
+  { name: 'Against the entry wall', couch: [16.52, 3.85, -H2, true], rug: [14.95, 4.1, 'z', 8], shelf: [11.92, 0, -H2], board: [15.46, 0, 0], above: [19, 3.85, 0], bean: [13.1, 9.6] },
+  { name: 'Top wall, shelf on entry wall', couch: [14.05, 2.48, 0, true], rug: [14.05, 7.0, 'x', 7.5], shelf: [19, 0, -H2], board: [14.05, 0, 0], above: [19, 5.6, 0] },
+];
+FS.couch = { couch: [6.3, 2.48, 0, false], rug: [6.3, 7.4, 'x', 8], shelf: FS.bed.shelf, board: FS.bed.board, above: [6.3, 0, H2], bean: [6.1, 7.4] };
+const selv = (id, d = 0) => { const e = document.getElementById(id); return e && e.value !== '' ? +e.value : d; };
+let uiReady = false;
+function refresh() { if (!uiReady) return;
+  const fs = selv('s-layout') === 1, sleep = selv('s-sleep'), couch = sleep > 0;
+  const dis = (id, v) => { const e = document.getElementById(id); if (e) e.disabled = v; };
+  dis('s-work', fs); dis('s-bed', fs || couch); dis('s-couch', fs || !couch);
+  if (fs) { sewG.position.set(FS.sew[0], 0, FS.sew[1]); sewG.rotation.y = FS.sew[2]; beanBag.position.set(FS.bean[0], 0, FS.bean[1]); rackG.visible = true; rackG.position.set(FS.rack[0], 0, FS.rack[1]); rackG.rotation.y = FS.rack[2];
     foldOpen.position.set(FS.fold[0], 0, FS.fold[1]); deskG.position.set(FS.desk[0], 0, FS.desk[1]); deskG.rotation.y = FS.desk[2];
     deskWallG.position.set(FS.deskWall[0], FS.deskWall[1], 0); floatG.position.set(FS.float[0], 0, FS.float[1]);
     mirrorG.position.set(FS.mirror[0], 0.3, FS.mirror[1]); mirrorG.rotation.y = FS.mirror[2]; }
   else { rackG.position.set(0, 0, 0); rackG.rotation.y = 0; deskG.position.set(8.33, 0, 2.5); deskG.rotation.y = 0; deskWallG.position.set(0, 0, 0); floatG.position.set(0, 0, 0);
-    mirrorG.position.set(1.795, 0.3, 10.0); mirrorG.rotation.y = 0;
-    setWork(sw ? +sw.value : 0, true); setBed(sb ? +sb.value : 0); } }
+    mirrorG.position.set(1.795, 0.3, 10.0); mirrorG.rotation.y = 0; setWork(selv('s-work'), true); }
+  const spec = couch ? (fs ? FS.couch : COUCHES[selv('s-couch')]) : (fs ? FS.bed : BEDS[selv('s-bed')]);
+  applyBed(couch ? { ...spec, bed: [15.46, 5.83, 0] } : spec);
+  bedGroup.visible = !couch; couchG.visible = couch;
+  if (couch) { const [x, z, r, m] = spec.couch; couchG.position.set(x, 0, z); couchG.rotation.y = r; couchInner.scale.x = m ? -1 : 1;
+    couchPull.visible = sleep >= 2; couchSheets.visible = sleep === 3;
+    if (spec.bean) beanBag.position.set(spec.bean[0], 0, spec.bean[1]); } }
+function setLayout() { refresh(); }
 // ---------- light (evening: dim the studio fill so lamps carry the room) ----------
 scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m => { if ('envMapIntensity' in m) m.envMapIntensity = Math.min(m.envMapIntensity ?? 1, 1) * 0.22; }); });
 scene.add(new THREE.HemisphereLight(0xffe2c0, 0x3a2820, 0.22));
@@ -822,9 +862,9 @@ const pick = (k, v) => (k in DEF ? DEF[k] : v);
   vkeys.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = VIEW_NAMES[k] || k; sv.appendChild(o); });
   sv.value = pick('view', vkeys.find(k => params.includes(k)) || 'entrance'); if (DEF.view) setView(DEF.view, true); sv.addEventListener('change', () => { if (walkS.on) setWalk(false); setView(sv.value); sv.blur(); });
   const sm = document.getElementById('s-mode'); sm.addEventListener('change', () => { setWalk(sm.value === 'walk'); sm.blur(); }); if (params.includes('walk') || !location.hash) setWalk(true, [16.6, 9.8, Math.PI / 2 - 0.35]);
-  dd('s-work', WORK.map(w => w.name), pick('work', params.includes('work1') ? 1 : 0), i => setWork(i));
+  dd('s-work', WORK.map(w => w.name), pick('work', params.includes('work1') ? 1 : 0), i => { setWork(i); refresh(); });
   const bm = params.find(p => /^bed\d$/.test(p));
-  dd('s-bed', BEDS.map(b => b.name), pick('bed', bm ? +bm[3] : 0), i => setBed(i));
+  dd('s-bed', BEDS.map(b => b.name), pick('bed', bm ? +bm[3] : 0), i => { setBed(i); refresh(); });
   const fe = dd('s-fold', ['Stored (hallway)', 'Open (middle)'], pick('fold', params.includes('foldopen') ? 1 : 0), i => { foldOpen.visible = i === 1; foldStored.visible = i !== 1; });
   setFold = v => { fe.value = v ? 1 : 0; foldOpen.visible = v; foldStored.visible = !v; };
   if (pick('work', params.includes('work1') ? 1 : 0) === 1) setWork(1); if (pick('fold', -1) === 0) setFold(false);
@@ -833,7 +873,11 @@ const pick = (k, v) => (k in DEF ? DEF[k] : v);
   dd('s-above', ABOVE.map(a => a[0]), pick('above', Math.max(0, ABOVE.findIndex(a => params.includes(a[0].toLowerCase().replace(/[^a-z]/g, ''))))), i => ABOVE.forEach(([, g], j) => g.visible = j === i));
   dd('s-bean', BEAN_COLORS.map(c => c[0]), pick('bean', Math.max(0, BEAN_COLORS.findIndex(c => params.includes(c[0].toLowerCase())))), i => beanMat.color.setHex(BEAN_COLORS[i][1]));
   dd('s-hall', ['Off', 'On'], pick('hall', params.includes('hallc') ? 1 : 0), i => { hallCurtain.visible = i === 1; });
-  dd('s-layout', ['Custom (options below)', 'Feng shui'], pick('layout', params.includes('fengshui') ? 1 : 0), i => setLayout(i === 1)); }
+  dd('s-layout', ['Custom (options below)', 'Feng shui'], pick('layout', params.includes('fengshui') ? 1 : 0), () => refresh());
+  const cm = params.find(p => /^couch\d$/.test(p));
+  dd('s-sleep', ['Bed', 'Couch', 'Couch pulled out', 'Couch out + green sheets'], pick('sleep', params.includes('couchsheets') ? 3 : params.includes('couchout') ? 2 : cm ? 1 : 0), () => refresh());
+  dd('s-couch', COUCHES.map(c => c.name), pick('couch', cm ? +cm[5] : 0), () => refresh());
+  uiReady = true; refresh(); }
 
 
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
