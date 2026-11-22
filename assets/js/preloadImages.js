@@ -242,6 +242,10 @@
 
   function runQueue() {
     updatePrefetchLinks();
+    if (!QUEUE.length && !activeCount) {
+      preloadVideos();
+      return;
+    }
     while (activeCount < MAX_CONCURRENCY && QUEUE.length) {
       const url = QUEUE.shift();
       if (!url || COMPLETED.has(url) || IN_FLIGHT.has(url)) {
@@ -273,28 +277,77 @@
     scheduleQueue();
   }
 
-  function loadImage(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Image failed'));
-      img.src = url;
-    });
+  // Find the real <img> on the page for this URL, so warming it also makes the
+  // slide itself ready (lazy + display:none images otherwise only start
+  // loading/decoding when shown, which causes a blank flash).
+  function findDomImg(url) {
+    const imgs = document.querySelectorAll('img');
+    for (let i = 0; i < imgs.length; i += 1) {
+      if (absoluteUrl(imgs[i].getAttribute('src')) === url) return imgs[i];
+    }
+    return null;
   }
 
-  function fetchImage(url) {
-    return fetch(url, { cache: 'force-cache', mode: 'no-cors' });
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const domImg = findDomImg(url);
+      const img = domImg || new Image();
+      const decode = () => {
+        const p = typeof img.decode === 'function' ? img.decode() : Promise.resolve();
+        p.then(resolve, resolve);
+      };
+      if (domImg && domImg.complete && domImg.naturalWidth) {
+        decode();
+        return;
+      }
+      img.addEventListener('load', decode, { once: true });
+      img.addEventListener('error', () => reject(new Error('Image failed')), { once: true });
+      if (domImg) {
+        if (domImg.loading === 'lazy') domImg.loading = 'eager';
+      } else {
+        img.src = url;
+      }
+    });
   }
 
   function warmUrl(url) {
     const attempt = ATTEMPTS.get(url) || 0;
-    Promise.all([loadImage(url), fetchImage(url)])
+    loadImage(url)
       .then(() => {
         markComplete(url);
       })
       .catch((err) => {
         trackFailure(url, attempt, err);
       });
+  }
+
+  function saveData() {
+    const c = navigator.connection;
+    return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
+  }
+
+  let videosStarted = false;
+  function preloadVideos() {
+    if (videosStarted || saveData()) return;
+    videosStarted = true;
+    const videos = Array.from(document.querySelectorAll('video.slides'))
+      .filter((v) => v.preload !== 'auto' && v.readyState < 4 && v.offsetParent === null);
+    const next = () => {
+      const v = videos.shift();
+      if (!v) return;
+      let done = false;
+      const advance = () => {
+        if (done) return;
+        done = true;
+        next();
+      };
+      v.addEventListener('canplaythrough', advance, { once: true });
+      v.addEventListener('error', advance, { once: true });
+      setTimeout(advance, 15000);
+      v.preload = 'auto';
+      v.load();
+    };
+    next();
   }
 
   function enqueue(url) {
@@ -369,10 +422,10 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
+  if (document.readyState === 'complete') {
     init();
+  } else {
+    window.addEventListener('load', init, { once: true });
   }
 
   // Export helper for debugging if needed.

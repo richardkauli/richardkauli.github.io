@@ -30,22 +30,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(request));
+  event.respondWith(staleWhileRevalidate(event));
 });
 
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidate(event) {
+  const { request } = event;
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
-  try {
-    const response = await fetch(request);
+  const network = fetch(request).then((response) => {
     if (response && (response.ok || response.type === 'opaque')) {
       cache.put(request, response.clone());
     }
-    return cached || response;
-  } catch (err) {
-    if (cached) {
-      return cached;
-    }
-    throw err;
+    return response;
+  });
+  if (cached) {
+    // Serve instantly from cache; refresh in the background.
+    event.waitUntil(network.catch(() => {}));
+    return cached;
   }
+  return network;
 }
