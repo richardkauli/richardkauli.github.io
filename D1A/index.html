@@ -135,7 +135,7 @@ html.anim #dcard.ending{transform:scale(1.04);}
   .rail{height:58px;}
   .railline,.rtick,.rdot{top:32px;}
   .rtag{font-size:9px;}
-  #dcard.whyopen .rmedia{display:none;}
+  .endlinks{bottom:3vh;}
 }
 </style>
 </head>
@@ -161,12 +161,12 @@ html.anim #dcard.ending{transform:scale(1.04);}
       <div class="rbody">
         <span class="rage">23 years old</span>
         <h3>Day One?</h3>
-        <p class="rline">After I graduate with my Bachelor’s in Advertising and Marketing in December, Day One is where I want to be.</p>
+        <p class="rline">After I graduate with my Bachelor’s in Advertising and Marketing in December, I might be perfect for Day One.</p>
         <details class="why" id="why">
           <summary>Why Day One</summary>
           <ul>
-            <li>It’s the only job I’ve been this excited about. Your presentation sold me, and the team is full of people who are great at advertising.</li>
-            <li>I want to learn. At VIBE TWLV I’m the one making the reels, so there’s no one to learn from. At Day One there would be.</li>
+            <li>It’s the job I’m most excited for so far. Your presentation sold me.</li>
+            <li>I want to learn. At VIBE TWLV I’m the one making content, so there’s no one to learn from. At Day One there would be.</li>
             <li>I already script, shoot, edit and even build the set myself. I want to do that with a real team on bigger work.</li>
           </ul>
         </details>
@@ -261,7 +261,10 @@ const feedEl=document.querySelector('.feed');
 const endlinks=document.getElementById('endlinks');
 dcard.dataset.i=EVENTS.length; // its dot on the rail
 const activeEls=[...rowEls,dcard];
-function placeCta(){ const vh=window.innerHeight,ch=dcard.offsetHeight; dcard.style.top=Math.max(16,Math.round((vh-ch)/2-vh*0.07))+'px'; } // sits a bit above center to leave room for the links below
+function placeCta(){ const vh=window.innerHeight,ch=dcard.offsetHeight;
+  // a bit above center, but always high enough to clear the contact links at the bottom (the Why Day One list makes the card taller)
+  const linksTop=vh-parseFloat(getComputedStyle(endlinks).bottom)-endlinks.offsetHeight;
+  dcard.style.top=Math.max(12,Math.min(Math.round((vh-ch)/2-vh*0.07),Math.round(linksTop-ch-14)))+'px'; }
 function onScroll(){
   const vh=window.innerHeight,mid=vh*0.5;let best=-1,bd=Infinity;
   activeEls.forEach((s)=>{
@@ -293,7 +296,17 @@ function onScroll(){
   rail.classList.toggle('railhide', stuck);
 }
 placeCta();
-document.getElementById('why').addEventListener('toggle',e=>{dcard.classList.toggle('whyopen',e.target.open);placeCta();onScroll();});
+// opening "Why Day One" makes the card taller; shrink the spacer below it by the same amount so the page
+// keeps its length and, if you were at the end, you stay there with the contact links showing
+const fspacer=document.querySelector('.fspacer');
+document.getElementById('why').addEventListener('toggle',e=>{
+  const wasEnd=endlinks.classList.contains('in');
+  if(!e.target.open){fspacer.style.height='';}
+  else{const ul=e.target.querySelector('ul');const extra=ul.offsetHeight+parseFloat(getComputedStyle(ul).marginTop);fspacer.style.height='max(0px, calc(62vh - '+extra+'px))';}
+  placeCta();
+  if(wasEnd)window.scrollTo(0,document.documentElement.scrollHeight);
+  onScroll();
+});
 window.addEventListener('scroll',onScroll,{passive:true});
 window.addEventListener('resize',()=>{placeCta();onScroll();},{passive:true});
 onScroll();
