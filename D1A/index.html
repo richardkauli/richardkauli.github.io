@@ -13,6 +13,7 @@ if(/\/D1A$/i.test(location.pathname))history.replaceState(null,'',location.pathn
 <meta property="og:url" content="https://www.richardkauli.com/D1A/"/>
 <meta property="og:description" content="Hi, Day One. I'm Rich, a designer and maker from Brooklyn, NY."/>
 <meta name="description" content="Hi, Day One. I'm Rich, a designer and maker from Brooklyn, NY."/>
+<link rel="preload" as="image" href="met-photo-sm.jpg"/>
 <link rel="icon" href="https://www.richardkauli.com/favicon.png" type="image/png"/>
 <style>
 @font-face{font-family:'ArialBlackCustom';src:url('https://www.richardkauli.com/arial_black.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap;}
@@ -189,7 +190,7 @@ html.anim #dcard.ending{transform:scale(1.04);}
 
 <script>
 const EVENTS=[
- {y:2020.15, date:"2020", age:"16 years old", title:"Exhibited at The MET", line:"At 16 I won a Scholastic Gold Key Award and was featured in an exhibition at The MET for this photograph I took of my friend Jack. I grew to love creating and showing my photos and got pretty good at it.", img:"met-photo.jpg", crop:"4/5", pos:"50% 47%", link:"../portfolio/Photography/", linktext:"See my photography portfolio →"},
+ {y:2020.15, date:"2020", age:"16 years old", title:"Exhibited at The MET", line:"At 16 I won a Scholastic Gold Key Award and was featured in an exhibition at The MET for this photograph I took of my friend Jack. I grew to love creating and showing my photos and got pretty good at it.", img:"met-photo-sm.jpg", eager:true, crop:"4/5", pos:"50% 47%", link:"../portfolio/Photography/", linktext:"See my photography portfolio →"},
  {y:2020.58, date:"2020", age:"16 years old", title:"East River Titans Zine", line:"Quarantine started and I took the opportunity to compile a zine of all my bridge climbs. I Shot, Wrote, Designed, Printed, Bound, and Advertised it myself, <b>selling 30 copies</b> of the 40-page zine.", img:"../portfolio/2020EastRiverTitans/1.jpg", mimg:"ert-mobile.jpg", link:"../portfolio/2020EastRiverTitans/", linktext:"See the zine →"},
  {y:2022.353, date:"May 9, 2022", age:"18 years old", title:"Resilient", line:"At 18 I snapped my femur in half in a motorcycle crash. In my 6 weeks bed bound I fell in love with reading and learning about the world. My EMS Professor, Mike advised me that I’d be a great firefighter but could do a lot more than that. I decided to focus on my passion for creating.", img:"xray.jpg"},
  {y:2022.62, date:"Jul 2022", age:"18 years old", title:"See How “FREE” You Really Are Pop-Up", line:"My friend Jules and I organized, advertised, and hosted a popup in Tribeca titled See How “FREE” You Really Are about the negative effects of social media. I created 8 custom garments and printed 150+ t shirts at the two day event. With <b>200+ attendees</b> we ended up making <b>$3k+ in sales</b>.", img:"popup-8.jpg", link:"https://free.juleslemee.com/", linktext:"See the pop-up →"},
@@ -216,7 +217,7 @@ EVENTS.forEach((e,i)=>{
   r.className='row'+(e.finale?' finale':'');
   r.dataset.i=i;
   let media;
-  if(e.img){ const im='<img loading="lazy" src="'+e.img+'" alt="" style="'+(e.crop?'aspect-ratio:'+e.crop+';':'')+(e.pos?'object-position:'+e.pos+';':'')+'">';
+  if(e.img){ const im='<img loading="'+(e.eager?'eager" fetchpriority="high':'lazy')+'" src="'+e.img+'" alt="" style="'+(e.crop?'aspect-ratio:'+e.crop+';':'')+(e.pos?'object-position:'+e.pos+';':'')+'">';
     media='<div class="rmedia">'+(e.mimg?'<picture><source media="(max-width:760px)" srcset="'+e.mimg+'">'+im+'</picture>':im)+'</div>'; }
   else if(e.logo){ media='<div class="rmedia logo"><img loading="lazy" src="'+e.logo+'" alt=""></div>'; }
   else if(e.metric){ media='<div class="rmedia metric"><div class="big">'+e.metric+'</div><div class="lab">'+e.mlab+'</div></div>'; }
