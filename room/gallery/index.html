@@ -334,8 +334,9 @@ function framed(cx, cy, c0, w, h, face, map, { frame = M.black, matFrac = .16, d
 cur = scene;
 for (let z = 2.2; z < 7.5; z += 0.85) smallPlant(0.3, SILL, z, rnd() < .4 ? 'pothos' : 'leafy');
 
+var BAY1_STUFF = new THREE.Group();
 const DESK_SHIFT = 0.4;   // desk wall pushed right, up to the bed platform
-const deskG = new THREE.Group(); deskG.position.x = DESK_SHIFT; scene.add(deskG); cur = deskG;
+const deskG = new THREE.Group(); deskG.position.x = DESK_SHIFT; scene.add(deskG); deskG.add(BAY1_STUFF); cur = deskG;
 // NYC City Planning 3D model (2014 aerial survey): real roofs, setbacks and towers for Brooklyn CDs 1-10, 12 and Manhattan CDs 1-8,
 // pre-trimmed to what you can see from your window + balcony. Decoded after the room is up.
 function buildExtras() {   // your tower (from NYC's 3D model), blocks/parks/parking ground, street trees: all from the small city.js
@@ -391,15 +392,17 @@ opt('shelflights', 'bottom', () => {});
   for (const [x, y, l] of [[1.6, 3.95, 1.1], [1.75, 3.95, .9], [3.9, 3.95, 1.2]]) B(M.steel, x - .02, x + .02, y - l, y, .05, .09);    // rulers
   for (const [x, y] of [[2.2, 3.7], [2.55, 3.75], [2.9, 3.68]]) { B(M.black, x - .03, x + .03, y - .45, y, .06, .1); C(RED, .06, .06, .03, x, y - .08, .1, 12).rotation.x = Math.PI / 2; }  // scissors / tools
   B(M.oak, 3.2, 4.4, 3.2, 3.25, .05, .3); spools(3.25, 4.4, 3.25, .17); spools(3.25, 4.4, 2.75, .12); B(M.oak, 3.2, 4.4, 2.7, 2.75, .05, .3);
-  B(STD({ color: 0x2f6b4f, roughness: .8 }), 1.4, 4.0, DT, DT + .01, .4, 2.0); deskLamp(4.25, DT, .6, -2.4); B(STD({ color: 0x8c3a2f, roughness: 1 }), 2.0, 3.2, DT + .01, DT + .06, 1.0, 1.7); }
+  { const t0 = cur; cur = BAY1_STUFF; B(STD({ color: 0x2f6b4f, roughness: .8 }), 1.4, 4.0, DT, DT + .01, .4, 2.0); deskLamp(4.25, DT, .6, -2.4); B(STD({ color: 0x8c3a2f, roughness: 1 }), 2.0, 3.2, DT + .01, DT + .06, 1.0, 1.7); cur = t0; } }   // cutting mat + lamp (moves to the right bay when the Singer is on the left)
 function monitors(cx) { const sc = STD({ color: 0x2c3138, roughness: .2, metalness: .3 });   // two 24" monitors side by side + keyboard/mouse
   for (const mx of [cx - .89, cx + .89]) { B(M.black, mx - .12, mx + .12, DT, DT + .02, .45, .75); B(M.black, mx - .03, mx + .03, DT, DT + .75, .55, .61); B(M.black, mx - .86, mx + .86, DT + .62, DT + 1.62, .62, .68); B(sc, mx - .82, mx + .82, DT + .66, DT + 1.58, .681, .685); }
   B(M.white, cx - .68, cx + .68, DT, DT + .04, 1.15, 1.5); B(M.white, cx + .92, cx + 1.12, DT, DT + .04, 1.2, 1.45); }
 const BAY2 = (UP[1] + UP[2] + UT) / 2, BAY3 = (UP[2] + UP[3] + UT) / 2;
 opt('singer', 'desk', () => { sewing(BAY3, DT, 1.05); monitors(BAY2); });     // computer in the middle, Singer on the right
 opt('singer', 'center', () => { sewing(BAY2, DT, 1.35); monitors(BAY3); });   // Singer in the middle, computer on the right
-toggles.singer.desk.position.x = toggles.singer.center.position.x = DESK_SHIFT; jar(9.0, DT, .45); jar(9.3, DT, .4, .3); 
-plyChair(6.61, 1.75, 0); plyChair(10.25, 1.75, 0);   // the only two chairs, pushed in
+opt('singer', 'left', () => { const BAY1 = (UP[0] + UP[1] + UT) / 2; sewing(BAY1, DT, 1.35); monitors(BAY2);   // Singer on the left, computer in the middle, cutting mat on the right
+  B(STD({ color: 0x2f6b4f, roughness: .8 }), BAY3 - 1.3, BAY3 + 1.3, DT, DT + .01, .4, 2.0); B(STD({ color: 0x8c3a2f, roughness: 1 }), BAY3 - .6, BAY3 + .6, DT + .01, DT + .06, 1.0, 1.7); deskLamp(UP[3] - .45, DT, .6, -2.4); });
+toggles.singer.desk.position.x = toggles.singer.center.position.x = toggles.singer.left.position.x = DESK_SHIFT; jar(9.0, DT, .45); jar(9.3, DT, .4, .3); 
+var CHAIRS_R = new THREE.Group(), CHAIRS_L = new THREE.Group(); deskG.add(CHAIRS_R, CHAIRS_L); { const t0 = cur; cur = CHAIRS_R; plyChair(6.61, 1.75, 0); plyChair(10.25, 1.75, 0); cur = CHAIRS_L; plyChair(2.98, 1.75, 0); plyChair(6.61, 1.75, 0); cur = t0; }   // two chairs, under whichever bays you use   // the only two chairs, pushed in
 // shelf contents: bay 1 (by the window) sewing + plants, bay 2 cameras + DeWalt, bay 3 motorcycle tools; books only on the top shelf
 { const sh = [4.3625, 5.3625, 6.3625, 7.1825];
   const [b1, b2, b3] = BAYS, BLK = STD({ color: 0x1b1b1c, roughness: .45 }), RUB = STD({ color: 0x2a2a2a, roughness: .9 }), STEEL = M.steel;
@@ -761,12 +764,12 @@ const VIEWS = {
 const pick = (keys, def) => keys.find(k => params.includes(k)) || def;
 const state = {
   view: pick(Object.keys(VIEWS), 'overview'), stain: 'honey', screen: pick(['up', 'down', 'sweep'], 'noscreen').replace('noscreen', 'none'),
-  singer: params.includes('singerdesk') ? 'desk' : params.includes('singercenter') ? 'center' : 'table', closet: pick(['open', 'white', 'rust', 'olive'], 'doors'), wall: pick(['photos', 'mirror', 'print', 'vision'], 'none'), above: pick(['shelf', 'frames', 'pegs', 'noabove'], 'print').replace('noabove', 'none'),
+  singer: params.includes('singerdesk') ? 'desk' : params.includes('singercenter') ? 'center' : params.includes('singerleft') ? 'left' : 'table', closet: pick(['open', 'white', 'rust', 'olive'], 'doors'), wall: pick(['photos', 'mirror', 'print', 'vision'], 'none'), above: pick(['shelf', 'frames', 'pegs', 'noabove'], 'print').replace('noabove', 'none'),
   legs: 'ends', table: pick(['big', 'work', 'fold', 'foldwall', 'none', 'dinner'], 'nook'), hallcloset: params.includes('hallopen') ? 'open' : 'closed', bedbase: params.includes('drawersonly') ? 'front' : 'both', shelflights: params.includes('shelfall') ? 'all' : 'bottom',
   time: params.includes('evening') ? 'evening' : 'day' };
 const CHOICES = {
   closet: { open: 'Open', doors: 'Doors', white: 'White curtain', rust: 'Rust curtain', olive: 'Olive curtain' },
-  singer: { table: 'Own table at photo wall', desk: 'Desk, right side', center: 'Desk, center (computer right)' },
+  singer: { table: 'Own table at photo wall', desk: 'Desk, right side', center: 'Desk, center (computer right)', left: 'Desk, left (computer middle)' },
   hallcloset: { closed: 'Closed', open: 'Open' },
   bedbase: { both: 'Cubbies + drawers', front: 'Drawers in front only' },
   shelflights: { bottom: 'Bottom shelf', all: 'All shelves' },
@@ -776,6 +779,7 @@ const CHOICES = {
   above: { none: 'Nothing', print: 'One print', frames: 'Three frames', shelf: 'Floating shelf', pegs: 'Peg rail' }, time: { day: 'Daytime', evening: 'Evening' } };
 const LABEL = { bedbase: 'Bed base', shelflights: 'Shelf LEDs', hallcloset: 'Hall closet', singer: 'Singer', table: 'Middle', screen: 'Backdrop', closet: 'Closet', wall: 'Wall', above: 'Above bed', time: 'Light' };
 function apply() {
+  BAY1_STUFF.visible = CHAIRS_R.visible = state.singer !== 'left'; CHAIRS_L.visible = state.singer === 'left';
   if (state.screen === 'sweep') state.table = 'none';   // shoot day: table out of the way
   for (const [name, opts] of Object.entries(toggles)) for (const [k, g] of Object.entries(opts)) g.visible = state[name] === k;
   setStain(state.stain); setTime(state.time); renderer.shadowMap.needsUpdate = true; dirty();
