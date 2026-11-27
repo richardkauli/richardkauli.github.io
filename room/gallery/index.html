@@ -187,7 +187,7 @@ wallRun('z', -T, 7.93, 0, -1, [[WIN[0], WIN[1], SILL, HEAD]]);
 wallRun('x', -T, 1.79, 7.93, 1, []); wallRun('z', 7.93, 12.33, 1.79, -1, []);
 wallRun('z', -T, 12.33, 19, 1, [[8.43, 11.98, 0, DOOR]]);
 wallRun('x', 1.44, 19 + T, 11.98, 1, [[1.79, 4.75, 0, DOOR], [9.4, 12.35, 0, DOOR], [12.86, 17.46, 0, DOOR]]);
-B(M.wall, 0, 1.1, 7.25, H, -0.1, 7.93);
+B(M.wall, 0, 1.79, 7.25, H, -0.1, 7.93);   // window soffit: as deep as the step wall beside it
 function windowFrame(z1, z2, y1, y2) {
   const x1 = -0.24, x2 = -0.06, w = 0.14, F = M.frame;
   B(F, x1, x2, y1, y1 + w, z1, z2); B(F, x1, x2, y2 - w, y2, z1, z2); B(F, x1, x2, y1, y2, z1, z1 + w); B(F, x1, x2, y1, y2, z2 - w, z2);
@@ -362,7 +362,7 @@ buildExtras();
 
 // ---- east wall: 4 shelf-depth pillars floor to ceiling, one continuous desk, 4 shelves, LED under the bottom one ----
 const DT = 2.46, DD = 2.2, SD = 1.05, UP = [1.15, 4.79, 8.43, 12.07], UT = 0.0625, DX1 = 1.15, DX2 = 12.1325;   // uprights 3/4"
-for (const x of UP) P(x, x + UT, 0, TOP, 0, SD);
+for (const x of UP) P(x, x + UT, 0, x < 1.79 ? 7.24 : TOP, 0, SD);   // the corner pillar stops under the soffit
 const BAYS = UP.slice(0, -1).map((x, i) => [x + UT, UP[i + 1]]);
 // knock-down: desk top, apron and rail come in 3 sections that meet over the middle pillars (dowels + bolted connector plates underneath)
 const SEAMS = [DX1, UP[1] + UT / 2, UP[2] + UT / 2, DX2];
@@ -428,7 +428,7 @@ plyChair(6.61, 1.75, 0); plyChair(10.25, 1.75, 0);   // the only two chairs, pus
   { const ch = STD({ color: 0xb8322a, roughness: .35, metalness: .3 }); B(ch, b3[0] + .15, b3[0] + 1.6, sh[2], sh[2] + .7, .1, .95); for (const y of [.18, .36, .54]) B(STEEL, b3[0] + .3, b3[0] + 1.45, sh[2] + y, sh[2] + y + .03, .95, .97); }
   toolCase(b3[0] + 1.75, b3[1] - .1, sh[2], .1, .95, DGR);
   // top shelf: books, wall to wall
-  for (const [a, b] of BAYS) books(a + .03, b - .03, sh[3], .1, .85, .76, .55, false); }
+  BAYS.forEach(([a, b], i) => books(i ? a + .03 : Math.max(a + .03, 1.82), b - .03, sh[3], .1, .85, .76, .55, false)); }   // bay 1 books start past the soffit
 
 cur = scene;
 // ---- your Singer table at the photo wall: same grey legs + crossbar, foot pedal, new honey ply top ----
