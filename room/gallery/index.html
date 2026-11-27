@@ -337,41 +337,26 @@ const DESK_SHIFT = 0;   // desk wall stays where it was
 const deskG = new THREE.Group(); deskG.position.x = DESK_SHIFT; scene.add(deskG); cur = deskG;
 // NYC City Planning 3D model (2014 aerial survey): real roofs, setbacks and towers for Brooklyn CDs 1-10, 12 and Manhattan CDs 1-8,
 // pre-trimmed to what you can see from your window + balcony. Decoded after the room is up.
-async function buildCity3D() {
-  const buf = await (await fetch('city3d.bin')).arrayBuffer(), hl = new DataView(buf).getUint32(0, true);
-  const HD = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl))), base = 4 + hl, SEC = HD.sections;
-  const part = (sec, i) => { const [o, l] = sec.parts[i]; return new Response(new Blob([new Uint8Array(buf, base + o, l)]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer(); };
-  const PALC = [...PAL.low, ...PAL.mid, ...PAL.tall].map(h => new THREE.Color(h)), ROOF = PALC.map(c => c.clone().multiplyScalar(.62));
+function buildExtras() {   // your tower (from NYC's 3D model), blocks/parks/parking ground, street trees: all from the small city.js
+  if (!window.CITY) return;
   const put = (g, m, ro) => { const me = new THREE.Mesh(g, m); me.matrixAutoUpdate = false; me.updateMatrix(); if (ro !== undefined) me.renderOrder = ro; cityG.add(me); return me; };
-  const unIdx = async (sec, i) => { const di = new Int32Array(await part(sec, i)), I = new Uint32Array(di.length); let a = 0; for (let k = 0; k < di.length; k++) { a += di[k]; I[k] = a; } return I; };
-  async function buildings(sec, mat) {
-    const d = new Int16Array(await part(sec, 0)), col = new Uint8Array(await part(sec, 1)), n = sec.n, sc = sec.scale, P = new Float32Array(n * 3), Cc = new Float32Array(n * 3);
-    let x = 0, y = 0, z = 0;
-    for (let i = 0; i < n; i++) { x += d[i]; y += d[n + i]; z += d[2 * n + i]; P[i * 3] = x * sc; P[i * 3 + 1] = y * sc; P[i * 3 + 2] = z * sc;
-      const c = col[i], C = (c & 128 ? ROOF : PALC)[c & 127] || PALC[0]; Cc[i * 3] = C.r; Cc[i * 3 + 1] = C.g; Cc[i * 3 + 2] = C.b; }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('color', new THREE.BufferAttribute(Cc, 3)); g.setIndex(new THREE.BufferAttribute(await unIdx(sec, 2), 1)); g.computeVertexNormals(); put(g, mat); }
-  const mat = nightWindows(new THREE.MeshLambertMaterial({ vertexColors: true })), matNear = nightWindows(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-  if (SEC.near) await buildings(SEC.near, matNear);
-  if (SEC.far) await buildings(SEC.far, mat);
-  if (SEC.own && SEC.own.n) { const o = new Float32Array(await part(SEC.own, 0)), g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(o, 3)); g.computeVertexNormals(); put(g, nightWindows(new THREE.MeshLambertMaterial({ color: 0xcdbfa8 }))); }
-  // ground: blocks (sidewalk + lots), parking, parks, drawn flat in order under everything else
-  const GROUND = { g_block: [0xcfc8b8, -.7], g_parking: [0x8e8d88, -.65], g_park: [0x7d9a5a, -.6], g_water: [0x4f86a6, -.62] };
-  for (const [k, [color, ro]] of Object.entries(GROUND)) { const sec = SEC[k]; if (!sec) continue;
-    const d = new Int16Array(await part(sec, 0)), n = sec.n, P = new Float32Array(n * 3); let x = 0, z = 0;
-    for (let i = 0; i < n; i++) { x += d[i]; z += d[n + i]; P[i * 3] = x; P[i * 3 + 1] = -1.9; P[i * 3 + 2] = z; }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setIndex(new THREE.BufferAttribute(await unIdx(sec, 1), 1)); g.computeVertexNormals();
+  if (CITY.ownTower && CITY.ownTower.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(CITY.ownTower, 3)); g.computeVertexNormals(); put(g, nightWindows(new THREE.MeshLambertMaterial({ color: 0xcdbfa8 }))); }
+  const GROUND = { block: [0xcfc8b8, -.7], parking: [0x8e8d88, -.65], park: [0x7d9a5a, -.6], water: [0x4f86a6, -.62] };
+  for (const [k, [color, ro]] of Object.entries(GROUND)) { const lst = (CITY.ground || {})[k]; if (!lst || !lst.length) continue;
+    const P = [], I = []; let base = 0;
+    for (const [q, idx] of lst) { for (let i = 0; i < q.length; i += 2) P.push(q[i], -1.9, q[i + 1]); for (const t of idx) I.push(t + base); base += q.length / 2; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I); g.computeVertexNormals();
     put(g, new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, depthTest: false, depthWrite: false }), ro); }
-  // street trees: one instanced trunk + one instanced canopy for ~5,000 trees
-  if (SEC.trees) { const tq = new Int16Array(await part(SEC.trees, 0)), td = new Uint8Array(await part(SEC.trees, 1)), n = SEC.trees.n;
-    const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(.6, .8, 1, 6), new THREE.MeshLambertMaterial({ color: 0x5b4636 }), n);
+  const T = CITY.trees || [], n = T.length / 3;
+  if (n) { const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(.6, .8, 1, 6), new THREE.MeshLambertMaterial({ color: 0x5b4636 }), n);
     const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), col = new THREE.Color(), GR = [0x4f6b3a, 0x5d7a40, 0x46613a, 0x6b8445, 0x3f5a35];
-    for (let i = 0; i < n; i++) { const x = tq[i * 2], z = tq[i * 2 + 1], dbh = td[i], th = 7 + dbh * .35, r = Math.min(16, 4.5 + dbh * .42);
+    for (let i = 0; i < n; i++) { const x = T[i * 3], z = T[i * 3 + 1], dbh = T[i * 3 + 2], th = 7 + dbh * .35, r = Math.min(16, 4.5 + dbh * .42);
       m4.compose(new THREE.Vector3(x, -2 + th / 2, z), q, new THREE.Vector3(1, th, 1)); trunk.setMatrixAt(i, m4);
-      m4.compose(new THREE.Vector3(x, -2 + th + r * .65, z), q, new THREE.Vector3(r, r * .85, r)); crown.setMatrixAt(i, m4); crown.setColorAt(i, col.setHex(GR[(x * 7 + z * 13 & 0x7fffffff) % GR.length])); }
+      m4.compose(new THREE.Vector3(x, -2 + th + r * .65, z), q, new THREE.Vector3(r, r * .85, r)); crown.setMatrixAt(i, m4); crown.setColorAt(i, col.setHex(GR[Math.abs(x * 7 + z * 13) % GR.length])); }
     for (const m of [trunk, crown]) { m.instanceMatrix.needsUpdate = true; cityG.add(m); } crown.instanceColor.needsUpdate = true; }
-  dirty();
 }
+buildExtras();
 
 
 // ---- east wall: 4 shelf-depth pillars floor to ceiling, one continuous desk, 4 shelves, LED under the bottom one ----
@@ -738,11 +723,11 @@ const EVE = [], GLOW = STD({ color: 0xffffff, emissive: 0xffd9a8, emissiveIntens
 for (const [x, z] of [[17.4, 10.0], [11.0, 16.2], [3.2, 19.0]]) { const d = mesh(new THREE.SphereGeometry(.42, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), GLOW, false, false); d.scale.y = .35; d.rotation.x = Math.PI; d.position.set(x, H, z); scene.add(d); }   // flush ceiling fixtures
 for (const [x, y, z, I] of [[17.4, 7.5, 10.0, 22], [11.0, 7.5, 16.2, 15], [3.2, 7.5, 19.0, 22], [13.75, 2.85, .9, 12]]) { const L = new THREE.PointLight(0xffc690, 0, 0, 2); L.position.set(x, y, z); scene.add(L); EVE.push([L, I]); }   // ceiling: by the mirror, hallway, kitchen; bed lamp
 function setTime(k) { const day = k === 'day';
-  SKY.forEach(L => L.intensity = day ? 0.53 : 0); WINLIGHTS.forEach(a => a.intensity = day ? 2.6 : 0.05); hemi.intensity = day ? 0.42 : 0.05;
-  scene.environment = day ? ENV_TEX : null; NIGHT.value = day ? 0 : 1; GLOW.emissiveIntensity = day ? 0 : 2.4; CANDLES.forEach(L => L.intensity = day ? 0 : 4);
+  SKY.forEach(L => L.intensity = day ? 0.7 : 0); WINLIGHTS.forEach(a => a.intensity = day ? 4.2 : 0.05); hemi.intensity = day ? 0.1 : 0.05;   // day: window light + shelf LEDs only, falls off into the room
+  scene.environment = null; NIGHT.value = day ? 0 : 1; GLOW.emissiveIntensity = day ? 0 : 2.4; CANDLES.forEach(L => L.intensity = day ? 0 : 4);
   skyMat.map = day ? skyMat.userData.day : skyMat.userData.night; skyMat.needsUpdate = true; scene.fog.color.set(day ? 0xdde5ec : 0x10141f);
-  LEDS.forEach(L => L.intensity = day ? 0 : 28); LEDS_UP.forEach(L => L.intensity = day ? 0 : 9); ledUpMat.emissiveIntensity = day ? .1 : 1.4; ledMat.emissiveIntensity = day ? 0.15 : 2.2; EVE.forEach(([L, I]) => L.intensity = day ? 0 : I);
-  renderer.toneMappingExposure = day ? 1.4 : 1.35; }
+  LEDS.forEach(L => L.intensity = day ? 14 : 28); LEDS_UP.forEach(L => L.intensity = day ? 5 : 9); ledUpMat.emissiveIntensity = day ? .9 : 1.4; ledMat.emissiveIntensity = day ? 1.4 : 2.2; EVE.forEach(([L, I]) => L.intensity = day ? 0 : I);
+  renderer.toneMappingExposure = day ? 1.6 : 1.35; }
 
 // ================= camera, views, UI =================
 const camera = new THREE.PerspectiveCamera(66, 1, 0.25, 150000);
@@ -854,7 +839,7 @@ controls.addEventListener('change', dirty);
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); dirty(); }
 addEventListener('resize', resize); resize();
 let frames = 0;
-setTimeout(() => buildCity3D().catch(e => console.warn('city3d', e)), 30);   // city streams in after the room is up
+   // city streams in after the room is up
 renderer.setAnimationLoop(() => {
   tickCamera();
   const cut = state.view === 'cutaway' || state.view === 'plan'; CEILS.forEach(c => c.visible = !cut && camera.position.y < H);
