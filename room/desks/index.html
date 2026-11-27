@@ -249,7 +249,8 @@ const LEDS = [];
 function unit(x0, kind) {
   const UP = [0, 1, 2, 3].map(i => x0 + i * PITCH), X2 = x0 + UW, bays = UP.slice(0, -1).map((x, i) => [x + UT, UP[i + 1]]);
   for (const x of UP) P(x, x + UT, 0, TOP, 0, SD);
-  P(x0, X2, DT - 0.1, DT, 0, DD); P(x0, X2, DT - 0.28, DT - 0.1, DD - 0.12, DD - 0.06); P(x0, X2, DT - 0.28, DT - 0.1, SD, SD + 0.06);
+  const SE = [x0, UP[1] + UT / 2, UP[2] + UT / 2, X2];   // knock-down: 3 desk sections meeting over the middle pillars
+  for (let i = 0; i < 3; i++) { const a = SE[i] + (i ? .004 : 0), b = SE[i + 1] - (i < 2 ? .004 : 0); P(a, b, DT - 0.1, DT, 0, DD); P(a, b, DT - 0.28, DT - 0.1, DD - 0.12, DD - 0.06); P(a, b, DT - 0.28, DT - 0.1, SD, SD + 0.06); }
   for (const [a, b] of bays) for (const y of [4.3, 5.3, 6.3, 7.12]) P(a, b, y, y + 0.0625, 0, SD);
   { const g = new THREE.Group(); cur.add(g); for (const x of [x0, X2 - .12]) PS(x, x + .12, 0, DT - .28, DD - .2, DD - .08, g); LEGS.corner.push(g); }
   { const g = new THREE.Group(); cur.add(g); for (const x of [x0, X2 - UT]) P(x, x + UT, 0, DT - .1, SD, DD, g); LEGS.ends.push(g); }
