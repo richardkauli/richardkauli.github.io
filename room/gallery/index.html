@@ -752,8 +752,8 @@ const VIEWS = {
 const pick = (keys, def) => keys.find(k => params.includes(k)) || def;
 const state = {
   view: pick(Object.keys(VIEWS), 'overview'), stain: 'honey', screen: 'up',
-  singer: 'left', closet: 'open', wall: pick(['photos', 'mirror', 'print', 'vision'], 'none'), above: pick(['shelf', 'frames', 'pegs', 'noabove'], 'print').replace('noabove', 'none'),
-  legs: 'ends', table: pick(['fold', 'foldwall', 'none'], 'nook'), hallcloset: 'open', shelflights: 'bottom',
+  singer: 'left', closet: 'open', wall: pick(['photos', 'mirror', 'print', 'nowall'], 'vision').replace('nowall', 'none'), above: pick(['shelf', 'frames', 'pegs', 'noabove'], 'print').replace('noabove', 'none'),
+  legs: 'ends', table: pick(['fold', 'nook', 'none'], 'foldwall'), hallcloset: 'open', shelflights: 'bottom',
   time: params.includes('evening') ? 'evening' : 'day' };
 const CHOICES = {
   table: { nook: 'Foldout, folded in hall nook', foldwall: 'Foldout, folded on wall', fold: 'Foldout, open', none: 'No table' },
@@ -833,6 +833,7 @@ controls.addEventListener('change', dirty);
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); dirty(); }
 addEventListener('resize', resize); resize();
 let frames = 0;
+if (!params.includes('orbit') && !params.includes('shot')) setWalk(true);   // start in walk mode
    // city streams in after the room is up
 renderer.setAnimationLoop(() => {
   tickCamera();
