@@ -443,7 +443,7 @@ opt('singer', 'table', () => { const mg = new THREE.Group(); mg.position.x = DES
   const ped = RB(M.black, -.35, .15, 0, .22, z2 - .85, z2 - .2, .05, g); ped.rotation.x = -.12; rodM(V(.6, t - .15, .5), V(-.1, .2, z2 - .5), .012, M.black, g);   // foot pedal + cord
   const tmp = cur; cur = g; sewing(-.3, t, .95); deskLamp(1.6, t, .45, -2.0); spools(-1.85, -1.1, t, .35); cur = tmp; });
 // ---- platform bed (A): 18" platform, cubbies under the front, drawers on the side, step ----
-{ const PH = 1.5, X0 = 13.95, Z1 = 7.6;   // platform flush with the mattress on the desk side, chest of drawers along the front
+{ const PH = 1.5, X0 = 13.95, Z1 = 8.4;   // platform flush with the mattress on the desk side, out to the edge of the entry wall (a bench to put shoes on), drawers along the front
   P(X0, 19, PH - 0.08, PH, 0, Z1); P(X0, X0 + 0.08, 0, PH - 0.08, 0.01, Z1); P(X0, 19, 0, PH - 0.08, Z1 - 0.08, Z1);
   for (const x of [15.2, 16.45, 17.7]) gap(x - 0.01, x + 0.01, 0.1, PH - 0.15, Z1, Z1 + 0.005);
   for (const x of [14.57, 15.82, 17.07, 18.35]) gap(x - 0.22, x + 0.22, PH - 0.4, PH - 0.3, Z1, Z1 + 0.005);
@@ -782,7 +782,7 @@ function walkOK(x, z) { const inR = ([a, b, c, d]) => x > a && x < b && z > c &&
 const WALK_START = [16.6, 9.8, Math.PI / 2 - 0.35];
 function groundAt(x, z) { const r = .3;   // bed platform 18", mattress on top ~27"
   if (x > 13.95 - r && x < 18.9 + r && z > .15 - r && z < 6.82 + r) return 2.25;
-  if (x > 13.95 - r && x < 19 && z > -1 && z < 7.6 + r) return 1.5; return 0; }
+  if (x > 13.95 - r && x < 19 && z > -1 && z < 8.4 + r) return 1.5; return 0; }
 // ---------- walk mode: WASD / arrows to move, drag to look, Shift to run (needs walkOK(x, z) + WALK_START) ----------
 var walk = { on: false, yaw: 0, pitch: 0, keys: new Set(), drag: null, eye: 5.4, y: 0, vy: 0 };   // Space jumps, C crouches
 const EYE = 5.4, MOVEKEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
