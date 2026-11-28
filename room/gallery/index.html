@@ -724,7 +724,7 @@ function setTime(k) { const day = k === 'day';
   SKY.forEach(L => L.intensity = day ? 0.7 : 0); WINLIGHTS.forEach(a => a.intensity = day ? 7 : 0.05); hemi.intensity = day ? 0.3 : 0.05;   // day: window light + shelf LEDs only, falls off into the room
   scene.environment = null; NIGHT.value = day ? 0 : 1; GLOW.emissiveIntensity = day ? 0 : 2.4; CANDLES.forEach(L => L.intensity = day ? 0 : 4);
   skyMat.map = day ? skyMat.userData.day : skyMat.userData.night; skyMat.needsUpdate = true; scene.fog.color.set(day ? 0xdde5ec : 0x10141f);
-  LEDS.forEach(L => L.intensity = day ? 14 : 28); LEDS_UP.forEach(L => L.intensity = day ? 5 : 9); ledUpMat.emissiveIntensity = day ? .9 : 1.4; ledMat.emissiveIntensity = day ? 1.4 : 2.2; EVE.forEach(([L, I]) => L.intensity = day ? 0 : I);
+  LEDS.forEach(L => L.intensity = day ? 30 : 55); LEDS_UP.forEach(L => L.intensity = day ? 5 : 9); ledUpMat.emissiveIntensity = day ? .9 : 1.4; ledMat.emissiveIntensity = day ? 2.4 : 3.2; EVE.forEach(([L, I]) => L.intensity = day ? 0 : I);
   renderer.toneMappingExposure = day ? 1.7 : 1.35; }
 
 // ================= camera, views, UI =================
