@@ -32,9 +32,12 @@ body{background:var(--ground);color:var(--ink);font-family:var(--mono);overflow:
 .panel.min{padding:8px 10px}.panel.min>*:not(.ph){display:none}.panel.min h1{font-size:13px}
 .shot .panel{display:none}
 @media (max-width:560px){.row span{width:100%}}
+#joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(20,20,20,.18);border:1.5px solid rgba(255,255,255,.55);pointer-events:none;display:none;z-index:5}
+#joy i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 1px 6px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
+<div id="joy"><i></i></div>
 <canvas id="c" aria-label="3D render of the room as a plywood workshop with a platform bed"></canvas>
 <div class="panel" id="panel"><div class="ph"><h1>A · Platform workshop</h1><button type="button" id="hidebtn" aria-expanded="true">Hide</button></div></div>
 <script>
@@ -392,7 +395,7 @@ opt('shelflights', 'bottom', () => {});
   for (const [x, y, l] of [[1.6, 3.95, 1.1], [1.75, 3.95, .9], [3.9, 3.95, 1.2]]) B(M.steel, x - .02, x + .02, y - l, y, .05, .09);    // rulers
   for (const [x, y] of [[2.2, 3.7], [2.55, 3.75], [2.9, 3.68]]) { B(M.black, x - .03, x + .03, y - .45, y, .06, .1); C(RED, .06, .06, .03, x, y - .08, .1, 12).rotation.x = Math.PI / 2; }  // scissors / tools
   B(M.oak, 3.2, 4.4, 3.2, 3.25, .05, .3); spools(3.25, 4.4, 3.25, .17); spools(3.25, 4.4, 2.75, .12); B(M.oak, 3.2, 4.4, 2.7, 2.75, .05, .3);
-  { const t0 = cur; cur = BAY1_STUFF; B(STD({ color: 0x2f6b4f, roughness: .8 }), 1.4, 4.0, DT, DT + .01, .4, 2.0); deskLamp(4.25, DT, .6, -2.4); B(STD({ color: 0x8c3a2f, roughness: 1 }), 2.0, 3.2, DT + .01, DT + .06, 1.0, 1.7); cur = t0; } }   // cutting mat + lamp (moves to the right bay when the Singer is on the left)
+  { const t0 = cur; cur = BAY1_STUFF; B(STD({ color: 0x2f6b4f, roughness: .8 }), 1.4, 4.0, DT, DT + .01, .4, 2.0); B(STD({ color: 0x8c3a2f, roughness: 1 }), 2.0, 3.2, DT + .01, DT + .06, 1.0, 1.7); cur = t0; } }   // cutting mat + lamp (moves to the right bay when the Singer is on the left)
 function monitors(cx) { const sc = STD({ color: 0x2c3138, roughness: .2, metalness: .3 });   // two 24" monitors side by side + keyboard/mouse
   for (const mx of [cx - .89, cx + .89]) { B(M.black, mx - .12, mx + .12, DT, DT + .02, .45, .75); B(M.black, mx - .03, mx + .03, DT, DT + .75, .55, .61); B(M.black, mx - .86, mx + .86, DT + .62, DT + 1.62, .62, .68); B(sc, mx - .82, mx + .82, DT + .66, DT + 1.58, .681, .685); }
   B(M.white, cx - .68, cx + .68, DT, DT + .04, 1.15, 1.5); B(M.white, cx + .92, cx + 1.12, DT, DT + .04, 1.2, 1.45); }
@@ -400,7 +403,7 @@ const BAY2 = (UP[1] + UP[2] + UT) / 2, BAY3 = (UP[2] + UP[3] + UT) / 2;
 opt('singer', 'desk', () => { sewing(BAY3, DT, 1.05); monitors(BAY2); });     // computer in the middle, Singer on the right
 opt('singer', 'center', () => { sewing(BAY2, DT, 1.35); monitors(BAY3); });   // Singer in the middle, computer on the right
 opt('singer', 'left', () => { const BAY1 = (UP[0] + UP[1] + UT) / 2; sewing(BAY1, DT, 1.35); monitors(BAY2);   // Singer on the left, computer in the middle, cutting mat on the right
-  B(STD({ color: 0x2f6b4f, roughness: .8 }), BAY3 - 1.3, BAY3 + 1.3, DT, DT + .01, .4, 2.0); B(STD({ color: 0x8c3a2f, roughness: 1 }), BAY3 - .6, BAY3 + .6, DT + .01, DT + .06, 1.0, 1.7); deskLamp(UP[3] - .45, DT, .6, -2.4); });
+  B(STD({ color: 0x2f6b4f, roughness: .8 }), BAY3 - 1.3, BAY3 + 1.3, DT, DT + .01, .4, 2.0); B(STD({ color: 0x8c3a2f, roughness: 1 }), BAY3 - .6, BAY3 + .6, DT + .01, DT + .06, 1.0, 1.7); });
 toggles.singer.desk.position.x = toggles.singer.center.position.x = toggles.singer.left.position.x = DESK_SHIFT; jar(9.0, DT, .45); jar(9.3, DT, .4, .3); 
 var CHAIRS_R = new THREE.Group(), CHAIRS_L = new THREE.Group(); deskG.add(CHAIRS_R, CHAIRS_L); { const t0 = cur; cur = CHAIRS_R; plyChair(6.61, 1.75, 0); plyChair(10.25, 1.75, 0); cur = CHAIRS_L; plyChair(2.98, 1.75, 0); plyChair(6.61, 1.75, 0); cur = t0; }   // two chairs, under whichever bays you use   // the only two chairs, pushed in
 // shelf contents: bay 1 (by the window) sewing + plants, bay 2 cameras + DeWalt, bay 3 motorcycle tools; books only on the top shelf
@@ -442,14 +445,34 @@ opt('singer', 'table', () => { const mg = new THREE.Group(); mg.position.x = DES
   B(leg, x1 + .1, x2 - .1, .45, .55, z1 + .1, z1 + .2, g); B(leg, x1 + .1, x1 + .2, .45, .55, z1 + .1, z2 - .1, g); B(leg, x2 - .2, x2 - .1, .45, .55, z1 + .1, z2 - .1, g);
   const ped = RB(M.black, -.35, .15, 0, .22, z2 - .85, z2 - .2, .05, g); ped.rotation.x = -.12; rodM(V(.6, t - .15, .5), V(-.1, .2, z2 - .5), .012, M.black, g);   // foot pedal + cord
   const tmp = cur; cur = g; sewing(-.3, t, .95); deskLamp(1.6, t, .45, -2.0); spools(-1.85, -1.1, t, .35); cur = tmp; });
-// ---- platform bed (A): 18" platform, cubbies under the front, drawers on the side, step ----
-{ const PH = 1.5, X0 = 13.95, Z1 = 8.4;   // platform flush with the mattress on the desk side, out to the edge of the entry wall (a bench to put shoes on), drawers along the front
-  P(X0, 19, PH - 0.08, PH, 0, Z1); P(X0, X0 + 0.08, 0, PH - 0.08, 0.01, Z1); P(X0, 19, 0, PH - 0.08, Z1 - 0.08, Z1);
-  for (const x of [15.2, 16.45, 17.7]) gap(x - 0.01, x + 0.01, 0.1, PH - 0.15, Z1, Z1 + 0.005);
-  for (const x of [14.57, 15.82, 17.07, 18.35]) gap(x - 0.22, x + 0.22, PH - 0.4, PH - 0.3, Z1, Z1 + 0.005);
-  mattress(13.95, 18.9, PH, 0.15, 6.82);
-  P(12.95, 13.85, 0, 1.9, 0.1, 1.3, cur, true); P(12.97, 13.83, 1.0, 1.06, 0.15, 1.25);   // nightstand between the desk and the bed
-  deskLamp(13.2, 1.9, 0.5, -0.6); stack(13.45, 1.9, 1.0, 2, .5, .4);
+// ---- platform bed (A): 18" platform from the desk's end panel to the wall; mattress deck lifts on gas struts (storage under the bed); separate lift-lid chest at the foot ----
+var BED_DECK, CHEST_LID;
+{ const PH = 1.5, XD = DX2 + DESK_SHIFT, X0 = 13.95, X2 = 19, ZC = 6.9, Z1 = 8.4;   // XD = desk end panel; mattress X0–X2; chest ZC–Z1
+  const T = .0625;
+  // carcass: outer side against the desk, inner rail under the mattress edge, divider between bed and chest, chest front + back-of-chest
+  P(XD, XD + T, 0, PH, 0, Z1); P(X0 - T, X0, 0, PH - .08, 0, ZC); P(XD, X2, 0, PH - .08, ZC - T, ZC); P(XD, X2, 0, PH, Z1 - T, Z1);
+  P(XD + T, X0 - T, 0, .06, 0, ZC - T); P(X0, X2, 0, .06, 0, ZC - T); P(XD + T, X2, 0, .06, ZC, Z1 - T);   // bottoms
+  P(XD, X0, PH - .08, PH, 0, ZC - T);   // bedside ledge between the desk and the mattress (fixed top)
+  // under the bed: bins, suitcases, vacuum bags (reached by lifting the mattress deck)
+  { const t0 = cur; bin(14.2, 15.6, .06, .3, 1.6, .9); bin(14.2, 15.6, .06, 1.8, 3.1, .9); RB(DGR, 15.9, 18.6, .06, .8, .4, 2.0, .08); RB(STD({ color: 0x6e7f8c, roughness: .5 }), 15.9, 18.6, .06, .7, 2.3, 4.0, .08);
+    for (const z of [4.4, 5.5]) RB(STD({ color: 0xd8d2c4, roughness: 1 }), 14.3, 18.6, .06, .5, z, z + .95, .2); cur = t0; }
+  // mattress deck: hinged at the head, lifts from the foot
+  BED_DECK = new THREE.Group(); BED_DECK.position.set(0, PH, 0); cur.add(BED_DECK);
+  { const t0 = cur; cur = BED_DECK; P(X0, X2, -.08, 0, 0, ZC - T); P(X0 + .2, X2 - .2, -.2, -.08, ZC - .3, ZC - .2 - T);   // deck + stiffener / finger pull at the foot
+    mattress(X0, 18.9, 0, .15, 6.82); cur = t0; }
+  opt('bedstore', 'closed', () => {});
+  opt('bedstore', 'open', () => { for (const x of [X0 + .15, X2 - .15]) rodM(V(x, .3, 1.2), V(x, PH + 1.8, 3.55), .025, M.steel); });   // gas struts
+  // chest at the foot: its own box, two lids that lift up (shoe bench when closed)
+  const XM = (XD + X2) / 2;
+  P(XM - T / 2, XM + T / 2, .06, PH - .08, ZC, Z1 - T);   // middle divider
+  { const t0 = cur; const shoe = (x, z, c) => RB(STD({ color: c, roughness: .7 }), x, x + .35, .06, .4, z, z + .95, .1);
+    [[XD + .2, 0x1e1e1e], [XD + .65, 0xe9e6df], [XD + 1.15, 0x6b4a2f], [XD + 1.6, 0x1e1e1e], [XD + 2.05, 0x9a9a96]].forEach(([x, c]) => shoe(x, ZC + .2, c));
+    for (let i = 0; i < 3; i++) RB(STD({ color: [0x8a5a44, 0xcfc6b2, 0x45576b][i], roughness: 1 }), XM + .15, X2 - .15, .06 + i * .32, .36 + i * .32, ZC + .15, Z1 - .2, .1); cur = t0; }   // blankets
+  CHEST_LID = [];
+  for (const [a, b] of [[XD, XM - .005], [XM + .005, X2]]) { const g = new THREE.Group(); g.position.set(0, PH, ZC); cur.add(g);
+    P(a, b, -.08, 0, 0, Z1 - ZC, g); B(M.black, (a + b) / 2 - .3, (a + b) / 2 + .3, -.06, -.02, Z1 - ZC - .01, Z1 - ZC + .02, g); CHEST_LID.push(g); }   // lid + finger-pull lip
+  gap(XD, X2, PH - .01, PH + .002, ZC - .01, ZC + .01);   // seam between the bed and the chest
+  deskLamp(13.15, PH, 0.5, -0.6); stack(13.4, PH, 1.1, 2, .5, .4);   // lamp + books right on the ledge
 }
 
 // ---- above the bed (head on the east wall, mattress X 13.95–18.9) ----
@@ -719,7 +742,7 @@ for (const [zc, w, h, y] of [[4.78, 5.75, 3.9, 4.95], [15.4, 3.6, 3.9, 4.95], [1
 // evening-only lamps
 const EVE = [], GLOW = STD({ color: 0xffffff, emissive: 0xffd9a8, emissiveIntensity: 0, roughness: .6 });
 for (const [x, z] of [[17.4, 10.0], [11.0, 16.2], [3.2, 19.0]]) { const d = mesh(new THREE.SphereGeometry(.42, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), GLOW, false, false); d.scale.y = .35; d.rotation.x = Math.PI; d.position.set(x, H, z); scene.add(d); }   // flush ceiling fixtures
-for (const [x, y, z, I] of [[17.4, 7.5, 10.0, 22], [11.0, 7.5, 16.2, 15], [3.2, 7.5, 19.0, 22], [13.6, 3.25, .8, 12]]) { const L = new THREE.PointLight(0xffc690, 0, 0, 2); L.position.set(x, y, z); scene.add(L); EVE.push([L, I]); }   // ceiling: by the mirror, hallway, kitchen; bed lamp
+for (const [x, y, z, I] of [[17.4, 7.5, 10.0, 22], [11.0, 7.5, 16.2, 15], [3.2, 7.5, 19.0, 22], [13.6, 2.85, .8, 12]]) { const L = new THREE.PointLight(0xffc690, 0, 0, 2); L.position.set(x, y, z); scene.add(L); EVE.push([L, I]); }   // ceiling: by the mirror, hallway, kitchen; bed lamp
 function setTime(k) { const day = k === 'day';
   SKY.forEach(L => L.intensity = day ? 0.7 : 0); WINLIGHTS.forEach(a => a.intensity = day ? 7 : 0.05); hemi.intensity = day ? 0.3 : 0.05;   // day: window light + shelf LEDs only, falls off into the room
   scene.environment = null; NIGHT.value = day ? 0 : 1; GLOW.emissiveIntensity = day ? 0 : 2.4; CANDLES.forEach(L => L.intensity = day ? 0 : 4);
@@ -753,17 +776,19 @@ const pick = (keys, def) => keys.find(k => params.includes(k)) || def;
 const state = {
   view: pick(Object.keys(VIEWS), 'overview'), stain: 'honey', screen: 'up',
   singer: 'left', closet: 'open', wall: pick(['photos', 'mirror', 'print', 'nowall'], 'vision').replace('nowall', 'none'), above: pick(['shelf', 'frames', 'pegs', 'noabove'], 'print').replace('noabove', 'none'),
-  legs: 'ends', table: pick(['fold', 'nook', 'none'], 'foldwall'), hallcloset: 'open', shelflights: 'bottom',
+  legs: 'ends', bedstore: params.includes('open') ? 'open' : 'closed', table: pick(['fold', 'nook', 'none'], 'foldwall'), hallcloset: 'open', shelflights: 'bottom',
   time: params.includes('evening') ? 'evening' : 'day' };
 const CHOICES = {
   table: { nook: 'Foldout, folded in hall nook', foldwall: 'Foldout, folded on wall', fold: 'Foldout, open', none: 'No table' },
   wall: { none: 'Nothing', vision: 'Vision board', print: 'One print', photos: 'Photo wall', mirror: 'Mirror' },
+  bedstore: { closed: 'Closed', open: 'Lifted + chest open' },
   above: { none: 'Nothing', print: 'One print', frames: 'Three frames', shelf: 'Floating shelf', pegs: 'Peg rail' }, time: { day: 'Daytime', evening: 'Evening' } };
-const LABEL = { bedbase: 'Bed base', shelflights: 'Shelf LEDs', hallcloset: 'Hall closet', singer: 'Singer', table: 'Middle', screen: 'Backdrop', closet: 'Closet', wall: 'Wall', above: 'Above bed', time: 'Light' };
+const LABEL = { bedstore: 'Bed storage', bedbase: 'Bed base', shelflights: 'Shelf LEDs', hallcloset: 'Hall closet', singer: 'Singer', table: 'Middle', screen: 'Backdrop', closet: 'Closet', wall: 'Wall', above: 'Above bed', time: 'Light' };
 function apply() {
   BAY1_STUFF.visible = CHAIRS_R.visible = state.singer !== 'left'; CHAIRS_L.visible = state.singer === 'left';
   if (state.screen === 'sweep') state.table = 'none';   // shoot day: table out of the way
   for (const [name, opts] of Object.entries(toggles)) for (const [k, g] of Object.entries(opts)) g.visible = state[name] === k;
+  { const o = state.bedstore === 'open'; BED_DECK.rotation.x = o ? -.55 : 0; BED_DECK.position.z = o ? .45 : 0; CHEST_LID.forEach((g, i) => g.rotation.x = o && i === 0 ? -1.5 : 0); }
   setStain(state.stain); setTime(state.time); renderer.shadowMap.needsUpdate = true; dirty();
   document.querySelectorAll('.row button[data-g]').forEach(b => b.setAttribute('aria-pressed', state[b.dataset.g] === b.dataset.k));
 }
@@ -782,12 +807,13 @@ function walkOK(x, z) { const inR = ([a, b, c, d]) => x > a && x < b && z > c &&
 const WALK_START = [16.6, 9.8, Math.PI / 2 - 0.35];
 function groundAt(x, z) { const r = .3;   // bed platform 18", mattress on top ~27"
   if (x > 13.95 - r && x < 18.9 + r && z > .15 - r && z < 6.82 + r) return 2.25;
-  if (x > 13.95 - r && x < 19 && z > -1 && z < 8.4 + r) return 1.5; return 0; }
+  if (x > 12.83 - r && x < 19 && z > -1 && z < 8.4 + r) return 1.5; return 0; }
 // ---------- walk mode: WASD / arrows to move, drag to look, Shift to run (needs walkOK(x, z) + WALK_START) ----------
-var walk = { on: false, yaw: 0, pitch: 0, keys: new Set(), drag: null, eye: 5.4, y: 0, vy: 0 };   // Space jumps, C crouches
+const joyEl = document.getElementById('joy'), joyKnob = joyEl.firstElementChild, JOY_R = 50;
+var walk = { joy: null, on: false, yaw: 0, pitch: 0, keys: new Set(), drag: null, eye: 5.4, y: 0, vy: 0 };   // Space jumps, C crouches
 const EYE = 5.4, MOVEKEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
 function setWalk(on) {
-  walk.on = on; controls.enabled = !on; walk.keys.clear(); const d = new THREE.Vector3(); camera.getWorldDirection(d);
+  walk.on = on; controls.enabled = !on; walk.keys.clear(); walk.joy = walk.drag = null; joyEl.style.display = 'none'; const d = new THREE.Vector3(); camera.getWorldDirection(d);
   if (on) { walk.yaw = Math.atan2(-d.x, -d.z); walk.pitch = 0; let x = camera.position.x, z = camera.position.z;
     if (camera.position.y > H - .3 || !walkOK(x, z)) [x, z, walk.yaw] = WALK_START;
     walk.eye = EYE; walk.y = groundAt(x, z); walk.vy = 0; walk.grounded = true; camera.position.set(x, EYE, z); camera.fov = 70; camera.updateProjectionMatrix(); }
@@ -802,10 +828,18 @@ addEventListener('keydown', e => { if (e.metaKey || e.ctrlKey || e.altKey) retur
   if (MOVEKEYS.includes(k)) { e.preventDefault(); if (!walk.on) setWalk(true); walk.keys.add(k); } });
 addEventListener('keyup', e => walk.keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => walk.keys.clear());
-canvas.addEventListener('pointerdown', e => { if (!walk.on) return; walk.drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointermove', e => { if (!walk.on || !walk.drag) return;
-  walk.yaw -= (e.clientX - walk.drag.x) * 0.004; walk.pitch = Math.max(-1.2, Math.min(1.2, walk.pitch - (e.clientY - walk.drag.y) * 0.004)); walk.drag = { x: e.clientX, y: e.clientY }; dirty(); });
-const endDrag = () => walk.drag = null; canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+// mobile: a touch in the bottom third becomes a floating joystick (appears where you touch, gone on release); other touches still look around
+canvas.addEventListener('pointerdown', e => { if (!walk.on) return;
+  if (e.pointerType === 'touch' && !walk.joy && e.clientY > innerHeight * 2 / 3) { walk.joy = { id: e.pointerId, x0: e.clientX, y0: e.clientY, f: 0, st: 0 };
+    joyEl.style.left = e.clientX + 'px'; joyEl.style.top = e.clientY + 'px'; joyKnob.style.transform = ''; joyEl.style.display = 'block'; try { canvas.setPointerCapture(e.pointerId); } catch (_) {} return; }
+  if (walk.drag) return; walk.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; try { canvas.setPointerCapture(e.pointerId); } catch (_) {} });
+canvas.addEventListener('pointermove', e => { if (!walk.on) return;
+  if (walk.joy && e.pointerId === walk.joy.id) { let dx = e.clientX - walk.joy.x0, dy = e.clientY - walk.joy.y0; const d = Math.hypot(dx, dy); if (d > JOY_R) { dx *= JOY_R / d; dy *= JOY_R / d; }
+    joyKnob.style.transform = `translate(${dx}px,${dy}px)`; const m = Math.min(1, d / JOY_R), dz = m < .15 ? 0 : (m - .15) / .85 / (m || 1);   // small dead zone
+    walk.joy.f = -dy / JOY_R * dz; walk.joy.st = dx / JOY_R * dz; dirty(); return; }
+  if (!walk.drag || e.pointerId !== walk.drag.id) return;
+  walk.yaw -= (e.clientX - walk.drag.x) * 0.004; walk.pitch = Math.max(-1.2, Math.min(1.2, walk.pitch - (e.clientY - walk.drag.y) * 0.004)); walk.drag.x = e.clientX; walk.drag.y = e.clientY; dirty(); });
+const endDrag = e => { if (walk.joy && e.pointerId === walk.joy.id) { walk.joy = null; joyEl.style.display = 'none'; } else if (walk.drag && e.pointerId === walk.drag.id) walk.drag = null; }; canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('wheel', e => { if (!walk.on) return; e.preventDefault(); camera.fov = Math.max(35, Math.min(95, camera.fov * Math.exp(e.deltaY * 0.001))); camera.updateProjectionMatrix(); dirty(); }, { passive: false });
 function walkStep(dt) { const k = walk.keys, crouch = k.has('shift') || k.has('c'), sp = (crouch ? 3.2 : 6.5) * dt; let moved = false;   // Shift (or C) crouches
   const eye0 = walk.eye; walk.eye += ((crouch ? 3.0 : EYE) - walk.eye) * Math.min(1, dt * 12); if (Math.abs(walk.eye - eye0) > 1e-4) moved = true;   // crouch: eye drops to 3 ft
@@ -813,7 +847,9 @@ function walkStep(dt) { const k = walk.keys, crouch = k.has('shift') || k.has('c
   if (walk.y > gnd || walk.vy > 0) { walk.vy -= 32 * dt; walk.y += walk.vy * dt; walk.grounded = false; if (walk.y <= gnd) { walk.y = gnd; walk.vy = 0; walk.grounded = true; } moved = true; }   // jump: ~1.9 ft up
   else { walk.y = gnd; walk.grounded = true; }
   camera.position.y = Math.min(H - .25, walk.eye + walk.y);
-  const f = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0), st = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
+  let f = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0);
+  let st = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
+  const j = walk.joy || { f: 0, st: 0 }; f = Math.max(-1, Math.min(1, f + j.f)); st = Math.max(-1, Math.min(1, st + j.st));
   if (!f && !st) return moved;
   const fx = -Math.sin(walk.yaw), fz = -Math.cos(walk.yaw), rx = Math.cos(walk.yaw), rz = -Math.sin(walk.yaw), dx = (fx * f + rx * st) * sp, dz = (fz * f + rz * st) * sp, p = camera.position;
   const can = (x, z) => walkOK(x, z) && groundAt(x, z) <= walk.y + 0.6;   // step up 7" without jumping, more needs a jump
